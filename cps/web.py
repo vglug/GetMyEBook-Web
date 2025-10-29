@@ -23,6 +23,7 @@ import json
 import mimetypes
 import chardet  # dependency of requests
 import copy
+import random
 
 from flask import Blueprint, jsonify
 from flask import request, redirect, send_from_directory, make_response, flash, abort, url_for, Response
@@ -60,6 +61,8 @@ from . import limiter
 from .services.worker import WorkerThread
 from .tasks_status import render_task_status
 from .usermanagement import user_login_required
+from .string_helper import strip_whitespaces
+from urllib.parse import quote , unquote
 
 
 feature_support = {
@@ -1278,6 +1281,7 @@ def register_post():
     if not config.config_public_reg:
         abort(404)
     to_save = request.form.to_dict()
+    log.info(f"User register send datas : {to_save}")
     try:
         limiter.check()
     except RateLimitExceeded:
@@ -1292,42 +1296,54 @@ def register_post():
     if not config.get_mail_server_configured():
         flash(_("Oops! Email server is not configured, please contact your administrator."), category="error")
         return render_title_template('register.html', title=_("Register"), page="register")
-    nickname = to_save.get("email", "").strip() if config.config_register_email else to_save.get('name')
+    nickname = strip_whitespaces(to_save.get("email", "")) if config.config_register_email else to_save.get('name')
     if not nickname or not to_save.get("email"):
         flash(_("Oops! Please complete all fields."), category="error")
         return render_title_template('register.html', title=_("Register"), page="register")
+    
+    # register new adding fields (username, email, password, confirm-password)
     try:
-        nickname = check_username(nickname)
-        email = check_email(to_save.get("email", ""))
+        username = to_save.get("username", "").strip()
+        nickname = check_username(username)   # your own validation function
+        
+        userpassword = to_save.get("password", "")
+        confirm_userpassword = to_save.get("confirm_password", "")
+
+        if not userpassword or not confirm_userpassword:
+            flash("Password fields cannot be empty.", category="error")
+            return render_title_template('register.html', title="Register", page="register")
+        
+        if userpassword != confirm_userpassword:
+            flash("Passwords do not match.", category="error")
+            return render_title_template('register.html', title="Register", page="register")
+
+        email = check_email(to_save.get("email", "").strip())
+        
+        # ✅ Generate OTP
+        otp_code = str(random.randint(100000, 999999))
+
+        log.info(f"Send Otp : {otp_code}")
+
+         # ✅ Store pending user in session (temp storage before OTP verification)
+        flask_session['pending_user'] = {
+            "username": nickname,
+            "email": email,
+            "password": generate_password_hash(userpassword),
+            "otp": otp_code
+        }
+        # ✅ Send OTP mail
+        send_registration_mail(
+            e_mail=email,
+            user_name=nickname,
+            default_password=userpassword,
+            send_otp=otp_code
+        )
     except Exception as ex:
         flash(str(ex), category="error")
         return render_title_template('register.html', title=_("Register"), page="register")
 
-    content = ub.User()
-    if check_valid_domain(email):
-        content.name = nickname
-        content.email = email
-        password = generate_random_password(config.config_password_min_length)
-        content.password = generate_password_hash(password)
-        content.role = config.config_default_role
-        content.locale = config.config_default_locale
-        content.sidebar_view = config.config_default_show
-        try:
-            ub.session.add(content)
-            ub.session.commit()
-            if feature_support['oauth']:
-                register_user_with_oauth(content)
-            send_registration_mail(to_save.get("email", "").strip(), nickname, password)
-        except Exception:
-            ub.session.rollback()
-            flash(_("Oops! An unknown error occurred. Please try again later."), category="error")
-            return render_title_template('register.html', title=_("Register"), page="register")
-    else:
-        flash(_("Oops! Your Email is not allowed."), category="error")
-        log.warning('Registering failed for user "{}" Email: {}'.format(nickname, to_save.get("email","")))
-        return render_title_template('register.html', title=_("Register"), page="register")
-    flash(_("Success! Confirmation Email has been sent."), category="success")
-    return redirect(url_for('web.login'))
+    # ✅ Redirect to OTP verification page
+    return redirect(url_for('web.verify_otp',email=quote(email)))
 
 
 @web.route('/register', methods=['GET'])
@@ -1363,6 +1379,54 @@ def render_login(username="", password=""):
                                  password=password,
                                  oauth_check=oauth_check,
                                  mail=config.get_mail_server_configured(), page="login")
+
+
+@web.route('/verify-otp/<email>', methods=['GET', 'POST'], endpoint="verify_otp")
+def verify_otp(email):
+    log.info(f"called verify otp {request.method}")
+    email = unquote(email) # decode back to normal
+    if request.method == 'GET':
+        return render_title_template('verify_otp.html', title="Verify OTP",email=email)
+
+    # ---------------- POST ----------------
+    user_otp = ''.join([
+        (request.form.get(f'otp{i}') or '') for i in range(1, 7)
+    ]).strip()
+    pending = flask_session.get("pending_user")
+
+    if not pending:
+        flash("No registration in progress.", "error")
+        return redirect(url_for('web.register'))
+
+    if user_otp == pending["otp"]:
+        # ✅ Save user to DB only after OTP is correct
+        content = ub.User()
+        content.name = pending["username"]
+        content.email = pending["email"]
+        content.password = pending["password"]
+        content.role = config.config_default_role
+        content.locale = config.config_default_locale
+        content.sidebar_view = config.config_default_show
+        try:
+            ub.session.add(content)
+            ub.session.commit()
+            if feature_support.get("oauth"):  # safe dict access
+                register_user_with_oauth(content)
+
+        except Exception:
+            ub.session.rollback()
+            flash(_("Oops! An unknown error occurred. Please try again later."), "error")
+            return render_title_template('verify_otp.html', title="Verify OTP",email=email)
+
+        flask_session.pop("pending_user", None)  # cleanup safely
+        flash('OTP verified successfully!', 'success')
+        flash("Account created successfully. Please login.", "success")
+        return redirect(url_for('web.login'))
+
+    else:
+        flash("Invalid OTP. Please try again.", "error")
+        return render_title_template('verify_otp.html', title="Verify OTP",email=email)
+
 
 
 @web.route('/login', methods=['GET'])

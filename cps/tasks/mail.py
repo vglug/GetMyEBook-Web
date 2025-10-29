@@ -109,13 +109,14 @@ class EmailSSL(EmailBase, smtplib.SMTP_SSL):
 
 
 class TaskEmail(CalibreTask):
-    def __init__(self, subject, filepath, attachment, settings, recipient, task_message, text, id=0, internal=False):
+    def __init__(self, subject, filepath, attachment, settings, recipient, task_message, text, html=None, id=0, internal=False):
         super(TaskEmail, self).__init__(task_message)
         self.subject = subject
         self.attachment = attachment
         self.settings = settings
         self.filepath = filepath
         self.recipient = recipient
+        self.html = html
         self.text = text
         self.asyncSMTP = None
         self.book_id = id
@@ -143,6 +144,12 @@ class TaskEmail(CalibreTask):
         message['Date'] = formatdate(localtime=True)
         message['Message-Id'] = "{}@{}".format(uuid.uuid4(), self.get_msgid_domain())
         message.set_content(self.text.encode('UTF-8'), "text", "plain")
+        
+        # ✅ Add plain + html
+
+        if self.html:
+            message.add_alternative(self.html, subtype="html", charset="utf-8")
+
         if self.attachment:
             data = self._get_attachment(self.filepath, self.attachment)
             if data:

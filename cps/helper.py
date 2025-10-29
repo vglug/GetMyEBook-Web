@@ -41,6 +41,7 @@ from werkzeug.datastructures import Headers
 from werkzeug.security import generate_password_hash
 from markupsafe import escape
 from urllib.parse import quote
+from flask import render_template
 
 try:
     import advocate
@@ -126,7 +127,7 @@ def send_test_mail(ereader_mail, user_name):
 
 
 # Send registration email or password reset email, depending on parameter resend (False means welcome email)
-def send_registration_mail(e_mail, user_name, default_password, resend=False):
+def send_registration_mail(e_mail, user_name, default_password, send_otp, resend=False):
     txt = "Hi %s!\r\n" % user_name
     if not resend:
         txt += "Your account at Calibre-Web has been created.\r\n"
@@ -136,6 +137,13 @@ def send_registration_mail(e_mail, user_name, default_password, resend=False):
     txt += "Don't forget to change your password after your first login.\r\n"
     txt += "Regards,\r\n\r\n"
     txt += "Calibre-Web"
+
+    html = render_template("sendMailui.html",
+                           USER=user_name,
+                           OTP=send_otp,
+                           VERIFY_URL="https://getmyebook.in/",
+                           EXPIRY_MIN=5)
+
     WorkerThread.add(None, TaskEmail(
         subject=_('Get Started with Calibre-Web'),
         filepath=None,
@@ -143,7 +151,8 @@ def send_registration_mail(e_mail, user_name, default_password, resend=False):
         settings=config.get_mail_settings(),
         recipient=e_mail,
         task_message=N_("Registration Email for user: %(name)s", name=user_name),
-        text=txt
+        text=txt,
+        html = html
     ))
     return
 

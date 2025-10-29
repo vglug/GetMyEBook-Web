@@ -1,0 +1,39 @@
+{% extends "layout.html" %}
+{% block body %}
+<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#f5f5f5;font-family:Inter,system-ui,Arial;">
+  <div style="background:#fff;padding:32px;border-radius:8px;width:360px;box-shadow:0 4px 12px rgba(0,0,0,0.15);text-align:center;">
+    <div style="font-weight:700;margin-bottom:12px;font-size:20px;color:#4f46e5;">✨ GetMyEbook</div>
+    <h1 style="margin-bottom:10px;font-size:22px;color:#111827;">Verify OTP</h1>
+    <p style="margin:0 0 20px 0;color:#6b7280;font-size:14px;">
+      An OTP has been sent to <strong>{{ email }}</strong>. Please enter it below:
+    </p>
+
+    <form method="POST" action="{{ url_for('web.verify_otp',email=email) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="otp-inputs" style="display:flex;justify-content:space-between;margin:20px 0;">
+        {% for i in range(1,7) %}
+          <input type="text" name="otp{{i}}" maxlength="1" pattern="\d" required 
+                 style="width:40px;height:48px;border-radius:6px;border:1px solid #d1d5db;background:#f9fafb;color:#111827;font-size:20px;text-align:center;outline:none;">
+        {% endfor %}
+      </div>
+      <button type="submit" style="width:100%;padding:12px 14px;border-radius:6px;border:none;background:#4f46e5;color:white;font-weight:600;cursor:pointer;font-size:14px;transition:transform 0.15s ease;">Verify</button>
+    </form>
+
+    <div style="font-size:12px;color:#6b7280;margin-top:12px;">
+      Didn’t get the email? <a href="#" style="color:#4f46e5;text-decoration:none;">Resend OTP</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  const inputs = document.querySelectorAll('.otp-inputs input');
+  inputs.forEach((input, i) => {
+    input.addEventListener('input', () => {
+      if (input.value && i < inputs.length - 1) inputs[i + 1].focus();
+    });
+    input.addEventListener('keydown', e => {
+      if (e.key === "Backspace" && !input.value && i > 0) inputs[i - 1].focus();
+    });
+  });
+</script>
+{% endblock %}
