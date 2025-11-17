@@ -68,10 +68,8 @@ feature_support = {
     'oauth': True  # Always True since we're using Authlib
 }
 
-
 try:
-    import rarfile  # pylint: disable=unused-import
-
+    #import rarfile  # pylint: disable=unused-import
     feature_support['rar'] = True
 except (ImportError, SyntaxError):
     feature_support['rar'] = False
@@ -85,30 +83,19 @@ except ImportError as err:
 
 admi = Blueprint('admin', __name__)
 
-
 def admin_required(f):
     """
     Checks if current_user.role == 1
     """
-
     @wraps(f)
     def inner(*args, **kwargs):
         if current_user.role_admin():
             return f(*args, **kwargs)
         abort(403)
-
     return inner
-
 
 @admi.before_app_request
 def before_request():
-    #try:
-        #if not ub.check_user_session(current_user.id,
-        #                             flask_session.get('_id')) and 'opds' not in request.path \
-        #  and config.config_session == 1:
-        #    logout_user()
-    #except AttributeError:
-    #    pass    # ? fails on requesting /ajax/emailstat during restart ?
     g.constants = constants
     g.google_site_verification = os.getenv('GOOGLE_SITE_VERIFICATION', '')
     g.allow_registration = config.config_public_reg
@@ -126,13 +113,6 @@ def before_request():
                                  'admin.load_dialogtexts',
                                  'admin.ajax_pathchooser'):
         return redirect(url_for('admin.db_configuration'))
-
-
-#@admi.route("/admin")
-#@user_login_required
-#def admin_forbidden():
-#    abort(403)
-
 
 @admi.route("/shutdown", methods=["POST"])
 @user_login_required
@@ -162,7 +142,6 @@ def shutdown():
     show_text['text'] = _('Unknown command')
     return json.dumps(show_text), 400
 
-
 @admi.route("/metadata_backup", methods=["POST"])
 @user_login_required
 @admin_required
@@ -172,7 +151,6 @@ def queue_metadata_backup():
     helper.set_all_metadata_dirty()
     show_text['text'] = _('Success! Books queued for Metadata Backup, please check Tasks for result')
     return json.dumps(show_text)
-
 
 # method is available without login and not protected by CSRF to make it easy reachable, is per default switched off
 # needed for docker applications, as changes on metadata.db from host are not visible to application
@@ -185,7 +163,6 @@ def reconnect():
         log.debug("'/reconnect' was accessed but is not enabled")
         abort(404)
 
-
 @admi.route("/ajax/updateThumbnails", methods=['POST'])
 @admin_required
 @user_login_required
@@ -195,7 +172,6 @@ def update_thumbnails():
         log.info("Update of Cover cache requested")
         helper.update_thumbnail_cache()
     return ""
-
 
 @admi.route("/admin/view")
 @user_login_required
@@ -207,7 +183,6 @@ def admin():
     else:
         if 'datetime' in version:
             commit = version['datetime']
-
             tz = timedelta(seconds=time.timezone if (time.localtime().tm_isdst == 0) else time.altzone)
             form_date = datetime.strptime(commit[:19], "%Y-%m-%dT%H:%M:%S")
             if len(commit) > 19:  # check if string has timezone
@@ -220,7 +195,6 @@ def admin():
             commit = version['version'].replace("b", " Beta")
 
     all_user = ub.session.query(ub.User).all()
-    # email_settings = mail_config.get_mail_settings()
     schedule_time = format_time(datetime_time(hour=config.schedule_start_time), format="short")
     t = timedelta(hours=config.schedule_duration // 60, minutes=config.schedule_duration % 60)
     schedule_duration = format_timedelta(t, threshold=.99)
@@ -230,15 +204,14 @@ def admin():
                                  schedule_duration=schedule_duration,
                                  title=_("Admin page"), page="admin")
 
-
 @admi.route("/admin/dbconfig", methods=["GET", "POST"])
 @user_login_required
 @admin_required
 def db_configuration():
     if request.method == "POST":
+        log.info(f"/admin/dbconfig post method ==> working !!!  and request data :{request.form.to_dict()}")
         return _db_configuration_update_helper()
     return _db_configuration_result()
-
 
 @admi.route("/admin/config", methods=["GET"])
 @user_login_required
@@ -252,13 +225,11 @@ def configuration():
                                  feature_support=feature_support,
                                  title=_("Basic Configuration"), page="config")
 
-
 @admi.route("/admin/ajaxconfig", methods=["POST"])
 @user_login_required
 @admin_required
 def ajax_config():
     return _configuration_update_helper()
-
 
 @admi.route("/admin/ajaxdbconfig", methods=["POST"])
 @user_login_required
@@ -266,13 +237,11 @@ def ajax_config():
 def ajax_db_config():
     return _db_configuration_update_helper()
 
-
 @admi.route("/admin/alive", methods=["GET"])
 @user_login_required
 @admin_required
 def calibreweb_alive():
     return "", 200
-
 
 @admi.route("/admin/viewconfig")
 @user_login_required
@@ -289,7 +258,6 @@ def view_configuration():
                                  languages=languages,
                                  translations=translations,
                                  title=_("UI Configuration"), page="uiconfig")
-
 
 @admi.route("/admin/usertable")
 @user_login_required
@@ -324,7 +292,6 @@ def edit_user_table():
                                  sidebar_settings=constants.sidebar_settings,
                                  title=_("Edit Users"),
                                  page="usertable")
-
 
 @admi.route("/ajax/listusers")
 @user_login_required
@@ -376,7 +343,6 @@ def list_users():
     response.headers["Content-Type"] = "application/json; charset=utf-8"
     return response
 
-
 @admi.route("/ajax/deleteuser", methods=['POST'])
 @user_login_required
 @admin_required
@@ -411,7 +377,6 @@ def delete_user():
     success.extend(errors)
     return Response(json.dumps(success), mimetype='application/json')
 
-
 @admi.route("/ajax/getlocale")
 @user_login_required
 @admin_required
@@ -423,7 +388,6 @@ def table_get_locale():
         ret.append({'value': str(loc), 'text': loc.get_language_name(current_locale)})
     return json.dumps(ret)
 
-
 @admi.route("/ajax/getdefaultlanguage")
 @user_login_required
 @admin_required
@@ -434,7 +398,6 @@ def table_get_default_lang():
     for lang in languages:
         ret.append({'value': lang.lang_code, 'text': lang.name})
     return json.dumps(ret)
-
 
 @admi.route("/ajax/editlistusers/<param>", methods=['POST'])
 @user_login_required
@@ -540,7 +503,6 @@ def edit_list_user(param):
     ub.session_commit()
     return ""
 
-
 @admi.route("/ajax/user_table_settings", methods=['POST'])
 @user_login_required
 @admin_required
@@ -556,7 +518,6 @@ def update_table_settings():
         log.error("Invalid request received: {}".format(request))
         return "Invalid request", 400
     return ""
-
 
 @admi.route("/admin/viewconfig", methods=["POST"])
 @user_login_required
@@ -602,7 +563,6 @@ def update_view_configuration():
 
     return view_configuration()
 
-
 @admi.route("/ajax/loaddialogtexts/<element_id>", methods=['POST'])
 @user_login_required
 def load_dialogtexts(element_id):
@@ -638,20 +598,14 @@ def load_dialogtexts(element_id):
                           "to force a full sync with your Kobo Reader?")
     return json.dumps(texts)
 
-
 @admi.route("/ajax/editdomain/<int:allow>", methods=['POST'])
 @user_login_required
 @admin_required
 def edit_domain(allow):
-    # POST /post
-    # name:  'username',  //name of field (column in db)
-    # pk:    1            //primary key (record id)
-    # value: 'superuser!' //new value
     vals = request.form.to_dict()
     answer = ub.session.query(ub.Registration).filter(ub.Registration.id == vals['pk']).first()
     answer.domain = vals['value'].replace('*', '%').replace('?', '_').lower()
     return ub.session_commit("Registering Domains edited {}".format(answer.domain))
-
 
 @admi.route("/ajax/adddomain/<int:allow>", methods=['POST'])
 @user_login_required
@@ -665,7 +619,6 @@ def add_domain(allow):
         ub.session.add(new_domain)
         ub.session_commit("Registering Domains added {}".format(domain_name))
     return ""
-
 
 @admi.route("/ajax/deletedomain", methods=['POST'])
 @user_login_required
@@ -684,7 +637,6 @@ def delete_domain():
         pass
     return ""
 
-
 @admi.route("/ajax/domainlist/<int:allow>")
 @user_login_required
 @admin_required
@@ -695,7 +647,6 @@ def list_domain(allow):
     response = make_response(js.replace("'", '"'))
     response.headers["Content-Type"] = "application/json; charset=utf-8"
     return response
-
 
 @admi.route("/ajax/editrestriction/<int:res_type>", defaults={"user_id": 0}, methods=['POST'])
 @admi.route("/ajax/editrestriction/<int:res_type>/<int:user_id>", methods=['POST'])
@@ -763,13 +714,11 @@ def edit_restriction(res_type, user_id):
             ub.session_commit("Changed denied columns of user {} to {}".format(usr.name, usr.denied_column_value))
     return ""
 
-
 @admi.route("/ajax/addrestriction/<int:res_type>", methods=['POST'])
 @user_login_required
 @admin_required
 def add_user_0_restriction(res_type):
     return add_restriction(res_type, 0)
-
 
 @admi.route("/ajax/addrestriction/<int:res_type>/<int:user_id>", methods=['POST'])
 @user_login_required
@@ -816,13 +765,11 @@ def add_restriction(res_type, user_id):
                                                                                usr.list_denied_column_values()))
     return ""
 
-
 @admi.route("/ajax/deleterestriction/<int:res_type>", methods=['POST'])
 @user_login_required
 @admin_required
 def delete_user_0_restriction(res_type):
     return delete_restriction(res_type, 0)
-
 
 @admi.route("/ajax/deleterestriction/<int:res_type>/<int:user_id>", methods=['POST'])
 @user_login_required
@@ -870,7 +817,6 @@ def delete_restriction(res_type, user_id):
                                                                              usr.list_denied_column_values()))
     return ""
 
-
 @admi.route("/ajax/listrestriction/<int:res_type>", defaults={"user_id": 0})
 @admi.route("/ajax/listrestriction/<int:res_type>/<int:user_id>")
 @user_login_required
@@ -915,12 +861,10 @@ def list_restriction(res_type, user_id):
     response.headers["Content-Type"] = "application/json; charset=utf-8"
     return response
 
-
 @admi.route("/ajax/fullsync", methods=["POST"])
 @user_login_required
 def ajax_self_fullsync():
     return do_full_kobo_sync(current_user.id)
-
 
 @admi.route("/ajax/fullsync/<int:userid>", methods=["POST"])
 @user_login_required
@@ -928,20 +872,17 @@ def ajax_self_fullsync():
 def ajax_fullsync(userid):
     return do_full_kobo_sync(userid)
 
-
 @admi.route("/ajax/pathchooser/")
 @user_login_required
 @admin_required
 def ajax_pathchooser():
     return pathchooser()
 
-
 def do_full_kobo_sync(userid):
     count = ub.session.query(ub.KoboSyncedBooks).filter(userid == ub.KoboSyncedBooks.user_id).delete()
     message = _("{} sync entries deleted").format(count)
     ub.session_commit(message)
     return Response(json.dumps([{"type": "success", "message": message}]), mimetype='application/json')
-
 
 def check_valid_read_column(column):
     if column != "0":
@@ -950,14 +891,12 @@ def check_valid_read_column(column):
             return False
     return True
 
-
 def check_valid_restricted_column(column):
     if column != "0":
         if not calibre_db.session.query(db.CustomColumns).filter(db.CustomColumns.id == column) \
           .filter(and_(db.CustomColumns.datatype == 'text', db.CustomColumns.mark_for_delete == 0)).all():
             return False
     return True
-
 
 def restriction_addition(element, list_func):
     elementlist = list_func()
@@ -967,13 +906,11 @@ def restriction_addition(element, list_func):
         elementlist += [element['add_element']]
     return ','.join(elementlist)
 
-
 def restriction_deletion(element, list_func):
     elementlist = list_func()
     if element['Element'] in elementlist:
         elementlist.remove(element['Element'])
     return ','.join(elementlist)
-
 
 def prepare_tags(user, action, tags_name, id_list):
     if "tags" in tags_name:
@@ -994,7 +931,6 @@ def prepare_tags(user, action, tags_name, id_list):
         raise Exception(_("Invalid Action"))
     return ",".join(saved_tags_list)
 
-
 def get_drives(current):
     drive_letters = []
     for d in string.ascii_uppercase:
@@ -1003,7 +939,6 @@ def get_drives(current):
             data = {"name": drive, "fullpath": drive, "type": "dir", "size": "", "sort": "_" + drive.lower()}
             drive_letters.append(data)
     return drive_letters
-
 
 def pathchooser():
     browse_for = "folder"
@@ -1087,22 +1022,17 @@ def pathchooser():
     }
     return json.dumps(context)
 
-
 def _config_int(to_save, x, func=int):
     return config.set_from_dictionary(to_save, x, func)
-
 
 def _config_checkbox(to_save, x):
     return config.set_from_dictionary(to_save, x, lambda y: y == "on", False)
 
-
 def _config_checkbox_int(to_save, x):
     return config.set_from_dictionary(to_save, x, lambda y: 1 if (y == "on") else 0, 0)
 
-
 def _config_string(to_save, x):
     return config.set_from_dictionary(to_save, x, lambda y: y.strip().strip(u'\u200B\u200C\u200D\ufeff') if y else y)
-
 
 def _configuration_gdrive_helper(to_save):
     gdrive_error = None
@@ -1133,7 +1063,6 @@ def _configuration_gdrive_helper(to_save):
     if _config_string(to_save, "config_google_drive_folder"):
         gdriveutils.deleteDatabaseOnChange()
     return gdrive_error
-
 
 # Update the OAuth configuration helper
 def _configuration_oauth_helper(to_save):
@@ -1175,7 +1104,6 @@ def _configuration_logfile_helper(to_save):
         return reboot_required, \
                _configuration_result(_('Access Logfile Location is not Valid, Please Enter Correct Path'))
     return reboot_required, None
-
 
 def _configuration_ldap_helper(to_save):
     reboot_required = False
@@ -1249,14 +1177,12 @@ def _configuration_ldap_helper(to_save):
                                            'Please Enter Correct Path'))
     return reboot_required, None
 
-
 @admi.route("/ajax/simulatedbchange", methods=['POST'])
 @user_login_required
 @admin_required
 def simulatedbchange():
     db_change, db_valid = _db_simulate_change()
     return Response(json.dumps({"change": db_change, "valid": db_valid}), mimetype='application/json')
-
 
 @admi.route("/admin/user/new", methods=["GET", "POST"])
 @user_login_required
@@ -1279,7 +1205,6 @@ def new_user():
                                  languages=languages, title=_("Add New User"), page="newuser",
                                  kobo_support=kobo_support, registered_oauth=oauth_check)
 
-
 @admi.route("/admin/mailsettings", methods=["GET"])
 @user_login_required
 @admin_required
@@ -1287,7 +1212,6 @@ def edit_mailsettings():
     content = config.get_mail_settings()
     return render_title_template("email_edit.html", content=content, title=_("Edit Email Server Settings"),
                                  page="mailset", feature_support=feature_support)
-
 
 @admi.route("/admin/mailsettings", methods=["POST"])
 @user_login_required
@@ -1345,7 +1269,6 @@ def update_mailsettings():
 
     return edit_mailsettings()
 
-
 @admi.route("/admin/scheduledtasks")
 @user_login_required
 @admin_required
@@ -1365,7 +1288,6 @@ def edit_scheduledtasks():
                                  starttime=time_field,
                                  duration=duration_field,
                                  title=_("Edit Scheduled Tasks Settings"))
-
 
 @admi.route("/admin/scheduledtasks", methods=["POST"])
 @user_login_required
@@ -1409,7 +1331,6 @@ def update_scheduledtasks():
 
     return edit_scheduledtasks()
 
-
 @admi.route("/admin/user/<int:user_id>", methods=["GET", "POST"])
 @user_login_required
 @admin_required
@@ -1438,7 +1359,6 @@ def edit_user(user_id):
                                  title=_("Edit User %(nick)s", nick=content.name),
                                  page="edituser")
 
-
 @admi.route("/admin/resetpassword/<int:user_id>", methods=["POST"])
 @user_login_required
 @admin_required
@@ -1456,7 +1376,6 @@ def reset_user_password(user_id):
             flash(_("Oops! Please configure the SMTP mail settings."), category="error")
     return redirect(url_for('admin.admin'))
 
-
 @admi.route("/admin/logfile")
 @user_login_required
 @admin_required
@@ -1469,7 +1388,6 @@ def view_logfile():
                                  log_enable=bool(config.config_logfile != logger.LOG_TO_STDOUT),
                                  logfiles=logfiles,
                                  page="logfile")
-
 
 @admi.route("/ajax/log/<int:logtype>")
 @user_login_required
@@ -1486,7 +1404,6 @@ def send_logfile(logtype):
     else:
         return ""
 
-
 @admi.route("/admin/logdownload/<int:logtype>")
 @user_login_required
 @admin_required
@@ -1501,13 +1418,11 @@ def download_log(logtype):
         return debug_info.assemble_logfiles(file_name)
     abort(404)
 
-
 @admi.route("/admin/debug")
 @user_login_required
 @admin_required
 def download_debug():
     return debug_info.send_debug()
-
 
 @admi.route("/get_update_status", methods=['GET'])
 @user_login_required
@@ -1518,7 +1433,6 @@ def get_update_status():
         return updater_thread.get_available_updates(request.method)
     else:
         return ''
-
 
 @admi.route("/get_updater_status", methods=['GET', 'POST'])
 @user_login_required
@@ -1558,7 +1472,6 @@ def get_updater_status():
         return json.dumps(status)
     return ''
 
-
 def ldap_import_create_user(user, user_data):
     user_login_field = extract_dynamic_field_from_filter(user, config.config_ldap_user_object)
 
@@ -1571,7 +1484,6 @@ def ldap_import_create_user(user, user_data):
 
     # check for duplicate username
     if ub.session.query(ub.User).filter(func.lower(ub.User.name) == username.lower()).first():
-        # if ub.session.query(ub.User).filter(ub.User.name == username).first():
         log.warning("LDAP User  %s Already in Database", user_data)
         return 0, None
 
@@ -1580,7 +1492,6 @@ def ldap_import_create_user(user, user_data):
         useremail = user_data['mail'][0].decode('utf-8')
         if len(user_data['mail']) > 1:
             ereader_mail = user_data['mail'][1].decode('utf-8')
-
     else:
         log.debug('No Mail Field Found in LDAP Response')
         useremail = username + '@email.com'
@@ -1613,7 +1524,6 @@ def ldap_import_create_user(user, user_data):
         ub.session.rollback()
         message = _(u'Failed to Create at Least One LDAP User')
         return 0, message
-
 
 @admi.route('/import_ldap_users', methods=["POST"])
 @user_login_required
@@ -1669,7 +1579,6 @@ def import_ldap_users():
         showtext['text'] = _(u'{} User Successfully Imported'.format(imported))
     return json.dumps(showtext)
 
-
 @admi.route("/ajax/canceltask", methods=['POST'])
 @user_login_required
 @admin_required
@@ -1679,78 +1588,78 @@ def cancel_task():
     worker.end_task(task_id)
     return ""
 
-
 def _db_simulate_change():
     param = request.form.to_dict()
     to_save = dict()
-    to_save['config_calibre_dir'] = re.sub(r'[\\/]metadata\.db$',
-                                           '',
-                                           param['config_calibre_dir'],
-                                           flags=re.IGNORECASE).strip()
-    db_valid, db_change = calibre_db.check_valid_db(to_save["config_calibre_dir"],
-                                                    ub.app_DB_path,
-                                                    config.config_calibre_uuid)
-    db_change = bool(db_change and config.config_calibre_dir)
+    # For PostgreSQL, we don't use file paths for database configuration
+    # The config_calibre_dir parameter is kept for compatibility but not used for PostgreSQL connections
+    to_save['config_calibre_dir'] = param.get('config_calibre_dir', '').strip()
+    
+    # For PostgreSQL, database validation is done via connection testing
+    # rather than file existence checks
+    db_valid = calibre_db.check_valid_db(to_save["config_calibre_dir"],
+                                        ub.app_DB_path,
+                                        config.config_calibre_uuid)
+    
+    log.info(f"PostgreSQL database validation: {db_valid}")
+    
+    # For PostgreSQL, we always consider the database as changed since we're using connection-based validation
+    db_change = True
+    
     return db_change, db_valid
-
 
 def _db_configuration_update_helper():
     db_change = False
     to_save = request.form.to_dict()
     gdrive_error = None
+    log.info(f"Database configuration update request: {to_save}")
 
-    to_save['config_calibre_dir'] = re.sub(r'[\\/]metadata\.db$',
-                                           '',
-                                           to_save['config_calibre_dir'],
-                                           flags=re.IGNORECASE)
+    # For PostgreSQL, database configuration is handled via environment variables
+    # The config_calibre_dir parameter is kept for compatibility
+    to_save['config_calibre_dir'] = to_save.get('config_calibre_dir', '').strip()
+    
     db_valid = False
     try:
+        # For PostgreSQL, database validation is connection-based
         db_change, db_valid = _db_simulate_change()
 
-        # gdrive_error drive setup
+        # Google Drive setup
         gdrive_error = _configuration_gdrive_helper(to_save)
     except (OperationalError, InvalidRequestError) as e:
         ub.session.rollback()
         log.error_or_exception("Settings Database error: {}".format(e))
         _db_configuration_result(_("Oops! Database Error: %(error)s.", error=e.orig), gdrive_error)
-    try:
-        metadata_db = os.path.join(to_save['config_calibre_dir'], "metadata.db")
-        if config.config_use_google_drive and is_gdrive_ready() and not os.path.exists(metadata_db):
-            gdriveutils.downloadFile(None, "metadata.db", metadata_db)
-            db_change = True
-    except Exception as ex:
-        return _db_configuration_result('{}'.format(ex), gdrive_error)
-
-    if db_change or not db_valid or not config.db_configured \
-      or config.config_calibre_dir != to_save["config_calibre_dir"]:
-        if not os.path.exists(metadata_db) or not to_save['config_calibre_dir']:
-            return _db_configuration_result(_('DB Location is not Valid, Please Enter Correct Path'), gdrive_error)
-        else:
-            calibre_db.setup_db(to_save['config_calibre_dir'], ub.app_DB_path)
-        config.store_calibre_uuid(calibre_db, db.Library_Id)
-        # if db changed -> delete shelfs, delete download books, delete read books, kobo sync...
-        if db_change:
-            log.info("Calibre Database changed, all Calibre-Web info related to old Database gets deleted")
-            ub.session.query(ub.Downloads).delete()
-            ub.session.query(ub.ArchivedBook).delete()
-            ub.session.query(ub.ReadBook).delete()
-            ub.session.query(ub.BookShelf).delete()
-            ub.session.query(ub.Bookmark).delete()
-            ub.session.query(ub.KoboReadingState).delete()
-            ub.session.query(ub.KoboStatistics).delete()
-            ub.session.query(ub.KoboSyncedBooks).delete()
-            helper.delete_thumbnail_cache()
-            ub.session_commit()
-        _config_string(to_save, "config_calibre_dir")
-        calibre_db.update_config(config)
-        if not os.access(os.path.join(config.config_calibre_dir, "metadata.db"), os.W_OK):
-            flash(_("DB is not Writeable"), category="warning")
+    
+    # For PostgreSQL, we always attempt to setup the database connection
+    # since we're using environment variables for configuration
+    if not db_valid or not config.db_configured:
+        log.info("Setting up PostgreSQL database connection")
+        calibre_db.setup_db(to_save['config_calibre_dir'], ub.app_DB_path)
+        
+    config.store_calibre_uuid(calibre_db, db.Library_Id)
+    
+    # If database changed -> delete shelfs, delete download books, delete read books, kobo sync...
+    if db_change:
+        log.info("Calibre Database changed, all Calibre-Web info related to old Database gets deleted")
+        ub.session.query(ub.Downloads).delete()
+        ub.session.query(ub.ArchivedBook).delete()
+        ub.session.query(ub.ReadBook).delete()
+        ub.session.query(ub.BookShelf).delete()
+        ub.session.query(ub.Bookmark).delete()
+        ub.session.query(ub.KoboReadingState).delete()
+        ub.session.query(ub.KoboStatistics).delete()
+        ub.session.query(ub.KoboSyncedBooks).delete()
+        helper.delete_thumbnail_cache()
+        ub.session_commit()
+    
+    _config_string(to_save, "config_calibre_dir")
+    calibre_db.update_config(config)
+    
     _config_string(to_save, "config_calibre_split_dir")
     config.config_calibre_split = to_save.get('config_calibre_split', 0) == "on"
     calibre_db.update_config(config)
     config.save()
     return _db_configuration_result(None, gdrive_error)
-
 
 def _configuration_update_helper():
     reboot_required = False
@@ -1782,7 +1691,6 @@ def _configuration_update_helper():
             to_save["config_upload_formats"] = ','.join(
                 helper.uniq([x.lstrip().rstrip().lower() for x in to_save["config_upload_formats"].split(',')]))
             _config_string(to_save, "config_upload_formats")
-            # constants.EXTENSIONS_UPLOAD = config.config_upload_formats.split(',')
 
         _config_string(to_save, "config_calibre")
         _config_string(to_save, "config_binariesdir")
@@ -1865,7 +1773,6 @@ def _configuration_update_helper():
 
     return _configuration_result(None, reboot_required)
 
-
 def _configuration_result(error_flash=None, reboot=False):
     resp = {}
     if error_flash:
@@ -1878,8 +1785,8 @@ def _configuration_result(error_flash=None, reboot=False):
     resp['config_upload'] = config.config_upload_formats
     return Response(json.dumps(resp), mimetype='application/json')
 
-
 def _db_configuration_result(error_flash=None, gdrive_error=None):
+    
     gdrive_authenticate = not is_gdrive_ready()
     gdrivefolders = []
     if not gdrive_error and config.config_use_google_drive:
@@ -1891,13 +1798,19 @@ def _db_configuration_result(error_flash=None, gdrive_error=None):
     else:
         if not gdrive_authenticate and gdrive_support:
             gdrivefolders = gdriveutils.listRootFolders()
+
     if error_flash:
         log.error(error_flash)
         config.load()
         flash(error_flash, category="error")
     elif request.method == "POST" and not gdrive_error:
         flash(_("Database Settings updated"), category="success")
-
+    
+    # Log PostgreSQL configuration status
+    _log_postgresql_config_status()
+    
+    log.info(f"Database configuration - config: {config}, show_authenticate_google_drive: {gdrive_authenticate}, gdriveError: {gdrive_error}, feature_support: {feature_support}")
+    
     return render_title_template("config_db.html",
                                  config=config,
                                  show_authenticate_google_drive=gdrive_authenticate,
@@ -1906,6 +1819,32 @@ def _db_configuration_result(error_flash=None, gdrive_error=None):
                                  feature_support=feature_support,
                                  title=_("Database Configuration"), page="dbconfig")
 
+def _log_postgresql_config_status():
+    """Log PostgreSQL configuration status for admin debugging"""
+    from dotenv import load_dotenv
+    load_dotenv('/home/vasanth/GetMyEBook-Web/.env')
+    
+    db_user = os.getenv("DB_USERNAME")
+    db_host = os.getenv("DB_HOST")
+    db_port = os.getenv("DB_PORT")
+    db_name_app = os.getenv("DATABASENAME_APP")
+    db_name_calibre = os.getenv("DATABASENAME_CALIBRE")
+    
+    if all([db_user, db_host, db_port, db_name_app, db_name_calibre]):
+        log.info("PostgreSQL configuration detected via environment variables")
+        log.info(f"Database Host: {db_host}:{db_port}")
+        log.info(f"App Database: {db_name_app}")
+        log.info(f"Calibre Database: {db_name_calibre}")
+        log.info(f"Database configured: {config.db_configured}")
+    else:
+        log.warning("Incomplete PostgreSQL environment variables detected")
+        missing_vars = []
+        if not db_user: missing_vars.append("DB_USERNAME")
+        if not db_host: missing_vars.append("DB_HOST")
+        if not db_port: missing_vars.append("DB_PORT")
+        if not db_name_app: missing_vars.append("DATABASENAME_APP")
+        if not db_name_calibre: missing_vars.append("DATABASENAME_CALIBRE")
+        log.warning(f"Missing environment variables: {', '.join(missing_vars)}")
 
 def _handle_new_user(to_save, content, languages, translations, kobo_support):
     content.default_language = to_save["default_language"]
@@ -1957,7 +1896,6 @@ def _handle_new_user(to_save, content, languages, translations, kobo_support):
         log.error_or_exception("Settings Database error: {}".format(e))
         flash(_("Oops! Database Error: %(error)s.", error=e.orig), category="error")
 
-
 def _delete_user(content):
     if ub.session.query(ub.User).filter(
         ub.User.role.op('&')(constants.ROLE_ADMIN) == constants.ROLE_ADMIN,
@@ -1995,8 +1933,6 @@ def _delete_user(content):
             raise Exception(_("Can't delete Guest User"))
     else:
         raise Exception(_("No admin user remaining, can't delete user"))
-
-
 
 def _handle_edit_user(to_save, content, languages, translations, kobo_support):
     if to_save.get("delete"):
@@ -2087,7 +2023,6 @@ def _handle_edit_user(to_save, content, languages, translations, kobo_support):
         flash(_("Oops! Database Error: %(error)s.", error=e.orig), category="error")
     return ""
 
-
 def extract_user_data_from_field(user, field):
     match = re.search(field + r"=([@\.\d\s\w-]+)", user, re.IGNORECASE | re.UNICODE)
     if match:
@@ -2095,14 +2030,12 @@ def extract_user_data_from_field(user, field):
     else:
         raise Exception("Could Not Parse LDAP User: {}".format(user))
 
-
 def extract_dynamic_field_from_filter(user, filtr):
     match = re.search("([a-zA-Z0-9-]+)=%s", filtr, re.IGNORECASE | re.UNICODE)
     if match:
         return match.group(1)
     else:
         raise Exception("Could Not Parse LDAP Userfield: {}", user)
-
 
 def extract_user_identifier(user, filtr):
     dynamic_field = extract_dynamic_field_from_filter(user, filtr)

@@ -34,7 +34,6 @@ body {
 .logo {
     display: flex;
     align-items: center;
-    /* gap: 12px; */
     margin-bottom: 60px;
     font-size: 40px;
     font-weight: 600;
@@ -49,8 +48,10 @@ body {
     justify-content: center;
     position: relative;
 }
+
 .form-container {
     max-width: 400px;
+    width: 100%;
 }
 
 h1 {
@@ -95,7 +96,7 @@ input[type="password"]:focus,
 input[type="text"]:focus {
     outline: none;
     border-color: #303AB7;
-    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+    box-shadow: 0 0 0 3px rgba(48, 58, 183, 0.1);
 }
 
 .form-options {
@@ -103,6 +104,8 @@ input[type="text"]:focus {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 10px;
 }
 
 .checkbox-group {
@@ -154,7 +157,7 @@ input[type="checkbox"] {
 .btn-primary:hover {
     background: #303AB7;
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+    box-shadow: 0 4px 12px rgba(48, 58, 183, 0.3);
 }
 
 .btn-secondary {
@@ -199,7 +202,7 @@ input[type="checkbox"] {
 }
 
 .footer-link:hover {
-    color: #6d28d9;
+    color: #303AB7;
 }
 
 /* ========== RIGHT COLUMN - ILLUSTRATION ========== */
@@ -216,10 +219,33 @@ input[type="checkbox"] {
     overflow: hidden;
 }
 
-/* ========== RESPONSIVE ========== */
-@media (max-width: 968px) {
+/* ========== ENHANCED RESPONSIVE DESIGN ========== */
+
+/* Tablet Devices (769px - 968px) */
+@media (max-width: 968px) and (min-width: 769px) {
+    .left-column {
+        padding: 50px 60px;
+        max-width: 50%;
+        left: 0;
+    }
+    
+    .logo {
+        font-size: 36px;
+        margin-bottom: 50px;
+    }
+    
+    h1 {
+        font-size: 28px;
+    }
+}
+
+/* Mobile & Tablet (up to 768px) */
+@media (max-width: 768px) {
     .log-container {
         flex-direction: column;
+        height: auto;
+        min-height: 100vh;
+        overflow-y: auto;
     }
 
     .right-column {
@@ -228,6 +254,122 @@ input[type="checkbox"] {
 
     .left-column {
         max-width: 100%;
-        padding: 40px 30px;
+        padding: 40px 24px;
+        left: 0;
+        justify-content: flex-start;
+        min-height: 100vh;
+    }
+
+    .logo {
+        font-size: 32px;
+        margin-bottom: 40px;
+        justify-content: center;
+    }
+
+    .form-container {
+        max-width: 100%;
+    }
+
+    h1 {
+        font-size: 26px;
+        text-align: center;
+    }
+
+    .subtitle {
+        text-align: center;
+        font-size: 14px;
+    }
+
+    .form-options {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    .forgot-link {
+        align-self: flex-end;
+    }
+}
+
+/* Small Mobile Devices (up to 480px) */
+@media (max-width: 480px) {
+    .left-column {
+        padding: 30px 20px;
+    }
+
+    .logo {
+        font-size: 28px;
+        margin-bottom: 30px;
+    }
+
+    h1 {
+        font-size: 24px;
+    }
+
+    .subtitle {
+        font-size: 13px;
+        margin-bottom: 24px;
+    }
+
+    .form-group {
+        margin-bottom: 16px;
+    }
+
+    input[type="email"],
+    input[type="password"],
+    input[type="text"] {
+        padding: 10px 12px;
+        font-size: 14px;
+    }
+
+    .btn-primary,
+    .btn-secondary {
+        padding: 12px;
+        font-size: 14px;
+    }
+
+    .form-options {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .checkbox-group {
+        justify-content: flex-start;
+    }
+
+    .forgot-link {
+        align-self: center;
+        margin-top: 10px;
+    }
+}
+
+/* Large Desktop Screens (min-width: 1200px) */
+@media (min-width: 1200px) {
+    .left-column {
+        max-width: 40%;
+    }
+    
+    .form-container {
+        max-width: 450px;
+    }
+}
+
+/* Very Small Mobile Devices (up to 360px) */
+@media (max-width: 360px) {
+    .left-column {
+        padding: 20px 16px;
+    }
+
+    .logo {
+        font-size: 24px;
+        margin-bottom: 25px;
+    }
+
+    h1 {
+        font-size: 22px;
+    }
+
+    .footer-text {
+        font-size: 13px;
     }
 }

@@ -21,6 +21,7 @@ import sys
 import json
 
 from sqlalchemy import Column, String, Integer, SmallInteger, Boolean, BLOB, JSON
+from sqlalchemy.dialects.postgresql import BYTEA
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.sql.expression import text
 from sqlalchemy import exists
@@ -47,7 +48,7 @@ class _Flask_Settings(_Base):
     __tablename__ = 'flask_settings'
 
     id = Column(Integer, primary_key=True)
-    flask_session_key = Column(BLOB, default=b"")
+    flask_session_key = Column(BYTEA, default=b"")
 
     def __init__(self, key):
         super().__init__()
@@ -102,7 +103,7 @@ class _Settings(_Base):
     config_kobo_sync = Column(Boolean, default=False)
 
     config_default_role = Column(SmallInteger, default=0)
-    config_default_show = Column(SmallInteger, default=constants.ADMIN_USER_SIDEBAR)
+    config_default_show = Column(Integer, default=constants.ADMIN_USER_SIDEBAR)
     config_default_language = Column(String(3), default="all")
     config_default_locale = Column(String(2), default="en")
     config_columns_to_ignore = Column(String)
@@ -176,6 +177,16 @@ class _Settings(_Base):
     config_limiter_options = Column(String, default="")
     config_check_extensions = Column(Boolean, default=True)
 
+    # PostgreSQL Configuration Fields - ADD THESE
+    config_db_host = Column(String, default='localhost')
+    config_db_port = Column(String, default='5432')
+    config_db_name = Column(String, default='getmyebook_app')
+    config_db_user = Column(String, default='vasanth')
+    config_db_password_e = Column(String)
+    config_db_password = Column(String)
+    config_database_url = Column(String)
+    config_use_postgresql = Column(Boolean, default=False)
+
     def __repr__(self):
         return self.__class__.__name__
 
@@ -184,26 +195,6 @@ class _Settings(_Base):
 class ConfigSQL(object):
     # pylint: disable=no-member
     def __init__(self):
-        '''self.config_calibre_uuid = None
-        self.config_calibre_split_dir = None
-        self.dirty = None
-        self.config_logfile = None
-        self.config_upload_formats = None
-        self.mail_gmail_token = None
-        self.mail_server_type = None
-        self.mail_server = None
-        self.config_log_level = None
-        self.config_allowed_column_value = None
-        self.config_denied_column_value = None
-        self.config_allowed_tags = None
-        self.config_denied_tags = None
-        self.config_default_show = None
-        self.config_default_role = None
-        self.config_keyfile = None
-        self.config_certfile = None
-        self.config_rarfile_location = None
-        self.config_kepubifypath = None
-        self.config_binariesdir = None'''
         self.__dict__["dirty"] = list()
 
     def init_config(self, session, secret_key, cli):
@@ -229,6 +220,22 @@ class ConfigSQL(object):
         if self.config_rarfile_location is None:
             change = True
             self.config_rarfile_location = autodetect_unrar_binary()
+        
+        # Initialize PostgreSQL settings from environment variables if not set
+        if not self.config_use_postgresql and self._has_postgresql_env_vars():
+            change = True
+            self.config_use_postgresql = True
+            self.config_db_host = os.environ.get('DB_HOST', 'localhost')
+            self.config_db_port = os.environ.get('DB_PORT', '5432')
+            self.config_db_name = os.environ.get('DATABASENAME_APP', 'calibreweb')
+            self.config_db_user = os.environ.get('DB_USERNAME', 'calibreweb')
+            db_password = os.environ.get('DB_PASSWORD', '')
+            if db_password:
+                self.config_db_password = db_password
+            database_url = os.environ.get('DATABASE_URL')
+            if database_url:
+                self.config_database_url = database_url
+
         if change:
             self.save()
 
@@ -237,6 +244,20 @@ class ConfigSQL(object):
             log.debug("_ConfigSQL._read_from_storage")
             self._settings = self._session.query(_Settings).first()
         return self._settings
+    
+    def _has_postgresql_env_vars(self):
+        """Check if PostgreSQL environment variables are set"""
+        return bool(os.environ.get('DATABASE_URL') or 
+                   (os.environ.get('DB_HOST') and os.environ.get('DATABASENAME_APP')))
+
+    def get_postgresql_url(self):
+        """Get PostgreSQL connection URL"""
+        if self.config_database_url:
+            return self.config_database_url
+        elif self.config_db_host and self.config_db_name:
+            password = self.config_db_password or ''
+            return f"postgresql+psycopg2://{self.config_db_user}:{password.replace("@",'%40')}@{self.config_db_host}:{self.config_db_port}/{self.config_db_name}"
+        return None
 
     def get_config_certfile(self):
         if self.cli.certfilepath:
@@ -442,22 +463,26 @@ class ConfigSQL(object):
 
 def _encrypt_fields(session, secret_key):
     try:
-        session.query(exists().where(_Settings.mail_password_e)).scalar()
+        session.query(exists().where(_Settings.mail_password_e.isnot(None))).scalar()
+        # session.query(exists().where(_Settings.mail_password_e)).scalar()
     except OperationalError:
         with session.bind.connect() as conn:
             conn.execute(text("ALTER TABLE settings ADD column 'mail_password_e' String"))
             conn.execute(text("ALTER TABLE settings ADD column 'config_ldap_serv_password_e' String"))
+            conn.execute(text("ALTER TABLE settings ADD column 'config_db_password_e' String"))
         session.commit()
         crypter = Fernet(secret_key)
-        settings = session.query(_Settings.mail_password, _Settings.config_ldap_serv_password).first()
+        settings = session.query(_Settings.mail_password, _Settings.config_ldap_serv_password, _Settings.config_db_password).first()
         if settings.mail_password:
             session.query(_Settings).update(
                 {_Settings.mail_password_e: crypter.encrypt(settings.mail_password.encode())})
         if settings.config_ldap_serv_password:
             session.query(_Settings).update(
                 {_Settings.config_ldap_serv_password_e: crypter.encrypt(settings.config_ldap_serv_password.encode())})
+        if settings.config_db_password:
+            session.query(_Settings).update(
+                {_Settings.config_db_password_e: crypter.encrypt(settings.config_db_password.encode())})
         session.commit()
-
 
 def _migrate_table(session, orm_class, secret_key=None):
     if secret_key:
@@ -466,6 +491,12 @@ def _migrate_table(session, orm_class, secret_key=None):
 
     for column_name, column in orm_class.__dict__.items():
         if column_name[0] != '_':
+            # Skip checking PostgreSQL columns if they don't exist yet to avoid errors
+            if column_name in ['config_db_host', 'config_db_port', 'config_db_name', 'config_db_user', 
+                             'config_db_password_e', 'config_db_password', 'config_database_url', 
+                             'config_use_postgresql']:
+                continue
+                
             try:
                 session.query(column).first()
             except OperationalError as err:
@@ -497,7 +528,6 @@ def _migrate_table(session, orm_class, secret_key=None):
             session.commit()
         except OperationalError:
             session.rollback()
-
 
 def autodetect_calibre_binaries():
     if sys.platform == "win32":

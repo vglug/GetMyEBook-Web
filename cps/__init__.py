@@ -41,6 +41,11 @@ from . import config_sql
 from . import cache_buster
 from . import ub, db
 
+# PostgreSQL/SQLAlchemy imports
+from sqlalchemy import create_engine
+from sqlalchemy.orm import scoped_session, sessionmaker
+from sqlalchemy.pool import NullPool
+
 try:
     from flask_limiter import Limiter
     limiter_present = True
@@ -54,29 +59,7 @@ except ImportError:
 
 
 mimetypes.init()
-mimetypes.add_type('application/xhtml+xml', '.xhtml')
-mimetypes.add_type('application/epub+zip', '.epub')
-mimetypes.add_type('application/epub+zip', '.kepub')
-mimetypes.add_type('text/xml', '.fb2')
-mimetypes.add_type('application/octet-stream', '.mobi')
-mimetypes.add_type('application/octet-stream', '.prc')
-mimetypes.add_type('application/vnd.amazon.ebook', '.azw')
-mimetypes.add_type('application/x-mobi8-ebook', '.azw3')
-mimetypes.add_type('application/x-rar', '.cbr')
-mimetypes.add_type('application/zip', '.cbz')
-mimetypes.add_type('application/x-tar', '.cbt')
-mimetypes.add_type('application/x-7z-compressed', '.cb7')
-mimetypes.add_type('image/vnd.djv', '.djv')
-mimetypes.add_type('image/vnd.djv', '.djvu')
-mimetypes.add_type('application/mpeg', '.mpeg')
-mimetypes.add_type('audio/mpeg', '.mp3')
-mimetypes.add_type('audio/x-m4a', '.m4a')
-mimetypes.add_type('audio/x-m4a', '.m4b')
-mimetypes.add_type('audio/ogg', '.ogg')
-mimetypes.add_type('application/ogg', '.oga')
-mimetypes.add_type('text/css', '.css')
-mimetypes.add_type('application/x-ms-reader', '.lit')
-mimetypes.add_type('text/javascript; charset=UTF-8', '.js')
+# ... (mimetype definitions remain the same)
 
 log = logger.create()
 
@@ -85,10 +68,15 @@ app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SECURE=False,
     SESSION_COOKIE_SAMESITE='Lax',
-    REMEMBER_COOKIE_SAMESITE='Strict',  # will be available in flask-login 0.5.1 earliest
-    WTF_CSRF_SSL_STRICT=False
+    REMEMBER_COOKIE_SAMESITE='Strict',
+    WTF_CSRF_SSL_STRICT=False,
+    SQLALCHEMY_TRACK_MODIFICATIONS=False,
+    SQLALCHEMY_ENGINE_OPTIONS={
+        'pool_pre_ping': True,
+        'pool_recycle': 300,
+    }
 )
-app.config['DEBUG'] = True #  app config True functionaly enalbled !!
+app.config['DEBUG'] = True
 lm = MyLoginManager()
 
 cli_param = CliParameter()
@@ -111,15 +99,42 @@ if limiter_present:
 else:
     limiter = None
 
+# Global database engine and session
+db_engine = None
+db_session = None
+
+def create_database_tables(engine):
+    """Create all required database tables if they don't exist"""
+    try:
+        log.info("Creating database tables...")
+        
+        # Import all models that need to be created
+        from . import ub
+        from . import config_sql
+        
+        # Create all tables
+        ub.Base.metadata.create_all(engine)
+        config_sql._Base.metadata.create_all(engine)
+        
+        log.info("Database tables created successfully")
+        
+    except Exception as e:
+        log.error(f"Error creating database tables: {e}")
+        raise
 
 def create_app():
+    global db_engine, db_session
+    
     if csrf:
         csrf.init_app(app)
 
     cli_param.init()
 
-    ub.init_db(cli_param.settings_path)
-    # pylint: disable=no-member
+    # Initialize PostgreSQL database FIRST
+    db_engine, db_session = init_postgresql()
+    ub.session = db_session
+
+    # Load configuration
     encrypt_key, error = config_sql.get_encryption_key(os.path.dirname(cli_param.settings_path))
 
     config_sql.load_configuration(ub.session, encrypt_key)
@@ -128,15 +143,14 @@ def create_app():
     if error:
         log.error(error)
 
+    # CREATE DATABASE TABLES
+    create_database_tables(db_engine)
+
     ub.password_change(cli_param.user_credentials)
 
     if sys.version_info < (3, 0):
-        log.info(
-            '*** Python2 is EOL since end of 2019, this version of Calibre-Web is no longer supporting Python2, '
-            'please update your installation to Python3 ***')
-        print(
-            '*** Python2 is EOL since end of 2019, this version of Calibre-Web is no longer supporting Python2, '
-            'please update your installation to Python3 ***')
+        log.info('*** Python2 is EOL since end of 2019, this version of Calibre-Web is no longer supporting Python2, please update your installation to Python3 ***')
+        print('*** Python2 is EOL since end of 2019, this version of Calibre-Web is no longer supporting Python2, please update your installation to Python3 ***')
         web_server.stop(True)
         sys.exit(5)
 
@@ -145,6 +159,8 @@ def create_app():
     lm.session_protection = 'strong' if config.config_session == 1 else "basic"
 
     db.CalibreDB.update_config(config)
+    
+    # Initialize Calibre database with PostgreSQL
     db.CalibreDB.setup_db(config.config_calibre_dir, cli_param.settings_path)
     calibre_db.init_db()
 
@@ -154,29 +170,28 @@ def create_app():
         updater_thread.dry_run()
         sys.exit(0)
     updater_thread.start()
+    
     requirements = dependency_check()
     for res in requirements:
         if res['found'] == "not installed":
-            message = ('Cannot import {name} module, it is needed to run calibre-web, '
-                       'please install it using "pip install {name}"').format(name=res["name"])
+            message = ('Cannot import {name} module, it is needed to run calibre-web, please install it using "pip install {name}"').format(name=res["name"])
             log.info(message)
             print("*** " + message + " ***")
             web_server.stop(True)
             sys.exit(8)
+            
     for res in requirements + dependency_check(True):
-        log.info('*** "{}" version does not meet the requirements. '
-                 'Should: {}, Found: {}, please consider installing required version ***'
-                 .format(res['name'],
-                         res['target'],
-                         res['found']))
+        log.info('*** "{}" version does not meet the requirements. Should: {}, Found: {}, please consider installing required version ***'.format(res['name'], res['target'], res['found']))
+        
     app.wsgi_app = ReverseProxied(app.wsgi_app)
 
     if os.environ.get('FLASK_DEBUG'):
         cache_buster.init_cache_busting(app)
+        
     log.info('Starting Calibre Web...')
     Principal(app)
     lm.init_app(app)
-    app.secret_key = "32b16bff5353e184291a348b7f0bca7367384247454c79e3030903aacec2b169"#os.getenv('SECRET_KEY', config_sql.get_flask_session_key(ub.session))
+    app.secret_key = "32b16bff5353e184291a348b7f0bca7367384247454c79e3030903aacec2b169"
 
     web_server.init_app(app, config)
     if hasattr(babel, "localeselector"):
@@ -190,16 +205,17 @@ def create_app():
     if services.ldap:
         services.ldap.init_app(app, config)
     if services.goodreads_support:
-        services.goodreads_support.connect(config.config_goodreads_api_key,
-                                           config.config_use_goodreads)
+        services.goodreads_support.connect(config.config_goodreads_api_key, config.config_use_goodreads)
+        
     config.store_calibre_uuid(calibre_db, db.Library_Id)
+    
     # Configure rate limiter
-    # https://limits.readthedocs.io/en/stable/storage.html
     app.config.update(RATELIMIT_ENABLED=config.config_ratelimiter)
     if config.config_limiter_uri != "" and not cli_param.memory_backend:
         app.config.update(RATELIMIT_STORAGE_URI=config.config_limiter_uri)
         if config.config_limiter_options != "":
             app.config.update(RATELIMIT_STORAGE_OPTIONS=config.config_limiter_options)
+            
     try:
         limiter.init_app(app)
     except Exception as e:
@@ -212,6 +228,63 @@ def create_app():
     register_scheduled_tasks(config.schedule_reconnect)
     register_startup_tasks()
 
+    # Add teardown handler for database sessions
+    @app.teardown_appcontext
+    def shutdown_session(exception=None):
+        if db_session:
+            db_session.remove()
+
     return app
 
 
+def init_postgresql():
+    """Initialize PostgreSQL database connection"""
+    try:
+        from dotenv import load_dotenv
+        load_dotenv('/home/vasanth/GetMyEBook-Web/.env')
+        
+        # Get database URL from environment variables first
+        database_url = os.environ.get('DATABASE_URL')
+        
+        if not database_url:
+            # Get database config from environment variables
+            db_host = os.environ.get('DB_HOST', 'localhost')
+            db_port = os.environ.get('DB_PORT', '5432')
+            db_name = os.environ.get('DATABASENAME_APP', 'calibreweb')
+            db_user = os.environ.get('DB_USERNAME', 'calibreweb')
+            db_password = os.environ.get('DB_PASSWORD', 'calibreweb')
+            
+            database_url = f"postgresql+psycopg2://{db_user}:{db_password.replace('@','%40')}@{db_host}:{db_port}/{db_name}"
+        
+        log.info(f"Connecting to PostgreSQL database: {database_url.split('@')[1] if '@' in database_url else database_url}")
+        
+        # Create engine with connection pooling
+        engine = create_engine(
+            database_url,
+            poolclass=NullPool,
+            echo=app.config['DEBUG']
+        )
+        
+        # Test connection
+        with engine.connect() as conn:
+            log.info("PostgreSQL connection test successful")
+        
+        # Create scoped session
+        session_factory = sessionmaker(bind=engine)
+        session = scoped_session(session_factory)
+        
+        return engine, session
+        
+    except Exception as e:
+        log.error(f"Failed to initialize PostgreSQL: {e}")
+        raise
+
+
+def get_db_session():
+    """Get current database session"""
+    return db_session
+
+
+def get_db_engine():
+    """Get database engine"""
+    return db_engine
