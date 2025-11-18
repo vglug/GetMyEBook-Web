@@ -621,7 +621,10 @@ class CalibreDB:
                 log.error("Missing PostgreSQL environment variables")
                 return False, False
             
-            DATABASE_URL = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+            import urllib.parse
+            encoded_password = urllib.parse.quote_plus(DB_PASSWORD)
+
+            DATABASE_URL = f"postgresql+psycopg2://{DB_USER}:{encoded_password}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
             test_engine = create_engine(DATABASE_URL, echo=False)
             
             with test_engine.connect() as conn:
@@ -663,8 +666,11 @@ class CalibreDB:
                 log.error("Missing required PostgreSQL environment variables")
                 cls.config.invalidate("Missing PostgreSQL environment variables")
                 return None
-            
-            DATABASE_URL = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+            # Properly encode the password
+            import urllib.parse
+            encoded_password = urllib.parse.quote_plus(DB_PASSWORD)
+
+            DATABASE_URL = f"postgresql+psycopg2://{DB_USER}:{encoded_password}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
             
             cls.engine = create_engine(
                 DATABASE_URL,

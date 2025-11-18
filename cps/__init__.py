@@ -129,7 +129,7 @@ def create_app():
         csrf.init_app(app)
 
     cli_param.init()
-
+    ub.init_db()
     # Initialize PostgreSQL database FIRST
     db_engine, db_session = init_postgresql()
     ub.session = db_session
@@ -250,18 +250,23 @@ def init_postgresql():
             # Get database config from environment variables
             db_host = os.environ.get('DB_HOST', 'localhost')
             db_port = os.environ.get('DB_PORT', '5432')
-            db_name = os.environ.get('DATABASENAME_APP', 'calibreweb')
-            db_user = os.environ.get('DB_USERNAME', 'calibreweb')
-            db_password = os.environ.get('DB_PASSWORD', 'calibreweb')
-            
-            database_url = f"postgresql+psycopg2://{db_user}:{db_password.replace('@','%40')}@{db_host}:{db_port}/{db_name}"
+            db_name = os.environ.get('DATABASENAME_APP')
+            db_user = os.environ.get('DB_USERNAME')
+            db_password = os.environ.get('DB_PASSWORD')
+            # Properly encode the password for URL
+            import urllib.parse
+            encoded_password = urllib.parse.quote_plus(db_password)
+
+            database_url = f"postgresql+psycopg2://{db_user}:{encoded_password}@{db_host}:{db_port}/{db_name}"
         
         log.info(f"Connecting to PostgreSQL database: {database_url.split('@')[1] if '@' in database_url else database_url}")
         
         # Create engine with connection pooling
+         # Create engine with connection pooling
         engine = create_engine(
             database_url,
-            poolclass=NullPool,
+            pool_pre_ping=True,
+            pool_recycle=300,
             echo=app.config['DEBUG']
         )
         
@@ -277,7 +282,8 @@ def init_postgresql():
         
     except Exception as e:
         log.error(f"Failed to initialize PostgreSQL: {e}")
-        raise
+        return None, None
+
 
 
 def get_db_session():

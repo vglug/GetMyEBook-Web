@@ -686,7 +686,7 @@ def init_db_thread():
     Session.configure(bind=engine)
     return Session()
 
-def init_db(app_db_path):
+def init_db(app_db_path=None):
     global session
     global app_DB_path
 
@@ -717,6 +717,7 @@ def init_db(app_db_path):
 
     # Check if we need to create default users
     user_count = session.query(User).count()
+    log.info(f"User count is :{user_count}")
     if user_count == 0:
         create_admin_user(session)
         create_anonymous_user(session)

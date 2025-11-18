@@ -1608,58 +1608,337 @@ def _db_simulate_change():
     
     return db_change, db_valid
 
+# def _db_configuration_update_helper():
+#     db_change = False
+#     to_save = request.form.to_dict()
+#     gdrive_error = None
+#     log.info(f"Database configuration update request: {to_save}")
+
+#     # For PostgreSQL, database configuration is handled via environment variables
+#     # The config_calibre_dir parameter is kept for compatibility
+#     to_save['config_calibre_dir'] = to_save.get('config_calibre_dir', '').strip()
+    
+#     db_valid = False
+#     try:
+#         # For PostgreSQL, database validation is connection-based
+#         db_change, db_valid = _db_simulate_change()
+
+#         # Google Drive setup
+#         gdrive_error = _configuration_gdrive_helper(to_save)
+#     except (OperationalError, InvalidRequestError) as e:
+#         ub.session.rollback()
+#         log.error_or_exception("Settings Database error: {}".format(e))
+#         _db_configuration_result(_("Oops! Database Error: %(error)s.", error=e.orig), gdrive_error)
+    
+#     # For PostgreSQL, we always attempt to setup the database connection
+#     # since we're using environment variables for configuration
+#     if not db_valid or not config.db_configured:
+#         log.info("Setting up PostgreSQL database connection")
+#         calibre_db.setup_db(to_save['config_calibre_dir'], ub.app_DB_path)
+        
+#     config.store_calibre_uuid(calibre_db, db.Library_Id)
+    
+#     # If database changed -> delete shelfs, delete download books, delete read books, kobo sync...
+#     if db_change:
+#         log.info("Calibre Database changed, all Calibre-Web info related to old Database gets deleted")
+#         ub.session.query(ub.Downloads).delete()
+#         ub.session.query(ub.ArchivedBook).delete()
+#         ub.session.query(ub.ReadBook).delete()
+#         ub.session.query(ub.BookShelf).delete()
+#         ub.session.query(ub.Bookmark).delete()
+#         ub.session.query(ub.KoboReadingState).delete()
+#         ub.session.query(ub.KoboStatistics).delete()
+#         ub.session.query(ub.KoboSyncedBooks).delete()
+#         helper.delete_thumbnail_cache()
+#         ub.session_commit()
+    
+#     _config_string(to_save, "config_calibre_dir")
+#     calibre_db.update_config(config)
+    
+#     _config_string(to_save, "config_calibre_split_dir")
+#     config.config_calibre_split = to_save.get('config_calibre_split', 0) == "on"
+#     calibre_db.update_config(config)
+#     config.save()
+#     return _db_configuration_result(None, gdrive_error)
+
 def _db_configuration_update_helper():
     db_change = False
     to_save = request.form.to_dict()
     gdrive_error = None
-    log.info(f"Database configuration update request: {to_save}")
 
-    # For PostgreSQL, database configuration is handled via environment variables
-    # The config_calibre_dir parameter is kept for compatibility
-    to_save['config_calibre_dir'] = to_save.get('config_calibre_dir', '').strip()
+    # Clean up the calibre directory path
+    to_save['config_calibre_dir'] = re.sub(r'[\\/]metadata\.db$',
+                                           '',
+                                           to_save['config_calibre_dir'],
+                                           flags=re.IGNORECASE)
     
     db_valid = False
     try:
-        # For PostgreSQL, database validation is connection-based
         db_change, db_valid = _db_simulate_change()
-
-        # Google Drive setup
         gdrive_error = _configuration_gdrive_helper(to_save)
     except (OperationalError, InvalidRequestError) as e:
         ub.session.rollback()
         log.error_or_exception("Settings Database error: {}".format(e))
-        _db_configuration_result(_("Oops! Database Error: %(error)s.", error=e.orig), gdrive_error)
+        return _db_configuration_result(_("Oops! Database Error: %(error)s.", error=e.orig), gdrive_error)
     
-    # For PostgreSQL, we always attempt to setup the database connection
-    # since we're using environment variables for configuration
-    if not db_valid or not config.db_configured:
-        log.info("Setting up PostgreSQL database connection")
-        calibre_db.setup_db(to_save['config_calibre_dir'], ub.app_DB_path)
+    # Handle PostgreSQL migration for metadata if requested
+    migrate_to_postgres = to_save.get('migrate_to_postgresql') == 'on'
+    if config.config_use_postgresql and migrate_to_postgres:
+        try:
+            metadata_db_path = os.path.join(to_save['config_calibre_dir'], "metadata.db")
+            if not os.path.exists(metadata_db_path):
+                return _db_configuration_result(_('Metadata.db file not found at the specified location'), gdrive_error)
+            
+            postgres_url = get_postgres_metadata_url(config)
+            migrate_metadata_to_postgres(metadata_db_path, postgres_url)
+            flash(_("Metadata database migrated to PostgreSQL successfully"), category="success")
+            
+            # After migration, update the configuration to use PostgreSQL for metadata
+            config.config_use_postgresql_metadata = True
+            config.config_postgresql_metadata_url = postgres_url
+            
+        except Exception as e:
+            log.error(f"PostgreSQL migration failed: {e}")
+            return _db_configuration_result(_('PostgreSQL migration failed: %(error)s', error=str(e)), gdrive_error)
+
+    # Handle Google Drive metadata.db download if needed
+    try:
+        metadata_db = os.path.join(to_save['config_calibre_dir'], "metadata.db")
+        if config.config_use_google_drive and is_gdrive_ready() and not os.path.exists(metadata_db):
+            gdriveutils.downloadFile(None, "metadata.db", metadata_db)
+            db_change = True
+    except Exception as ex:
+        log.error(f"Google Drive download failed: {ex}")
+        return _db_configuration_result('{}'.format(ex), gdrive_error)
+    
+    # Handle split directory configuration
+    config.config_calibre_split = to_save.get('config_calibre_split', 'off') == "on"
+    if config.config_calibre_split:
+        split_dir = to_save.get("config_calibre_split_dir", "").strip()
+        if not split_dir or not os.path.exists(split_dir):
+            return _db_configuration_result(_("Books path is not valid or does not exist"), gdrive_error)
+        else:
+            _config_string(to_save, "config_calibre_split_dir")
+    
+    # Check if database configuration needs to be updated
+    metadata_db_path = os.path.join(to_save['config_calibre_dir'], "metadata.db")
+    needs_db_update = (db_change or 
+                      not db_valid or 
+                      not config.db_configured or 
+                      config.config_calibre_dir != to_save["config_calibre_dir"])
+    
+    if needs_db_update:
+        # Validate database location
+        if not to_save['config_calibre_dir'] or not os.path.exists(metadata_db_path):
+            return _db_configuration_result(_('Database location is not valid. Please enter correct path'), gdrive_error)
         
-    config.store_calibre_uuid(calibre_db, db.Library_Id)
+        # Setup database connection (PostgreSQL or SQLite)
+        if config.config_use_postgresql and config.config_use_postgresql_metadata:
+            # Use PostgreSQL for metadata
+            calibre_db.setup_db(None, ub.app_DB_path, use_postgresql=True)
+        else:
+            # Use SQLite for metadata (original behavior)
+            calibre_db.setup_db(to_save['config_calibre_dir'], ub.app_DB_path)
+        
+        # If database changed, perform cleanup operations
+        if db_change:
+            log.info("Calibre Database changed, cleaning up Calibre-Web related data")
+            
+            # Delete user data related to old database
+            try:
+                ub.session.query(ub.Downloads).delete()
+                ub.session.query(ub.ArchivedBook).delete()
+                ub.session.query(ub.ReadBook).delete()
+                ub.session.query(ub.BookShelf).delete()
+                ub.session.query(ub.Bookmark).delete()
+                ub.session.query(ub.KoboReadingState).delete()
+                ub.session.query(ub.KoboStatistics).delete()
+                ub.session.query(ub.KoboSyncedBooks).delete()
+                
+                # Clear thumbnail cache
+                helper.delete_thumbnail_cache()
+                
+                # Reset visibility settings
+                config.config_restricted_column = 0
+                config.config_denied_tags = ""
+                config.config_allowed_tags = ""
+                config.config_columns_to_ignore = ""
+                config.config_denied_column_value = ""
+                config.config_allowed_column_value = ""
+                config.config_read_column = 0
+                
+                ub.session_commit()
+                log.info("Database cleanup completed successfully")
+                
+            except Exception as cleanup_error:
+                log.error(f"Database cleanup failed: {cleanup_error}")
+                ub.session.rollback()
+                return _db_configuration_result(_('Database cleanup failed'), gdrive_error)
+        
+        # Update configuration with new database path
+        _config_string(to_save, "config_calibre_dir")
+        
+        # Update calibre database configuration
+        calibre_db.update_config(config, config.config_calibre_dir, ub.app_DB_path)
+        
+        # Store Calibre UUID
+        try:
+            config.store_calibre_uuid(calibre_db, db.Library_Id)
+        except Exception as uuid_error:
+            log.warning(f"Could not store Calibre UUID: {uuid_error}")
+        
+        # Check write permissions for SQLite database
+        if (not config.config_use_postgresql and 
+            not config.config_use_postgresql_metadata and 
+            not os.access(metadata_db_path, os.W_OK)):
+            flash(_("Database is not writeable"), category="warning")
     
-    # If database changed -> delete shelfs, delete download books, delete read books, kobo sync...
-    if db_change:
-        log.info("Calibre Database changed, all Calibre-Web info related to old Database gets deleted")
-        ub.session.query(ub.Downloads).delete()
-        ub.session.query(ub.ArchivedBook).delete()
-        ub.session.query(ub.ReadBook).delete()
-        ub.session.query(ub.BookShelf).delete()
-        ub.session.query(ub.Bookmark).delete()
-        ub.session.query(ub.KoboReadingState).delete()
-        ub.session.query(ub.KoboStatistics).delete()
-        ub.session.query(ub.KoboSyncedBooks).delete()
-        helper.delete_thumbnail_cache()
-        ub.session_commit()
+    # Final configuration updates
+    calibre_db.update_config(config, config.config_calibre_dir, ub.app_DB_path)
     
-    _config_string(to_save, "config_calibre_dir")
-    calibre_db.update_config(config)
+    # Save configuration
+    try:
+        config.save()
+        log.info("Database configuration saved successfully")
+    except Exception as save_error:
+        log.error(f"Failed to save configuration: {save_error}")
+        return _db_configuration_result(_('Failed to save configuration'), gdrive_error)
     
-    _config_string(to_save, "config_calibre_split_dir")
-    config.config_calibre_split = to_save.get('config_calibre_split', 0) == "on"
-    calibre_db.update_config(config)
-    config.save()
     return _db_configuration_result(None, gdrive_error)
+
+
+# Helper function for PostgreSQL metadata URL
+def get_postgres_metadata_url(config):
+    """Get PostgreSQL URL for metadata database"""
+    if config.config_database_url:
+        # Use the same database but different schema or same database
+        base_url = config.config_database_url
+        return base_url
+    else:
+        password = config.config_db_password or ''
+        escaped_password = password.replace('@', '%40')
+        return f"postgresql+psycopg2://{config.config_db_user}:{escaped_password}@{config.config_db_host}:{config.config_db_port}/{config.config_db_name}"
+
+
+# Migration function for metadata to PostgreSQL
+def migrate_metadata_to_postgres(sqlite_path, postgres_url):
+    """
+    Migrate Calibre metadata.db from SQLite to PostgreSQL
+    """
+    import sqlite3
+    from sqlalchemy import create_engine, text
+    
+    log.info(f"Starting migration from {sqlite_path} to PostgreSQL")
+    
+    try:
+        # Connect to SQLite database
+        sqlite_conn = sqlite3.connect(sqlite_path)
+        sqlite_conn.row_factory = sqlite3.Row
+        sqlite_cur = sqlite_conn.cursor()
+        
+        # Connect to PostgreSQL
+        postgres_engine = create_engine(postgres_url)
+        postgres_conn = postgres_engine.connect()
+        
+        # Begin transaction
+        transaction = postgres_conn.begin()
+        
+        try:
+            # Get all tables from SQLite
+            sqlite_cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';")
+            tables = [row[0] for row in sqlite_cur.fetchall()]
+            
+            log.info(f"Found tables to migrate: {tables}")
+            
+            for table in tables:
+                log.info(f"Migrating table: {table}")
+                
+                # Get table schema from SQLite
+                sqlite_cur.execute(f"PRAGMA table_info({table})")
+                columns = sqlite_cur.fetchall()
+                
+                # Drop table if exists in PostgreSQL (be careful with this in production)
+                postgres_conn.execute(text(f'DROP TABLE IF EXISTS "{table}" CASCADE'))
+                
+                # Create table in PostgreSQL
+                column_defs = []
+                for col in columns:
+                    col_name = col[1]
+                    col_type = col[2].upper()
+                    col_notnull = col[3]
+                    col_pk = col[5]
+                    
+                    # Map SQLite types to PostgreSQL types
+                    if 'INT' in col_type:
+                        pg_type = 'INTEGER'
+                    elif 'TEXT' in col_type or 'CHAR' in col_type or 'CLOB' in col_type:
+                        pg_type = 'TEXT'
+                    elif 'REAL' in col_type or 'FLOAT' in col_type or 'DOUBLE' in col_type:
+                        pg_type = 'REAL'
+                    elif 'BLOB' in col_type:
+                        pg_type = 'BYTEA'
+                    elif 'BOOL' in col_type or 'BOOLEAN' in col_type:
+                        pg_type = 'BOOLEAN'
+                    else:
+                        pg_type = 'TEXT'
+                    
+                    # Add PRIMARY KEY constraint
+                    if col_pk:
+                        pg_type += ' PRIMARY KEY'
+                    elif col_notnull:
+                        pg_type += ' NOT NULL'
+                    
+                    column_defs.append(f'"{col_name}" {pg_type}')
+                
+                create_table_sql = f'CREATE TABLE "{table}" ({", ".join(column_defs)})'
+                postgres_conn.execute(text(create_table_sql))
+                
+                # Copy data
+                sqlite_cur.execute(f'SELECT * FROM "{table}"')
+                rows = sqlite_cur.fetchall()
+                
+                if rows:
+                    col_names = [f'"{col[1]}"' for col in columns]
+                    placeholders = ', '.join(['%s'] * len(col_names))
+                    insert_sql = f'INSERT INTO "{table}" ({", ".join(col_names)}) VALUES ({placeholders})'
+                    
+                    for row in rows:
+                        values = []
+                        for col in columns:
+                            col_name = col[1]
+                            value = row[col_name]
+                            
+                            # Handle None values and data type conversions
+                            if value is None:
+                                values.append(None)
+                            elif isinstance(value, bytes):
+                                # Convert BLOB to bytes for PostgreSQL BYTEA
+                                values.append(value)
+                            else:
+                                values.append(value)
+                        
+                        postgres_conn.execute(text(insert_sql), values)
+                
+                log.info(f"Migrated {len(rows)} rows from {table}")
+            
+            # Commit transaction
+            transaction.commit()
+            log.info("Migration completed successfully!")
+            
+        except Exception as e:
+            transaction.rollback()
+            log.error(f"Migration failed during table processing: {e}")
+            raise
+            
+    except Exception as e:
+        log.error(f"Migration failed: {e}")
+        raise
+    finally:
+        # Clean up connections
+        if 'sqlite_conn' in locals():
+            sqlite_conn.close()
+        if 'postgres_conn' in locals():
+            postgres_conn.close()
 
 def _configuration_update_helper():
     reboot_required = False
