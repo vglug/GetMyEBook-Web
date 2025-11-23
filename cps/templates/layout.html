@@ -34,7 +34,7 @@ change_confirm_modal %}
   data-textback="{{_('Back')}}">
   <!-- Static navbar -->
   <div class="app-container">
-    <div class="navbar-default navbar-static-top" id="navbar-default-id" role="navigation">
+    <div class="navbar-default navbar-static-top" role="navigation">
       <div class="header-nav-style">
         <div class="logo-sitename-container">
           <!-- <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
@@ -129,17 +129,8 @@ change_confirm_modal %}
               </li>
               {% endif %}
               {% if not current_user.is_anonymous and not simple%}
-              <li class="top_tasks">
-                <a href="/forum" role="button">
-                  <span class="glyphicon glyphicon-comment"></span> {{ _('Community Forum') }}
-                </a>
-              </li>
-              <li class="top_tasks">
-                <a id="top_tasks" href="{{url_for('tasks.get_tasks_status')}}">
-                  <span class="glyphicon glyphicon-tasks"></span>
-                  <span class="hidden-sm">{{_('Tasks')}}</span>
-                </a>
-              </li>
+              <li class="top_tasks"><a id="top_tasks" href="{{url_for('tasks.get_tasks_status')}}"><span
+                    class="glyphicon glyphicon-tasks"></span> <span class="hidden-sm">{{_('Tasks')}}</span></a></li>
               {% endif %}
               {% if current_user.role_admin() %}
               <li><a id="top_admin" data-text="{{_('Settings')}}" href="{{url_for('admin.admin')}}"><span
@@ -168,7 +159,7 @@ change_confirm_modal %}
     </div>
     <div class="main-container">
       {% if current_user.is_authenticated or g.allow_anonymous %}
-      <div class="left-side-container" id="left-side-container-id">
+      <div class="left-side-container">
         <nav class="sidebar-navigation">
           <ul class="list-unstyled" id="scnd-nav" intent in-standard-append="nav.navigation">
             <!-- <li class="nav-head hidden-xs">{{_('Browse')}}</li> -->
@@ -220,6 +211,22 @@ change_confirm_modal %}
           {% endfor %}
           {% if pagination.has_next %}
           <li class="page-item page-next"><a class="page-link next" aria-label="next page" href="{{ (pagination.page + 1)|url_for_other_page
+            {% endif %}
+            {% for page in pagination.iter_pages() %}
+            {% if page %}
+            {% if page != pagination.page %}
+            <li class=" page-item"><a class="page-link" aria-label="to page {{ page }}"
+                href="{{ (page)|url_for_other_page }}">{{ page }}</a></li>
+          {% else %}
+          <li class="page-item active"><a class="page-link" aria-label="to page {{ page }}"
+              href="{{ (page)|url_for_other_page }}">{{ page }}</a></li>
+          {% endif %}
+          {% else %}
+          <li class="page-item page-last-separator disabled"><a class="page-link" aria-label="">…</a></li>
+          {% endif %}
+          {% endfor %}
+          {% if pagination.has_next %}
+          <li class="page-item page-next"><a class="page-link next" aria-label="next page" href="{{ (pagination.page + 1)|url_for_other_page
                 }}">{{_('Next')}} &raquo;</a></li>
           {% endif %}
         </div>
@@ -229,50 +236,28 @@ change_confirm_modal %}
 
 
   </div>
-  <div class="flash-container">
-    {% for message in get_flashed_messages(with_categories=True) %}
-    {%if message[0] == "error" %}
-    <div class="flash-message flash-danger" data-flash-type="error">
-      <div class="flash-content">
-        <span class="flash-icon"><i class="fas fa-exclamation-circle"></i></span>
-        <span class="flash-text">{{ message[1] }}</span>
-      </div>
-      <!-- <button class="flash-close" onclick="closeFlash(this)">&times;</button> -->
-      <div class="flash-progress"></div>
-    </div>
-    {%endif%}
-    {%if message[0] == "info" %}
-    <div class="flash-message flash-info" data-flash-type="info">
-      <div class="flash-content">
-        <span class="flash-icon"><i class="fas fa-info-circle"></i></span>
-        <span class="flash-text">{{ message[1] }}</span>
-      </div>
-      <!-- <button class="flash-close" onclick="closeFlash(this)">&times;</button> -->
-      <div class="flash-progress"></div>
-    </div>
-    {%endif%}
-    {%if message[0] == "warning" %}
-    <div class="flash-message flash-warning" data-flash-type="warning">
-      <div class="flash-content">
-        <span class="flash-icon"><i class="fas fa-exclamation-triangle"></i></span>
-        <span class="flash-text">{{ message[1] }}</span>
-      </div>
-      <!-- <button class="flash-close" onclick="closeFlash(this)">&times;</button> -->
-      <div class="flash-progress"></div>
-    </div>
-    {%endif%}
-    {%if message[0] == "success" %}
-    <div class="flash-message flash-success" data-flash-type="success">
-      <div class="flash-content">
-        <span class="flash-icon"><i class="fas fa-check-circle"></i></span>
-        <span class="flash-text">{{ message[1] }}</span>
-      </div>
-      <!-- <button class="flash-close" onclick="closeFlash(this)">&times;</button> -->
-      <div class="flash-progress"></div>
-    </div>
-    {%endif%}
-    {% endfor %}
+  {% for message in get_flashed_messages(with_categories=True) %}
+  {%if message[0] == "error" %}
+  <div class="row-fluid text-center">
+    <div id="flash_danger" class="alert alert-danger">{{ message[1] }}</div>
   </div>
+  {%endif%}
+  {%if message[0] == "info" %}
+  <div class="row-fluid text-center">
+    <div id="flash_info" class="alert alert-info">{{ message[1] }}</div>
+  </div>
+  {%endif%}
+  {%if message[0] == "warning" %}
+  <div class="row-fluid text-center">
+    <div id="flash_warning" class="alert alert-warning">{{ message[1] }}</div>
+  </div>
+  {%endif%}
+  {%if message[0] == "success" %}
+  <div class="row-fluid text-center">
+    <div id="flash_success" class="alert alert-success">{{ message[1] }}</div>
+  </div>
+  {%endif%}
+  {% endfor %}
   {% block flash %}{% endblock %}
   {% if g.current_theme == 1 %}
   <div id="loader" hidden="true">
@@ -329,39 +314,11 @@ change_confirm_modal %}
     }
     var checkBox = document.getElementById("locale");
     if ((document.cookie == '') || (document.cookie == 'get_my_ebook_locale=en')) {
-      // checkBox.checked = false
+      checkBox.checked = false
     }
     else {
+      checkBox.checked = true
     }
-
-    // Flash Message Auto-Dismiss and Close Functionality
-    function closeFlash(button) {
-      const flashMessage = button.closest('.flash-message');
-      flashMessage.classList.add('flash-hiding');
-      setTimeout(() => {
-        flashMessage.remove();
-      }, 400); // Match the animation duration
-    }
-
-    // Auto-dismiss flash messages after 3 seconds
-    document.addEventListener('DOMContentLoaded', function () {
-      console.log("DOM Loaded");
-
-      const flashMessages = document.querySelectorAll('.flash-message');
-
-      flashMessages.forEach(function (message) {
-        setTimeout(function () {
-          if (message) {
-            message.classList.add('flash-hiding');
-            setTimeout(() => {
-              message.remove();
-            }, 400);
-          }
-        }, 3000);
-      });
-
-    });
-
   </script>
   {% block js %}{% endblock %}
 </body>
