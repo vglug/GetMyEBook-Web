@@ -11,12 +11,12 @@ from sqlalchemy import (
     Integer, DateTime, ForeignKey, CheckConstraint
 )
 from sqlalchemy.orm import relationship
-from cps import db
+from .db import Base
 
 # ============================================
 # Discussion Thread Model
 # ============================================
-class DiscussionThread(db.Model):
+class DiscussionThread(Base):
     __tablename__ = 'discussion_threads'
     
     id = Column(BigInteger, primary_key=True, autoincrement=True)
@@ -66,7 +66,7 @@ class DiscussionThread(db.Model):
 # ============================================
 # Discussion Comment Model
 # ============================================
-class DiscussionComment(db.Model):
+class DiscussionComment(Base):
     __tablename__ = 'discussion_comments'
     
     id = Column(BigInteger, primary_key=True, autoincrement=True)
@@ -109,7 +109,7 @@ class DiscussionComment(db.Model):
 # ============================================
 # Comment Likes Model
 # ============================================
-class DiscussionCommentLike(db.Model):
+class DiscussionCommentLike(Base):
     __tablename__ = 'discussion_comment_likes'
     
     id = Column(BigInteger, primary_key=True, autoincrement=True)
@@ -138,7 +138,7 @@ class DiscussionCommentLike(db.Model):
 # ============================================
 # Thread Followers Model
 # ============================================
-class DiscussionThreadFollower(db.Model):
+class DiscussionThreadFollower(Base):
     __tablename__ = 'discussion_thread_followers'
     
     id = Column(BigInteger, primary_key=True, autoincrement=True)
@@ -167,7 +167,7 @@ class DiscussionThreadFollower(db.Model):
 # ============================================
 # Reported Content Model
 # ============================================
-class DiscussionReport(db.Model):
+class DiscussionReport(Base):
     __tablename__ = 'discussion_reports'
     
     id = Column(BigInteger, primary_key=True, autoincrement=True)
@@ -203,7 +203,7 @@ class DiscussionReport(db.Model):
 # ============================================
 # User Reputation Model
 # ============================================
-class DiscussionUserReputation(db.Model):
+class DiscussionUserReputation(Base):
     __tablename__ = 'discussion_user_reputation'
     
     id = Column(BigInteger, primary_key=True, autoincrement=True)
