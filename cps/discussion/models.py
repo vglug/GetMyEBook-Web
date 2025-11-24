@@ -11,7 +11,7 @@ from sqlalchemy import (
     Integer, DateTime, ForeignKey, CheckConstraint
 )
 from sqlalchemy.orm import relationship
-from .db import Base
+from ..db import Base
 
 # ============================================
 # Discussion Thread Model

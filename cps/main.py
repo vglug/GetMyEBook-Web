@@ -42,8 +42,7 @@ def main():
     from .tasks_status import tasks
     from .error_handler import init_errorhandler
     from .remotelogin import remotelogin
-    from .discussion_api import discussion_api
-    from .discussion_routes import discussion_routes
+    from .discussion import discussion_api, discussion_routes
     try:
         from .kobo import kobo, get_kobo_activated
         from .kobo_auth import kobo_auth

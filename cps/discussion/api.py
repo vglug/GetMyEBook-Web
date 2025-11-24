@@ -11,8 +11,8 @@ from sqlalchemy import desc, func, or_
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime
 
-from cps import db, logger
-from cps.discussion_models import (
+from .. import db, logger
+from .models import (
     DiscussionThread, DiscussionComment, DiscussionCommentLike,
     DiscussionThreadFollower, DiscussionReport, DiscussionUserReputation
 )

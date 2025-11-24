@@ -28,4 +28,5 @@ dependencies = [
     "cryptography>=30.0.0,<44.0.0",
     "dotenv==0.9.9",
     "authlib==1.6.5",
+    "python-dotenv>=1.2.1",
 ]

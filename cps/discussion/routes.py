@@ -9,9 +9,9 @@ from flask import Blueprint, render_template, redirect, url_for, flash
 from flask_login import login_required, current_user
 from sqlalchemy.exc import SQLAlchemyError
 
-from cps import db, logger
-from cps.discussion_models import DiscussionThread
-from cps.db import Books
+from .. import db, logger
+from .models import DiscussionThread
+from ..db import Books
 
 # Create Blueprint
 discussion_routes = Blueprint('discussion', __name__, url_prefix='/discussion')
