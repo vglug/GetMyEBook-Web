@@ -29,4 +29,5 @@ dependencies = [
     "dotenv==0.9.9",
     "authlib==1.6.5",
     "python-dotenv>=1.2.1",
+    "psycopg2-binary==2.9.11",
 ]

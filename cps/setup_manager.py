@@ -135,17 +135,18 @@ def validate_database_connection(host, port, username, password, database):
     """
     try:
         import urllib.parse
-        from sqlalchemy import create_engine
+        from sqlalchemy import create_engine, text
         
         # Encode password for URL
         encoded_password = urllib.parse.quote_plus(password)
         database_url = f"postgresql+psycopg2://{username}:{encoded_password}@{host}:{port}/{database}"
+        print(f"Testing connection to: {database_url}")
         
         # Try to connect
         engine = create_engine(database_url, pool_pre_ping=True)
         with engine.connect() as conn:
             # Test query
-            result = conn.execute("SELECT 1")
+            result = conn.execute(text("SELECT 1"))
             result.fetchone()
         
         engine.dispose()
@@ -154,7 +155,7 @@ def validate_database_connection(host, port, username, password, database):
     except ImportError as e:
         return False, f"Missing required package: {e}. Please install psycopg2-binary and sqlalchemy."
     except Exception as e:
-        return False, f"Database connection failed: {e}"
+        return False, f" database url {database_url} failed: {e}" #f"Database connection failed: {e}"
 
 
 def create_env_file(config):
