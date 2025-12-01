@@ -121,41 +121,59 @@ def get_user_input(prompt, default=None, password=False, validator=None):
 
 def validate_database_connection(host, port, username, password, database):
     """
-    Test database connection with provided credentials.
-    
+    Test database connection with provided credentials. If database does not exist, create it.
     Args:
         host (str): Database host
         port (int): Database port
         username (str): Database username
         password (str): Database password
         database (str): Database name
-        
     Returns:
         tuple: (success: bool, error_message: str or None)
     """
     try:
         import urllib.parse
         from sqlalchemy import create_engine, text
-        
+        import psycopg2
         # Encode password for URL
         encoded_password = urllib.parse.quote_plus(password)
         database_url = f"postgresql+psycopg2://{username}:{encoded_password}@{host}:{port}/{database}"
         print(f"Testing connection to: {database_url}")
-        
-        # Try to connect
+        # Try to connect 
         engine = create_engine(database_url, pool_pre_ping=True)
-        with engine.connect() as conn:
-            # Test query
-            result = conn.execute(text("SELECT 1"))
-            result.fetchone()
-        
-        engine.dispose()
-        return True, None
-        
+        try:
+            with engine.connect() as conn:
+                result = conn.execute(text("SELECT 1"))
+                result.fetchone()
+            engine.dispose()
+            return True, None
+        except Exception as e:
+            # Check if error is database does not exist
+            if "does not exist" in str(e):
+                print(f"Database '{database}' does not exist. Attempting to create...")
+                # Connect to default 'postgres' database with AUTOCOMMIT
+                default_url = f"postgresql+psycopg2://{username}:{encoded_password}@{host}:{port}/postgres"
+                default_engine = create_engine(default_url, pool_pre_ping=True, isolation_level="AUTOCOMMIT")
+                try:
+                    with default_engine.connect() as conn:
+                        conn.execute(text(f"CREATE DATABASE {database}"))
+                    default_engine.dispose()
+                    print(f"Database '{database}' created successfully.")
+                    # Try connecting again
+                    engine = create_engine(database_url, pool_pre_ping=True)
+                    with engine.connect() as conn:
+                        result = conn.execute(text("SELECT 1"))
+                        result.fetchone()
+                    engine.dispose()
+                    return True, None
+                except Exception as ce:
+                    return False, f"Failed to create database '{database}': {ce}"
+            else:
+                return False, f"Database connection failed: {e}"
     except ImportError as e:
         return False, f"Missing required package: {e}. Please install psycopg2-binary and sqlalchemy."
     except Exception as e:
-        return False, f" database url {database_url} failed: {e}" #f"Database connection failed: {e}"
+        return False, f"Database connection failed: {e}"
 
 
 def create_env_file(config):
@@ -186,15 +204,12 @@ DB_PORT={config['db_port']}
 # -------------------------
 # Database Names
 # -------------------------
-DATABASENAME_CALIBRE={config['db_name_calibre']}
 DATABASENAME_APP={config['db_name_app']}
-DATABASENAME_DISCOURSE={config.get('db_name_discourse', config['db_name_app'])}
-
 # -------------------------
 # Optional: Full Database URL
 # -------------------------
 # Uncomment and modify if you prefer to use a single DATABASE_URL
-# DATABASE_URL=postgresql+psycopg2://{config['db_username']}:{config['db_password']}@{config['db_host']}:{config['db_port']}/{config['db_name_app']}
+DATABASE_URL=postgresql+psycopg2://{config['db_username']}:{config['db_password']}@{config['db_host']}:{config['db_port']}/{config['db_name_app']}
 """
         
         # Write to file
@@ -290,9 +305,10 @@ def run_interactive_setup():
         default='V2s2nth2005kk'
     )
     
-    # Use hardcoded database names
-    db_name_app = "getmyebook_app"
-    db_name_calibre = "getmyebook_calibre"
+    db_name_app = get_user_input(
+        "Database Name",
+        default="getmyebook_app"
+    )
     
     # Test database connection
     print("\n" + "-" * 60)
@@ -319,8 +335,7 @@ def run_interactive_setup():
         'db_port': db_port,
         'db_username': db_username,
         'db_password': db_password,
-        'db_name_app': db_name_app,
-        'db_name_calibre': db_name_calibre
+        'db_name_app': db_name_app
     }
     
     # Create .env file

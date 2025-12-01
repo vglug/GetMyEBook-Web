@@ -52,6 +52,14 @@ def get_env_path():
     """
     return os.path.join(get_project_root(), '.env')
 
+def get_metadata_path():
+    """
+    Get the path to the metadata file.
+    Returns:
+        str: Absolute path to the metadata file
+    """
+    return os.path.join(get_project_root(), 'library/metadata.db') 
+
 
 def ensure_directory_exists(directory_path):
     """

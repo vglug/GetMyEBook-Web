@@ -43,7 +43,7 @@ from sqlalchemy.orm import backref, relationship, sessionmaker, Session, scoped_
 from werkzeug.security import generate_password_hash
 from dotenv import load_dotenv
 from . import constants, logger
-
+from.utils import get_env_path
 
 log = logger.create()
 
@@ -55,7 +55,7 @@ searched_ids = {}
 logged_in = dict()
 oauth_support = True
 
-load_dotenv('/home/vasanth/GetMyEBook-Web/.env')
+load_dotenv(get_env_path())
 
 DB_USER = os.getenv("DB_USERNAME")
 DB_PASSWORD = os.getenv("DB_PASSWORD")

@@ -185,13 +185,11 @@ class CliParameter(object):
         db_host = os.getenv("DB_HOST")
         db_port = os.getenv("DB_PORT")
         db_name_app = os.getenv("DATABASENAME_APP")
-        db_name_calibre = os.getenv("DATABASENAME_CALIBRE")
         
-        if all([db_user, db_host, db_port, db_name_app, db_name_calibre]):
+        if all([db_user, db_host, db_port, db_name_app]):
             log.info("PostgreSQL configuration detected via environment variables")
             log.info(f"Database Host: {db_host}:{db_port}")
             log.info(f"App Database: {db_name_app}")
-            log.info(f"Calibre Database: {db_name_calibre}")
         else:
             log.warning("Incomplete PostgreSQL environment variables detected")
             missing_vars = []
@@ -199,5 +197,4 @@ class CliParameter(object):
             if not db_host: missing_vars.append("DB_HOST")
             if not db_port: missing_vars.append("DB_PORT")
             if not db_name_app: missing_vars.append("DATABASENAME_APP")
-            if not db_name_calibre: missing_vars.append("DATABASENAME_CALIBRE")
             log.warning(f"Missing environment variables: {', '.join(missing_vars)}")

@@ -54,7 +54,7 @@ from .services.worker import WorkerThread
 from .usermanagement import user_login_required
 from .babel import get_available_translations, get_available_locale, get_user_locale_language
 from . import debug_info
-
+from .utils import get_env_path , get_metadata_path
 log = logger.create()
 
 feature_support = {
@@ -1735,10 +1735,10 @@ def _db_configuration_update_helper():
         # Setup database connection (PostgreSQL or SQLite)
         if config.config_use_postgresql and config.config_use_postgresql_metadata:
             # Use PostgreSQL for metadata
-            calibre_db.setup_db(None, ub.app_DB_path, use_postgresql=True)
+            calibre_db.setup_db(None, use_postgresql=True)
         else:
             # Use SQLite for metadata (original behavior)
-            calibre_db.setup_db(to_save['config_calibre_dir'], ub.app_DB_path)
+            calibre_db.setup_db(to_save['config_calibre_dir'])
         
         # If database changed, perform cleanup operations
         if db_change:
@@ -2091,6 +2091,7 @@ def _db_configuration_result(error_flash=None, gdrive_error=None):
     log.info(f"Database configuration - config: {config}, show_authenticate_google_drive: {gdrive_authenticate}, gdriveError: {gdrive_error}, feature_support: {feature_support}")
     
     return render_title_template("config_db.html",
+                                 metadatafilepath = get_metadata_path(),
                                  config=config,
                                  show_authenticate_google_drive=gdrive_authenticate,
                                  gdriveError=gdrive_error,
@@ -2101,19 +2102,17 @@ def _db_configuration_result(error_flash=None, gdrive_error=None):
 def _log_postgresql_config_status():
     """Log PostgreSQL configuration status for admin debugging"""
     from dotenv import load_dotenv
-    load_dotenv('/home/vasanth/GetMyEBook-Web/.env')
-    
+    load_dotenv(get_env_path())
+
     db_user = os.getenv("DB_USERNAME")
     db_host = os.getenv("DB_HOST")
     db_port = os.getenv("DB_PORT")
     db_name_app = os.getenv("DATABASENAME_APP")
-    db_name_calibre = os.getenv("DATABASENAME_APP")
     
-    if all([db_user, db_host, db_port, db_name_app, db_name_calibre]):
+    if all([db_user, db_host, db_port, db_name_app]):
         log.info("PostgreSQL configuration detected via environment variables")
         log.info(f"Database Host: {db_host}:{db_port}")
         log.info(f"App Database: {db_name_app}")
-        log.info(f"Calibre Database: {db_name_calibre}")
         log.info(f"Database configured: {config.db_configured}")
     else:
         log.warning("Incomplete PostgreSQL environment variables detected")
@@ -2122,7 +2121,6 @@ def _log_postgresql_config_status():
         if not db_host: missing_vars.append("DB_HOST")
         if not db_port: missing_vars.append("DB_PORT")
         if not db_name_app: missing_vars.append("DATABASENAME_APP")
-        if not db_name_calibre: missing_vars.append("DATABASENAME_APP")
         log.warning(f"Missing environment variables: {', '.join(missing_vars)}")
 
 def _handle_new_user(to_save, content, languages, translations, kobo_support):

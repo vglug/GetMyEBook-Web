@@ -11,7 +11,8 @@
        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
        <label for="config_calibre_dir">{{_('Location of Calibre Database')}}</label>
        <div class="form-group required input-group">
-        <input type="text" class="form-control" id="config_calibre_dir" name="config_calibre_dir" value="{% if config.config_calibre_dir != None %}{{ config.config_calibre_dir }}{% endif %}" autocomplete="off">
+        <!-- <input type="text" class="form-control" id="config_calibre_dir" name="config_calibre_dir" value="{% if config.config_calibre_dir != None %}{{ config.config_calibre_dir }}{% endif %}" autocomplete="off"> -->
+        <input type="text" class="form-control" id="config_calibre_dir" name="config_calibre_dir" value="{{ metadatafilepath }}" autocomplete="off">
         <span class="input-group-btn">
           <button type="button" data-toggle="modal" id="calibre_modal_path" data-link="config_calibre_dir" data-filefilter="metadata.db" data-target="#fileModal" id="library_path" class="btn btn-default"><span class="glyphicon glyphicon-folder-open"></span></button>
         </span>

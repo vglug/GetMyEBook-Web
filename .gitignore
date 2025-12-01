@@ -35,9 +35,9 @@ gdrive_credentials
 client_secrets.json
 gmail.json
 /.key
-library
 ui-chacking
 .env
 gdrive/
 markdown/
 legacy/
+!metadata.db

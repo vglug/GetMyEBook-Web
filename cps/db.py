@@ -25,7 +25,7 @@ from urllib.parse import quote
 import unidecode
 from weakref import WeakSet
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine , inspect
 from sqlalchemy import Table, Column, ForeignKey, CheckConstraint
 from sqlalchemy import String, Integer, Boolean, TIMESTAMP, Float
 from sqlalchemy.orm import relationship, sessionmaker, scoped_session
@@ -47,8 +47,8 @@ from flask import flash
 
 from . import logger, ub, isoLanguages,create_metadata_psql
 from .pagination import Pagination
-
-
+from .utils import get_env_path , get_metadata_path
+from .create_metadata_psql import migrate_sqlite_to_postgres        
 log = logger.create()
 
 cc_exceptions = ['composite', 'series']
@@ -609,8 +609,8 @@ class CalibreDB:
         try:
             # Test database connection by creating a temporary engine
             from dotenv import load_dotenv
-            load_dotenv('/home/vasanth/GetMyEBook-Web/.env')
-            
+            load_dotenv(get_env_path())
+
             DB_USER = os.getenv("DB_USERNAME")
             DB_PASSWORD = os.getenv("DB_PASSWORD")
             DB_HOST = os.getenv("DB_HOST")
@@ -648,7 +648,7 @@ class CalibreDB:
         cls.app_db_path = app_db_path
 
     @classmethod
-    def setup_db(cls, config_calibre_dir, app_db_path):
+    def setup_db(cls, config_calibre_dir):
         cls.dispose()
 
         if not config_calibre_dir:
@@ -658,8 +658,8 @@ class CalibreDB:
         try:
             # PostgreSQL connection - using environment variables
             from dotenv import load_dotenv
-            load_dotenv('/home/vasanth/GetMyEBook-Web/.env')
-            
+            load_dotenv(get_env_path())
+
             DB_USER = os.getenv("DB_USERNAME")
             DB_PASSWORD = os.getenv("DB_PASSWORD")
             DB_HOST = os.getenv("DB_HOST")
@@ -689,6 +689,15 @@ class CalibreDB:
             conn = cls.engine.connect()
             log.info(f"Successfully connected to PostgreSQL calibre database: {DATABASE_URL}")
             
+
+            inspector = inspect(cls.engine)
+            table_name = 'custom_columns'
+
+            if table_name not in inspector.get_table_names():
+                migrate_sqlite_to_postgres(
+                    SQLITE_PATH=get_metadata_path()
+                    )
+
         except Exception as ex:
             log.error(f"Failed to connect to PostgreSQL: {ex}")
             cls.config.invalidate(ex)
@@ -1085,11 +1094,11 @@ class CalibreDB:
                 if table is not None:
                     Base.metadata.remove(table)
 
-    def reconnect_db(self, config, app_db_path):
+    def reconnect_db(self, config):
         self.dispose()
         if self.engine:
             self.engine.dispose()
-        self.setup_db(config.config_calibre_dir, app_db_path)
+        self.setup_db(config.config_calibre_dir)
         self.update_config(config)
 
 
