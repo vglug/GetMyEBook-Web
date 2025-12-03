@@ -25,6 +25,10 @@ import os
 import sys
 import stat
 
+from . import logger
+
+log = logger.create()
+
 
 def get_project_root():
     """
@@ -52,12 +56,15 @@ def get_env_path():
     """
     return os.path.join(get_project_root(), '.env')
 
-def get_metadata_path():
+def get_metadata_path(path=None):
     """
     Get the path to the metadata file.
     Returns:
         str: Absolute path to the metadata file
     """
+    if path:
+        log.info(f"Using custom metadata path: {path}")
+        return path
     return os.path.join(get_project_root(), 'library/metadata.db') 
 
 
@@ -76,7 +83,7 @@ def ensure_directory_exists(directory_path):
             os.makedirs(directory_path, mode=0o755)
         return True
     except Exception as e:
-        print(f"Error creating directory {directory_path}: {e}")
+        log.error(f"Error creating directory {directory_path}: {e}")
         return False
 
 
@@ -118,12 +125,12 @@ def set_secure_permissions(file_path):
                 return True
             except ImportError:
                 # pywin32 not available, skip Windows ACL setting
-                print("Warning: pywin32 not available. Cannot set Windows file permissions.")
-                print("Please ensure .env file is protected manually.")
+                log.warning(f"Warning: pywin32 not available. Cannot set Windows file permissions.")
+                log.info(f"Please ensure .env file is protected manually.")
                 return False
         return True
     except Exception as e:
-        print(f"Warning: Could not set secure permissions on {file_path}: {e}")
+        log.warning(f"Warning: Could not set secure permissions on {file_path}: {e}")
         return False
 
 

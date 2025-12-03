@@ -532,3 +532,68 @@ def search_discussions():
     except Exception as e:
         log.error(f"Error searching discussions: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ============================================
+# Books Statistics Endpoint
+# ============================================
+
+@discussion_api.route('/books/stats', methods=['GET'])
+def get_books_stats():
+    """Get all books with discussion statistics"""
+    try:
+        from ..db import Books
+        
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 50, type=int)
+        sort_by = request.args.get('sort', 'thread_count')  # thread_count, title, recent_activity
+        
+        # Query books with thread and comment counts
+        query = db.session.query(
+            Books.id,
+            Books.title,
+            Books.author_sort,
+            func.count(func.distinct(DiscussionThread.id)).label('thread_count'),
+            func.count(DiscussionComment.id).label('total_comments'),
+            func.max(DiscussionThread.last_activity_at).label('last_activity_at')
+        ).outerjoin(
+            DiscussionThread, Books.id == DiscussionThread.book_id
+        ).outerjoin(
+            DiscussionComment, DiscussionThread.id == DiscussionComment.thread_id
+        ).group_by(
+            Books.id, Books.title, Books.author_sort
+        )
+        
+        # Apply sorting
+        if sort_by == 'title':
+            query = query.order_by(Books.title)
+        elif sort_by == 'recent_activity':
+            query = query.order_by(desc('last_activity_at'))
+        else:  # thread_count (default)
+            query = query.order_by(desc('thread_count'))
+        
+        # Paginate
+        results = query.paginate(page=page, per_page=per_page, error_out=False)
+        
+        books_data = []
+        for book in results.items:
+            books_data.append({
+                'id': book.id,
+                'title': book.title,
+                'author': book.author_sort,
+                'thread_count': book.thread_count or 0,
+                'total_comments': book.total_comments or 0,
+                'last_activity_at': book.last_activity_at.isoformat() if book.last_activity_at else None
+            })
+        
+        return jsonify({
+            'success': True,
+            'books': books_data,
+            'total': results.total,
+            'pages': results.pages,
+            'current_page': page
+        }), 200
+        
+    except Exception as e:
+        log.error(f"Error fetching books statistics: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500

@@ -624,17 +624,19 @@ class CalibreDB:
             import urllib.parse
             encoded_password = urllib.parse.quote_plus(DB_PASSWORD)
 
-            create_metadata_psql.migrate_sqlite_to_postgres(SQLITE_PATH=config_calibre_dir)
-
             DATABASE_URL = f"postgresql+psycopg2://{DB_USER}:{encoded_password}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
             test_engine = create_engine(DATABASE_URL, echo=False)
-            
+            inspector = inspect(test_engine)
+            # Only migrate if 'books' table does not exist
+            if 'books' not in inspector.get_table_names():
+                create_metadata_psql.migrate_sqlite_to_postgres(SQLITE_PATH=config_calibre_dir)
+
             with test_engine.connect() as conn:
                 # Try to query the library_id table to verify connection
                 result = conn.execute(text("SELECT COUNT(*) FROM library_id"))
                 count = result.scalar()
                 log.info(f"PostgreSQL connection successful, library_id count: {count}")
-                
+            
             test_engine.dispose()
             return True, False
         except Exception as e:
@@ -648,7 +650,7 @@ class CalibreDB:
         cls.app_db_path = app_db_path
 
     @classmethod
-    def setup_db(cls, config_calibre_dir):
+    def setup_db(cls, config_calibre_dir, app_db_path):
         cls.dispose()
 
         if not config_calibre_dir:
@@ -692,10 +694,10 @@ class CalibreDB:
 
             inspector = inspect(cls.engine)
             table_name = 'custom_columns'
-
+            log.info(f"checking if config calibre_dir {config_calibre_dir} needs migration")
             if table_name not in inspector.get_table_names():
                 migrate_sqlite_to_postgres(
-                    SQLITE_PATH=get_metadata_path()
+                    SQLITE_PATH=get_metadata_path(path=config_calibre_dir)
                     )
 
         except Exception as ex:
@@ -725,6 +727,7 @@ class CalibreDB:
         cls._init = True
 
     def get_book(self, book_id):
+        log.info(f"Fetching book with ID: {book_id}")
         return self.session.query(Books).filter(Books.id == book_id).first()
 
     def get_total_book_count(self):
@@ -1094,11 +1097,11 @@ class CalibreDB:
                 if table is not None:
                     Base.metadata.remove(table)
 
-    def reconnect_db(self, config):
+    def reconnect_db(self, config, app_db_path):
         self.dispose()
         if self.engine:
             self.engine.dispose()
-        self.setup_db(config.config_calibre_dir)
+        self.setup_db(config.config_calibre_dir, app_db_path)
         self.update_config(config)
 
 

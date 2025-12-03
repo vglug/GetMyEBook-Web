@@ -54,7 +54,7 @@ from .services.worker import WorkerThread
 from .usermanagement import user_login_required
 from .babel import get_available_translations, get_available_locale, get_user_locale_language
 from . import debug_info
-from .utils import get_env_path , get_metadata_path
+from .utils import get_env_path 
 log = logger.create()
 
 feature_support = {
@@ -1735,10 +1735,10 @@ def _db_configuration_update_helper():
         # Setup database connection (PostgreSQL or SQLite)
         if config.config_use_postgresql and config.config_use_postgresql_metadata:
             # Use PostgreSQL for metadata
-            calibre_db.setup_db(None, use_postgresql=True)
+            calibre_db.setup_db(None, ub.app_DB_path, use_postgresql=True)
         else:
             # Use SQLite for metadata (original behavior)
-            calibre_db.setup_db(to_save['config_calibre_dir'])
+            calibre_db.setup_db(to_save['config_calibre_dir'], ub.app_DB_path)
         
         # If database changed, perform cleanup operations
         if db_change:
@@ -2091,7 +2091,6 @@ def _db_configuration_result(error_flash=None, gdrive_error=None):
     log.info(f"Database configuration - config: {config}, show_authenticate_google_drive: {gdrive_authenticate}, gdriveError: {gdrive_error}, feature_support: {feature_support}")
     
     return render_title_template("config_db.html",
-                                 metadatafilepath = get_metadata_path(),
                                  config=config,
                                  show_authenticate_google_drive=gdrive_authenticate,
                                  gdriveError=gdrive_error,

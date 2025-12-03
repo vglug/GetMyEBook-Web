@@ -24,7 +24,7 @@ rclone config
 
 * Choose **n** for new remote
 * Name it something like **gdrive**
-* Select **drive** as the storage type
+* Select **drive** as the storage type (18)
 * For Client ID → go to Google Cloud Console:
   [https://console.developers.google.com/](https://console.developers.google.com/)
 

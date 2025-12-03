@@ -45,6 +45,22 @@ from . import ub, db
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.pool import NullPool
+from dotenv import load_dotenv
+from .utils import get_env_path
+
+
+
+log = logger.create()
+
+
+# Load .env from project root dynamically
+env_path = get_env_path()
+
+if os.path.exists(env_path):
+    load_dotenv(env_path)
+    log.info(f"Loaded environment variables from: {env_path}")
+else:
+    log.warning(f".env file not found at {env_path}")
 
 try:
     from flask_limiter import Limiter
@@ -61,7 +77,6 @@ except ImportError:
 mimetypes.init()
 # ... (mimetype definitions remain the same)
 
-log = logger.create()
 
 app = Flask(__name__)
 app.config.update(
@@ -162,7 +177,8 @@ def create_app():
     db.CalibreDB.update_config(config, config.config_calibre_dir, cli_param.settings_path)
     
     # Initialize Calibre database with PostgreSQL
-    db.CalibreDB.setup_db(config.config_calibre_dir)
+    # db.CalibreDB.setup_db(config.config_calibre_dir)
+    db.CalibreDB.setup_db(config.config_calibre_dir, cli_param.settings_path)
     calibre_db.init_db()
 
     updater_thread.init_updater(config, web_server)
@@ -192,7 +208,7 @@ def create_app():
     log.info('Starting Calibre Web...')
     Principal(app)
     lm.init_app(app)
-    app.secret_key = "32b16bff5353e184291a348b7f0bca7367384247454c79e3030903aacec2b169"
+    app.secret_key = os.environ.get('SECRET_KEY')
 
     web_server.init_app(app, config)
     if hasattr(babel, "localeselector"):
@@ -241,29 +257,16 @@ def create_app():
 def init_postgresql():
     """Initialize PostgreSQL database connection"""
     try:
-        from dotenv import load_dotenv
-        from .utils import get_env_path
-        
-        # Load .env from project root dynamically
-        env_path = get_env_path()
-        
-        if os.path.exists(env_path):
-            load_dotenv(env_path)
-            log.info(f"Loaded environment variables from: {env_path}")
-        else:
-            log.warning(f".env file not found at {env_path}")
-            log.warning("Database configuration may be incomplete")
-        
         # Get database URL from environment variables first
         database_url = os.environ.get('DATABASE_URL')
         
         if not database_url:
             # Get database config from environment variables
-            db_host = os.environ.get('DB_HOST', 'localhost')
-            db_port = os.environ.get('DB_PORT', '5432')
-            db_name = os.environ.get('DATABASENAME_APP')
             db_user = os.environ.get('DB_USERNAME')
             db_password = os.environ.get('DB_PASSWORD')
+            db_host = os.environ.get('DB_HOST')
+            db_port = os.environ.get('DB_PORT')
+            db_name = os.environ.get('DATABASENAME_APP')
             
             if not all([db_name, db_user, db_password]):
                 log.error("Missing required database environment variables")

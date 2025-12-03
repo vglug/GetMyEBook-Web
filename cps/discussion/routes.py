@@ -5,13 +5,13 @@ Discussion Forum Routes
 Web routes for rendering discussion forum pages
 """
 
-from flask import Blueprint, render_template, redirect, url_for, flash
+from flask import Blueprint, render_template, redirect, url_for, flash, abort
 from flask_login import login_required, current_user
 from sqlalchemy.exc import SQLAlchemyError
 
-from .. import db, logger
+from .. import db, logger, calibre_db
 from .models import DiscussionThread
-from ..db import Books
+from ..db import Books , CalibreDB
 
 # Create Blueprint
 discussion_routes = Blueprint('discussion', __name__, url_prefix='/discussion')
@@ -22,29 +22,31 @@ log = logger.create()
 @discussion_routes.route('/book/<int:book_id>')
 @login_required
 def book_discussion(book_id):
-    """
-    Display discussion forum for a specific book
-    """
     try:
-        # Get book details
-        book = Books.query.get_or_404(book_id)
-        
-        # Render discussion forum page
+        book = calibre_db.get_book(book_id)
+        if not book:
+            flash("Book not found!", "error")
+            log.error(f"Book with ID {book_id} not found.")
+            return redirect(url_for('web.index'))
+
+        flash(f'Discussion book id {book.id}', 'success')
+        log.info(f"Loaded book '{book.title}' with ID: {book.id}")
+
         return render_template(
             'discussion_forum.html',
             book=book,
             title=f'Discussion - {book.title}'
         )
-        
+
     except SQLAlchemyError as e:
         log.error(f"Database error loading discussion for book {book_id}: {str(e)}")
         flash('Error loading discussion forum', 'error')
         return redirect(url_for('web.show_book', book_id=book_id))
+
     except Exception as e:
         log.error(f"Error loading discussion for book {book_id}: {str(e)}")
         flash('An unexpected error occurred', 'error')
         return redirect(url_for('web.index'))
-
 
 @discussion_routes.route('/thread/<int:thread_id>')
 @login_required
@@ -54,10 +56,14 @@ def view_thread(thread_id):
     """
     try:
         # Get thread details
-        thread = DiscussionThread.query.get_or_404(thread_id)
+        thread = calibre_db.session.query(DiscussionThread).get(thread_id)
+        if not thread:
+            abort(404)
         
         # Get book details
-        book = Books.query.get_or_404(thread.book_id)
+        book = calibre_db.session.query(Books).get(thread.book_id)
+        if not book:
+            abort(404)
         
         # Render thread detail page
         return render_template(
@@ -85,7 +91,7 @@ def my_discussions():
     """
     try:
         # Get user's threads
-        threads = DiscussionThread.query.filter_by(
+        threads = calibre_db.session.query(DiscussionThread).filter_by(
             user_id=current_user.id
         ).order_by(DiscussionThread.created_at.desc()).all()
         
@@ -108,15 +114,15 @@ def following_discussions():
     Display all discussions the user is following
     """
     try:
-        from cps.discussion_models import DiscussionThreadFollower
+        from .models import DiscussionThreadFollower
         
         # Get followed threads
-        followed = DiscussionThreadFollower.query.filter_by(
+        followed = calibre_db.session.query(DiscussionThreadFollower).filter_by(
             user_id=current_user.id
         ).all()
         
         thread_ids = [f.thread_id for f in followed]
-        threads = DiscussionThread.query.filter(
+        threads = calibre_db.session.query(DiscussionThread).filter(
             DiscussionThread.id.in_(thread_ids)
         ).order_by(DiscussionThread.last_activity_at.desc()).all()
         

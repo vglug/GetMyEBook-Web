@@ -4,9 +4,9 @@ import urllib.parse
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import ProgrammingError
 from dotenv import load_dotenv
+from .utils import get_env_path, get_project_root
 
 from . import logger
-from .utils import get_env_path, get_metadata_path
 
 log = logger.create()
 
@@ -40,7 +40,9 @@ def ensure_pgloader_installed():
 # Migration workflow
 # ---------------------------
 def migrate_sqlite_to_postgres(SQLITE_PATH):
-
+    if SQLITE_PATH.endswith('.db'):
+        SQLITE_PATH = os.path.join(SQLITE_PATH, 'metadata.db')
+    log.info(f"SQLite DB Path: {SQLITE_PATH}")
     # Encode password safely
     encoded_pw = urllib.parse.quote_plus(DB_PASSWORD)
 
@@ -104,5 +106,8 @@ def migrate_sqlite_to_postgres(SQLITE_PATH):
 # ---------------------------
 # Main entry
 # ---------------------------
-if __name__ == "__main__":
-    migrate_sqlite_to_postgres(get_metadata_path())
+# default path
+# SQLITE_PATH = os.path.join(get_project_root(), 'library/metadata.db')
+
+# if __name__ == "__main__":
+#     migrate_sqlite_to_postgres(SQLITE_PATH)
