@@ -3,7 +3,7 @@ from cps.forum.database.models.thread import Thread
 from cps.forum.database.models.comment import Comment
 from sqlalchemy.orm import joinedload
 
-main_blueprint = Blueprint('main', __name__)
+main_blueprint = Blueprint('main', __name__, template_folder='../../templates')
 
 
 @main_blueprint.route('/')

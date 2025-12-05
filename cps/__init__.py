@@ -286,8 +286,8 @@ def create_app():
             MAIL_PASSWORD=os.environ.get('MAIL_PASSWORD'),
             MAIL_USE_TLS=os.environ.get('MAIL_ENCRYPTION') == 'tls',
             MAIL_USE_SSL=os.environ.get('MAIL_ENCRYPTION') == 'ssl',
-            MAIL_DEFAULT_SENDER=os.environ.get('MAIL_DEFAULT_SENDER', 'noreply@app.com'),
-            APP_NAME=os.environ.get('APP_NAME', 'GetMyEBook Forum'),
+            MAIL_DEFAULT_SENDER=os.environ.get('MAIL_DEFAULT_SENDER'),
+            APP_NAME=os.environ.get('APP_NAME'),
             AVATAR_FOLDER=os.path.join(app.root_path, 'static/forum/images/avatars'),
         )
         
@@ -308,7 +308,9 @@ def create_app():
     except ImportError as e:
         log.warning(f"⚠️  Could not import forum module: {e}")
     except Exception as e:
+        import traceback
         log.error(f"❌ Failed to initialize forum: {e}")
+        log.error(f"Traceback: {traceback.format_exc()}")
 
     # Add teardown handler for database sessions
     @app.teardown_appcontext

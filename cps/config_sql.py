@@ -34,11 +34,11 @@ try:
 except ImportError:
     from sqlalchemy.ext.declarative import declarative_base
 
-from . import constants, logger
+from . import constants, logger , utils
 from .subproc_wrapper import process_wait
 
 from dotenv import load_dotenv
-load_dotenv()
+load_dotenv(utils.get_env_path())
 
 log = logger.create()
 _Base = declarative_base()
@@ -229,16 +229,12 @@ class ConfigSQL(object):
         if not self.config_use_postgresql and self._has_postgresql_env_vars():
             change = True
             self.config_use_postgresql = True
-            self.config_db_host = os.environ.get('DB_HOST', 'localhost')
-            self.config_db_port = os.environ.get('DB_PORT', '5432')
-            self.config_db_name = os.environ.get('DATABASENAME_APP', 'calibreweb')
-            self.config_db_user = os.environ.get('DB_USERNAME', 'calibreweb')
-            db_password = os.environ.get('DB_PASSWORD', '')
-            if db_password:
-                self.config_db_password = db_password
-            database_url = os.environ.get('DATABASE_URL')
-            if database_url:
-                self.config_database_url = database_url
+            self.config_db_host = os.environ.get('DB_HOST')
+            self.config_db_port = os.environ.get('DB_PORT')
+            self.config_db_name = os.environ.get('DATABASENAME_APP')
+            self.config_db_user = os.environ.get('DB_USERNAME')
+            self.config_db_password = os.environ.get('DB_PASSWORD')
+            self.config_database_url = os.environ.get('DATABASE_URL')
 
         if change:
             self.save()

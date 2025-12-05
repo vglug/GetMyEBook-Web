@@ -3,10 +3,10 @@ Flask Forum Module
 Integrated with GetMyEBook-Web (Calibre-Web)
 """
 from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
 from flask_bcrypt import Bcrypt
 from flask_mail import Mail
 from flask_marshmallow import Marshmallow
+from flask_migrate import Migrate
 
 # Flask-Modus is optional (has compatibility issues with newer Werkzeug)
 try:
@@ -30,8 +30,8 @@ migrate = Migrate()
 bcrypt = Bcrypt()
 mail = Mail()
 ma = Marshmallow()
-modus = Modus() if modus_available else None
-seeder = FlaskSeeder() if seeder_available else None
+modus = Modus() if modus_available and Modus else None
+seeder = FlaskSeeder() if seeder_available and FlaskSeeder else None
 
 # These will be imported after extensions are initialized
 # Import happens in init_forum_models() to avoid circular imports
@@ -56,7 +56,7 @@ def get_forum_blueprints():
     from cps.forum.apps.comments.routes import comments_blueprint
     from cps.forum.apps.settings.routes import settings_blueprint
     
-    return{
+    return {
         'auth': auth_blueprint,
         'main': main_blueprint,
         'threads': thread_blueprint,
