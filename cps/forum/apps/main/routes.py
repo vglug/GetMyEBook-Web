@@ -29,7 +29,7 @@ def index():
         if secondary_filter == 'unanswered':
             threads = threads.filter(Thread.comments_count == 0)
 
-    threads = threads.paginate(page, 10, False)
+    threads = threads.paginate(page=page, per_page=10, error_out=False)
 
     return render_template('main/index.html',
                            threads=threads,

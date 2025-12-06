@@ -9,12 +9,12 @@ class Thread(Base):
 
     json_attributes = ("id", "title", "slug", "content", "user_id", "category_id", "comments_count")
 
-    __tablename__ = "threads"
+    __tablename__ = "forum_threads"
     title = db.Column(db.String(100), nullable=False)
     slug = db.Column(db.String(250), nullable=False)
     content = db.Column(db.Text)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
-    category_id = db.Column(db.Integer, db.ForeignKey("categories.id"))
+    user_id = db.Column(db.Integer, db.ForeignKey("forum_users.id"))
+    category_id = db.Column(db.Integer, db.ForeignKey("forum_categories.id"))
     views_count = db.Column(db.Integer, nullable=False, default=0)
     comments_count = db.Column(db.Integer, default=0)
     best_comment_id = db.Column(db.Integer, nullable=True)

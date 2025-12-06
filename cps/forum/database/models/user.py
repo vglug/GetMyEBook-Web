@@ -5,7 +5,7 @@ from . import Base
 
 
 class User(Base, UserMixin):
-    __tablename__ = "users"
+    __tablename__ = "forum_users"
     name = db.Column(db.String(255))
     email = db.Column(db.String(255), unique=True)
     password = db.Column(db.String(255))

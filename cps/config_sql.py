@@ -38,6 +38,9 @@ from . import constants, logger , utils
 from .subproc_wrapper import process_wait
 
 from dotenv import load_dotenv
+import urllib.parse
+
+
 load_dotenv(utils.get_env_path())
 
 log = logger.create()
@@ -256,7 +259,9 @@ class ConfigSQL(object):
             return self.config_database_url
         elif self.config_db_host and self.config_db_name:
             password = self.config_db_password or ''
-            return f"postgresql+psycopg2://{self.config_db_user}:{password.replace("@",'%40')}@{self.config_db_host}:{self.config_db_port}/{self.config_db_name}"
+            if password:
+                password = urllib.parse.quote_plus(password)
+            return f"postgresql+psycopg2://{self.config_db_user}:{password}@{self.config_db_host}:{self.config_db_port}/{self.config_db_name}"
         return None
 
     def get_config_certfile(self):

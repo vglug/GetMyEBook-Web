@@ -185,6 +185,46 @@ def create_app():
     if error:
         log.error(error)
 
+    # ========================================
+    # Initialize Forum Module
+    # ========================================
+    try:
+        log.info("Initializing forum module...")
+        
+        # Configure mail settings for forum
+        app.config.update(
+            MAIL_SERVER=os.environ.get('MAIL_SERVER'),
+            MAIL_PORT=int(os.environ.get('MAIL_PORT', 587)),
+            MAIL_USERNAME=os.environ.get('MAIL_USERNAME'),
+            MAIL_PASSWORD=os.environ.get('MAIL_PASSWORD'),
+            MAIL_USE_TLS=os.environ.get('MAIL_ENCRYPTION') == 'tls',
+            MAIL_USE_SSL=os.environ.get('MAIL_ENCRYPTION') == 'ssl',
+            MAIL_DEFAULT_SENDER=os.environ.get('MAIL_DEFAULT_SENDER'),
+            APP_NAME=os.environ.get('APP_NAME'),
+            AVATAR_FOLDER=os.path.join(app.root_path, 'static/forum/images/avatars'),
+        )
+        
+        # Initialize forum extensions
+        from cps.forum import init_forum_extensions, get_forum_blueprints
+        init_forum_extensions(app)
+        
+        # Register forum blueprints
+        blueprints = get_forum_blueprints()
+        app.register_blueprint(blueprints['main'], url_prefix='/forum')
+        app.register_blueprint(blueprints['threads'], url_prefix='/forum/threads')
+        app.register_blueprint(blueprints['comments'], url_prefix='/forum/api')
+        app.register_blueprint(blueprints['settings'], url_prefix='/forum/settings')
+        app.register_blueprint(blueprints['auth'])  # Auth routes at root level
+        
+        log.info("✅ Forum module initialized successfully")
+        log.info("✅ Forum blueprints registered: /forum, /forum/threads, /forum/api, /forum/settings")
+    except ImportError as e:
+        log.warning(f"⚠️  Could not import forum module: {e}")
+    except Exception as e:
+        import traceback
+        log.error(f"❌ Failed to initialize forum: {e}")
+        log.error(f"Traceback: {traceback.format_exc()}")
+
     # CREATE DATABASE TABLES
     create_database_tables(db_engine)
 
@@ -272,45 +312,7 @@ def create_app():
     register_scheduled_tasks(config.schedule_reconnect)
     register_startup_tasks()
     
-    # ========================================
-    # Initialize Forum Module
-    # ========================================
-    try:
-        log.info("Initializing forum module...")
-        
-        # Configure mail settings for forum
-        app.config.update(
-            MAIL_SERVER=os.environ.get('MAIL_SERVER'),
-            MAIL_PORT=int(os.environ.get('MAIL_PORT', 587)),
-            MAIL_USERNAME=os.environ.get('MAIL_USERNAME'),
-            MAIL_PASSWORD=os.environ.get('MAIL_PASSWORD'),
-            MAIL_USE_TLS=os.environ.get('MAIL_ENCRYPTION') == 'tls',
-            MAIL_USE_SSL=os.environ.get('MAIL_ENCRYPTION') == 'ssl',
-            MAIL_DEFAULT_SENDER=os.environ.get('MAIL_DEFAULT_SENDER'),
-            APP_NAME=os.environ.get('APP_NAME'),
-            AVATAR_FOLDER=os.path.join(app.root_path, 'static/forum/images/avatars'),
-        )
-        
-        # Initialize forum extensions
-        from cps.forum import init_forum_extensions, get_forum_blueprints
-        init_forum_extensions(app)
-        
-        # Register forum blueprints
-        blueprints = get_forum_blueprints()
-        app.register_blueprint(blueprints['main'], url_prefix='/forum')
-        app.register_blueprint(blueprints['threads'], url_prefix='/forum/threads')
-        app.register_blueprint(blueprints['comments'], url_prefix='/forum/api')
-        app.register_blueprint(blueprints['settings'], url_prefix='/forum/settings')
-        app.register_blueprint(blueprints['auth'])  # Auth routes at root level
-        
-        log.info("✅ Forum module initialized successfully")
-        log.info("✅ Forum blueprints registered: /forum, /forum/threads, /forum/api, /forum/settings")
-    except ImportError as e:
-        log.warning(f"⚠️  Could not import forum module: {e}")
-    except Exception as e:
-        import traceback
-        log.error(f"❌ Failed to initialize forum: {e}")
-        log.error(f"Traceback: {traceback.format_exc()}")
+
 
     # Add teardown handler for database sessions
     @app.teardown_appcontext

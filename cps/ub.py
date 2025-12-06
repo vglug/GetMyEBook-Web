@@ -247,6 +247,15 @@ class User(UserBase, Base):
     view_settings = Column(JSON, default={})
     kobo_only_shelves_sync = Column(Integer, default=0)
 
+    def json_attributes(self):
+        return {
+            "id": self.id,
+            "username": self.name,
+            "email": self.email,
+            "avatar": None,
+            "role": self.role
+        }
+
 oauth_support = True
 
 class OAuth(Base):

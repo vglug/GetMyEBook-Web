@@ -49,7 +49,7 @@ def category_threads(category_slug):
                     .order_by(Thread.created_at.desc())\
                     .options(joinedload(Thread.category))\
                     .options(joinedload(Thread.comments))\
-                    .paginate(page, 10, False)
+                    .paginate(page=page, per_page=10, error_out=False)
 
     return render_template('main/index.html', threads=threads)
 

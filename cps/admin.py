@@ -55,6 +55,8 @@ from .usermanagement import user_login_required
 from .babel import get_available_translations, get_available_locale, get_user_locale_language
 from . import debug_info
 from .utils import get_env_path 
+import urllib
+
 log = logger.create()
 
 feature_support = {
@@ -1816,7 +1818,7 @@ def get_postgres_metadata_url(config):
         return base_url
     else:
         password = config.config_db_password or ''
-        escaped_password = password.replace('@', '%40')
+        escaped_password = urllib.parse.quote_plus(password)
         return f"postgresql+psycopg2://{config.config_db_user}:{escaped_password}@{config.config_db_host}:{config.config_db_port}/{config.config_db_name}"
 
 
