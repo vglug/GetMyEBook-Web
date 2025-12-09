@@ -50,34 +50,64 @@ change_confirm_modal %}
           </button>
 
           <div class="search-container-styled" id="search-container">
-            <div class="category-dropdown-wrapper">
-              <select class="category-select" onchange="if (this.value) window.location.href=this.value">
-                <option value="" selected disabled>Categories</option>
-                <option value="{{url_for('web.category_list')}}">Love</option>
-                <option value="{{url_for('web.category_list')}}">Fantasy</option>
-                <option value="{{url_for('web.category_list')}}">Story</option>
-                <option value="{{url_for('web.category_list')}}">History</option>
+            <div class="category-select-wrapper">
+              <select class="category-select" id="category_id" name="category_id">
+                <option value="0">{{_('Categories')}}</option>
+                {% for category in categories %}
+                <option value="{{category.id}}">{{category.name}}</option>
+                {% endfor %}
               </select>
+              <i class="fas fa-caret-down dropdown-arrow"></i>
             </div>
             <div class="search-divider"></div>
+            <i class="fas fa-search mobile-search-icon-visual"></i> <!-- Visual Icon for Mobile -->
             <form class="search-form-styled" role="search" action="{{url_for('search.simple_search')}}" method="GET">
               <input class="search-input-styled" type="text" id="query" name="query"
                 placeholder="{{_('Search yourProduct\'s.....')}}" value="{{searchterm}}">
               <button class="search-btn-styled" type="submit"><i class="fas fa-search"></i></button>
             </form>
+            <button class="mobile-search-close" onclick="toggleSearch()">
+              <i class="fas fa-times"></i>
+            </button>
           </div>
-          </form>
-          {% endif %}
-          <div class="header-right-content">
-            {% if g.allow_anonymous %}
-            <div class="toggle_switch">
-              <label>English</label>
+
+          <div class="language-section">
+            <div class="toggle_switch custom-lang-toggle">
               <label class="switch">
                 <input type="checkbox" id="locale" onclick="setLocale()">
-                <span class="slider round"></span>
+                <span class="slider round">
+                  <span class="lang-text en">E</span>
+                  <span class="lang-text ta">த</span>
+                </span>
               </label>
-              <label>தமிழ்</label>
             </div>
+          </div>
+
+          <div class="user-section">
+            {% if current_user.is_authenticated %}
+            {% if current_user.role_admin() %}
+            <a href="{{url_for('admin.admin')}}" class="admin-setting-icon" title="{{_('Admin Settings')}}">
+              <i class="fas fa-cog"></i>
+            </a>
+            {% endif %}
+            <div class="user-profile" onclick="toggleUserDropdown()">
+              <div class="avatar-circle">
+                {% if current_user.name %}
+                {{current_user.name[0]|upper}}
+                {% else %}
+                <i class="fas fa-user"></i>
+                {% endif %}
+              </div>
+              <span class="username">{{current_user.name}}</span>
+              <div id="user-dropdown" class="user-dropdown-content">
+                {% if current_user.role_admin() %}
+                <a href="{{url_for('admin.admin')}}">{{_('Admin')}}</a>
+                {% endif %}
+                <a href="{{url_for('web.logout')}}">{{_('Logout')}}</a>
+              </div>
+            </div>
+            {% else %}
+            <a href="{{url_for('web.login')}}" class="login-btn">{{_('Login')}}</a>
             {% endif %}
             <div>
               <!-- {% if current_user.is_authenticated or g.allow_anonymous %}
@@ -324,6 +354,37 @@ change_confirm_modal %}
       function toggleSearch() {
         var searchContainer = document.getElementById("search-container");
         searchContainer.classList.toggle("active");
+        document.body.classList.toggle("search-active"); // Toggle body class for CSS control
+        if (searchContainer.classList.contains("active")) {
+          document.getElementById("query").focus();
+        }
+      }
+
+      function toggleUserDropdown() {
+        document.getElementById("user-dropdown").classList.toggle("show");
+      }
+
+      // Close the dropdown if the user clicks outside of it
+      window.onclick = function (event) {
+        // Close User Dropdown
+        if (!event.target.closest('.user-profile')) {
+          var dropdowns = document.getElementsByClassName("user-dropdown-content");
+          for (var i = 0; i < dropdowns.length; i++) {
+            var openDropdown = dropdowns[i];
+            if (openDropdown.classList.contains('show')) {
+              openDropdown.classList.remove('show');
+            }
+          }
+        }
+
+        // Close Search Overlay if clicked outside
+        var searchContainer = document.getElementById("search-container");
+        var searchToggle = document.getElementById("mobile-search-toggle");
+        if (searchContainer.classList.contains('active') &&
+          !searchContainer.contains(event.target) &&
+          !searchToggle.contains(event.target)) {
+          searchContainer.classList.remove("active");
+        }
       }
     </script>
     {% block js %}{% endblock %}
