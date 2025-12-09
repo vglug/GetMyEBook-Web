@@ -64,7 +64,9 @@ def show(category_slug, thread_slug):
     if request.method == "GET":
         thread.update({"views_count": thread.views_count + 1})
 
-    if request.method == b"DELETE":
+    # Support for method overriding via _method query arg or form field
+    method = request.args.get('_method', request.method).upper()
+    if method == "DELETE":
         if thread.is_owner(current_user):
             thread.delete()
             flash("Your question has been deleted successfully", "success")
@@ -73,7 +75,7 @@ def show(category_slug, thread_slug):
         else:
             abort(403)
         
-    if request.method == b"PUT":
+    if method == "PUT":
         if thread.is_owner(current_user):
             thread.update({
                 "title": request.form['title'],

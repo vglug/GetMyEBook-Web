@@ -1,5 +1,6 @@
 from cps.forum import ma
 from cps.ub import User
+from marshmallow import fields
 
 
 class UserSchema(ma.SQLAlchemySchema):
@@ -11,4 +12,5 @@ class UserSchema(ma.SQLAlchemySchema):
     id = ma.auto_field()
     name = ma.auto_field()
     email = ma.auto_field()
+    profile_picture = fields.String(dump_only=True)
 

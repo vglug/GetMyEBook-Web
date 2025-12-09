@@ -29,7 +29,7 @@ export default {
     },
     methods: {
         fetchComments() {
-             axios.get(`/api/threads/${this.id}/comments`)
+             axios.get(`/forum/api/threads/${this.id}/comments`)
                 .then(({data}) => this.comments = data)
 
         },

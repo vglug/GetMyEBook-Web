@@ -13,7 +13,7 @@ class Thread(Base):
     title = db.Column(db.String(100), nullable=False)
     slug = db.Column(db.String(250), nullable=False)
     content = db.Column(db.Text)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"))  # Changed from forum_users to users
+    user_id = db.Column(db.Integer)  # Changed from forum_users to users (Foreign key constraint removed to avoid metadata mismatch)
     category_id = db.Column(db.Integer, db.ForeignKey("forum_categories.id"))
     views_count = db.Column(db.Integer, nullable=False, default=0)
     comments_count = db.Column(db.Integer, default=0)

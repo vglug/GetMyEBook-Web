@@ -52,7 +52,7 @@
         },
         methods: {
             endpoint() {
-                return `/api/comments/${this.comment.id}`;
+                return `/forum/api/comments/${this.comment.id}`;
             },
             deleteComment() {
                 axios.delete(this.endpoint())

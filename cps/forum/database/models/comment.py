@@ -6,7 +6,7 @@ class Comment(Base):
     __tablename__ = "forum_comments"
 
     content = db.Column(db.Text, nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"))  # Changed from forum_users to users
+    user_id = db.Column(db.Integer)  # Changed from forum_users to users (Foreign key constraint removed to avoid metadata mismatch)
     thread_id = db.Column(db.Integer, db.ForeignKey("forum_threads.id"))
     
     # Relationship within forum database
