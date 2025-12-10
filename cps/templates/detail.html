@@ -359,8 +359,9 @@
                 {# Discussion Forum Button #}
                 {% if current_user.is_authenticated %}
                 <div class="btn-group" role="group" style="margin:20px 20px 20px 0;">
-                    <a href="/forum" class="btn btn-primary" role="button">
-                        <span class="glyphicon glyphicon-comment"></span> {{ _('Community Forum') }}
+                    <a href="{{ url_for('threads.book_thread', book_id=entry.id) }}" class="btn btn-primary"
+                        role="button">
+                        <span class="glyphicon glyphicon-comment"></span> {{ _('Discussion') }}
                     </a>
                 </div>
                 {% endif %}

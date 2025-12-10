@@ -42,3 +42,4 @@ markdown/
 legacy/
 !metadata.db
 chacking_files/
+/forum/src/storage/cache/

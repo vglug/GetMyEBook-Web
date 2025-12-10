@@ -52,6 +52,44 @@ def init_forum_extensions(app):
     from cps.forum.context_processor import inject_forum_context
     app.context_processor(inject_forum_context)
 
+    # Register markdown filter
+    try:
+        import markdown
+        import bleach
+        
+        def markdown_filter(text):
+            allowed_tags = bleach.sanitizer.ALLOWED_TAGS + [
+                'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 
+                'p', 'br', 'hr', 'pre', 'code', 
+                'ul', 'ol', 'li', 'blockquote', 
+                'table', 'thead', 'tbody', 'tr', 'th', 'td',
+                'img', 'span', 'div'
+            ]
+            allowed_attrs = dict(bleach.sanitizer.ALLOWED_ATTRIBUTES)
+            allowed_attrs.update({
+                'img': ['src', 'alt', 'title', 'width', 'height'],
+                '*': ['class', 'style', 'id']
+            })
+            
+            # Convert markdown to html
+            html = markdown.markdown(
+                text, 
+                extensions=['fenced_code', 'tables', 'nl2br']
+            )
+            
+            # Sanitize html
+            return bleach.clean(
+                html, 
+                tags=allowed_tags, 
+                attributes=allowed_attrs, 
+                strip=True
+            )
+            
+        app.jinja_env.filters['markdown'] = markdown_filter
+    except ImportError:
+        # Fallback if markdown/bleach not available
+        app.jinja_env.filters['markdown'] = lambda text: text
+
 def get_forum_blueprints():
     """Get forum blueprints for registration (auth excluded - using GetMyEBook SSO)"""
     # Auth blueprint removed - forum uses GetMyEBook login via auth_bridge

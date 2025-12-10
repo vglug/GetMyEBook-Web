@@ -283,6 +283,34 @@ def upload():
                 # save data to database, reread data
                 calibre_db.session.commit()
 
+                # Auto-create forum thread
+                try:
+                    from cps.forum.database.models import Thread, Category
+                    from slugify import slugify
+                    
+                    # Get "General" category or create/use first available
+                    category = Category.query.filter_by(name="General").first()
+                    if not category:
+                        category = Category.query.first()
+                    
+                    if category:
+                        # Check if thread already exists (unlikely for new book but good practice)
+                        existing_thread = Thread.query.filter_by(title=title).first()
+                        if not existing_thread:
+                            content = f"Official discussion thread for **{title}** by {input_authors[0]}."
+                            thread = Thread(
+                                title=title,
+                                category_id=category.id,
+                                content=content,
+                                user_id=current_user.id,
+                                slug=slugify(title),
+                                views_count=0
+                            )
+                            thread.save()
+                            log.info(f"Auto-created forum thread for book: {title}")
+                except Exception as e:
+                    log.error(f"Failed to auto-create forum thread: {e}")
+
                 if config.config_use_google_drive:
                     gdriveutils.updateGdriveCalibreFromLocal()
                 if error:
