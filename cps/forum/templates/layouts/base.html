@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,14 +9,18 @@
     <title>{% block title %}{% endblock title %} Forum</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='forum/css/main.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Muli:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/libs/fontawesome-free-6.6.0-web/css/all.min.css') }}"
+        rel="stylesheet" media="screen">
+    <link href="{{ url_for('static', filename='newStyles/css/flashmessage.css') }}" rel="stylesheet" media="screen">
 
     <script src="{{ url_for('static', filename='forum/js/main.js') }}" defer></script>
     {% if current_user.is_authenticated %}
-        <script>
-            window.Auth = {{ current_user.json_attributes() | tojson }}
-        </script>
+    <script>
+        window.Auth = {{ current_user.json_attributes() | tojson }}
+    </script>
     {% endif %}
 </head>
+
 <body>
     <div id="root">
         {% block main %}{% endblock %}
@@ -24,4 +29,5 @@
 
     {% include "layouts/partials/alert.html" %}
 </body>
+
 </html>

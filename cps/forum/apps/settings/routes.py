@@ -41,7 +41,7 @@ def index():
                 
         except Exception as e:
             ub.session.rollback()
-            flash(f"Error updating account: {e}", "danger")
+            flash(f"Error updating account: {e}", "error")
 
         return redirect(url_for("settings.index"))
 
@@ -66,7 +66,7 @@ def password():
             flash("Your password has been changed successfully", "success")
         except Exception as e:
             ub.session.rollback()
-            flash(f"Error changing password: {e}", "danger")
+            flash(f"Error changing password: {e}", "error")
 
         return redirect(url_for("settings.password"))
 
@@ -89,11 +89,13 @@ def avatar():
     avatar_file = request.files['avatar']
 
     if not avatar_file:
+        flash("Please provide an image", category="error")
         return _error_response("Please provide an image")
 
     extension = avatar_file.filename.split(".")[-1]
 
-    if not extension or not extension in avatar_extensions: 
+    if not extension or not extension in avatar_extensions:
+        flash("Please provide a valid image", category="error")
         return _error_response("Please provide a valid image")
 
     avatar_name = generate_random_str(20) + '.' + extension.lower()
@@ -110,5 +112,6 @@ def avatar():
         })
     except Exception as e:
         ub.session.rollback()
+        flash(f"Database error: {e}", category="error")
         return _error_response(f"Database error: {e}", 500)
 

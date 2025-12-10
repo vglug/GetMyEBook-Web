@@ -1,29 +1,75 @@
-{% with messages = get_flashed_messages(with_categories=True) %}
-    {% if messages %}
-        <script>
-            {% for category, message in messages %}
-                {% if category == "success" %}
-                    iziToast.success({
-                        message: "{{ message }}",
-                        position: "bottomRight"
-                    });
-                {% endif %}
-                {% if category == "danger" %}
-                    iziToast.error({
-                        message: "{{ message }}",
-                        position: "bottomRight"
-                    });
-                {% endif %}
+<div class="flash-container">
+    {% for category, message in get_flashed_messages(with_categories=True) %}
 
-                {% if category == "warning" %}
-
-                    iziToast.warning({
-                        message: "{{ message }}",
-                        position: "bottomRight",
-                    });
-                {% endif %}
-
-            {% endfor %}
-        </script>
+    {% if category == "danger" or category == "error" %}
+    <div class="flash-message flash-danger" data-flash-type="error">
+        <div class="flash-content">
+            <span class="flash-icon"><i class="fas fa-exclamation-circle"></i></span>
+            <span class="flash-text" style="color: white;">{{ message }}</span>
+        </div>
+        <div class="flash-progress"></div>
+    </div>
     {% endif %}
-{% endwith %}
+
+    {% if category == "info" %}
+    <div class="flash-message flash-info" data-flash-type="info">
+        <div class="flash-content">
+            <span class="flash-icon"><i class="fas fa-info-circle"></i></span>
+            <span class="flash-text" style="color: white;">{{ message }}</span>
+        </div>
+        <div class="flash-progress"></div>
+    </div>
+    {% endif %}
+
+    {% if category == "warning" %}
+    <div class="flash-message flash-warning" data-flash-type="warning">
+        <div class="flash-content">
+            <span class="flash-icon"><i class="fas fa-exclamation-triangle"></i></span>
+            <span class="flash-text" style="color: white;">{{ message }}</span>
+        </div>
+        <div class="flash-progress"></div>
+    </div>
+    {% endif %}
+
+    {% if category == "success" %}
+    <div class="flash-message flash-success" data-flash-type="success">
+        <div class="flash-content">
+            <span class="flash-icon"><i class="fas fa-check-circle"></i></span>
+            <span class="flash-text" style="color: white;">{{ message }}</span>
+        </div>
+        <div class="flash-progress"></div>
+    </div>
+    {% endif %}
+
+    {% endfor %}
+</div>
+
+<script>
+    // Flash Message Auto-Dismiss and Close Functionality
+    function closeFlash(button) {
+        const flashMessage = button.closest('.flash-message');
+        flashMessage.classList.add('flash-hiding');
+        setTimeout(() => {
+            flashMessage.remove();
+        }, 400); // Match the animation duration
+    }
+
+    // Auto-dismiss flash messages after 3 seconds
+    document.addEventListener('DOMContentLoaded', function () {
+        console.log("DOM Loaded with new Flash Style");
+
+        const flashMessages = document.querySelectorAll('.flash-message');
+
+        flashMessages.forEach(function (message) {
+            setTimeout(function () {
+                if (message) {
+                    message.classList.add('flash-hiding');
+                    setTimeout(() => {
+                        message.remove();
+                    }, 400);
+                }
+            }, 3000);
+        });
+
+    });
+</script>

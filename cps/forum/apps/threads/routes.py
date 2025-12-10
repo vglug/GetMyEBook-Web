@@ -15,7 +15,7 @@ thread_blueprint = Blueprint("threads", __name__, template_folder="templates")
 @login_required
 def create():
     if not current_user.role_admin():
-        flash("Only administrators can create new threads.", "danger")
+        flash("Only administrators can create new threads.", "error")
         return redirect(url_for("main.index"))
 
     thread_form = ThreadCreationForm()
