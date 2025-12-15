@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request
 from cps.forum.database.models.thread import Thread
 from cps.forum.database.models.comment import Comment
 from sqlalchemy.orm import joinedload
-
+from flask import abort
 main_blueprint = Blueprint('main', __name__, template_folder='../../templates')
 
 
@@ -30,7 +30,7 @@ def index():
             threads = threads.filter(Thread.comments_count == 0)
 
     threads = threads.paginate(page=page, per_page=10, error_out=False)
-
+    # return abort(404)
     return render_template('main/index.html',
                            threads=threads,
                            primary_filter=primary_filter,

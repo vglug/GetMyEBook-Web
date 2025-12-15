@@ -21,8 +21,10 @@ def create():
     thread_form = ThreadCreationForm()
 
     # Pre-fill from query args if not submitted
+    book_id = None
     if request.method == 'GET':
         title_arg = request.args.get('title')
+        book_id = request.args.get('book_id', type=int)
         if title_arg and not thread_form.title.data:
             thread_form.title.data = title_arg
             thread_form.content.data = f"Official discussion thread for **{title_arg}**."
@@ -32,20 +34,25 @@ def create():
         category_id = thread_form.category_id.data
         content = thread_form.content.data
         user_id = current_user.id
+        
+        # Get book_id from form or query params
+        if not book_id:
+            book_id = request.form.get('book_id', type=int)
 
         thread = Thread(title=title,
                         category_id=category_id,
                         content=content,
                         user_id=user_id,
                         slug=slugify(title),
-                        views_count=0
+                        views_count=0,
+                        book_id=book_id
                         )
         thread.save()
 
         flash("Your question has been posted successfully", "success")
         return redirect(url_for("main.index"))
 
-    return render_template("threads/create.html", form=thread_form)
+    return render_template("threads/create.html", form=thread_form, book_id=book_id)
 
 
 @thread_blueprint.route("/book/<int:book_id>")
@@ -56,8 +63,8 @@ def book_thread(book_id):
     if not book:
         abort(404)
     
-    # Find thread by title matching book title
-    thread = Thread.query.filter_by(title=book.title).first()
+    # Find thread by book_id (more reliable than title matching)
+    thread = Thread.query.filter_by(book_id=book_id).first()
     
     if thread:
         return redirect(url_for('threads.show', 
@@ -67,7 +74,7 @@ def book_thread(book_id):
     # If no thread found
     if current_user.role_admin():
         flash(f"No discussion thread found for '{book.title}'. You can create one now.", "info")
-        return redirect(url_for('threads.create', title=book.title))
+        return redirect(url_for('threads.create', title=book.title, book_id=book_id))
     else:
         flash(f"No discussion thread has been created for '{book.title}' yet.", "info")
         # Go to forum index or search?
@@ -95,6 +102,9 @@ def category_threads(category_slug):
 
 @thread_blueprint.route("<string:category_slug>/<string:thread_slug>", methods=["GET", "POST", "DELETE", "PUT"])
 def show(category_slug, thread_slug):
+    from cps import calibre_db
+    from sqlalchemy import func, desc
+    
     category = Category.query.filter_by(slug=category_slug).first_or_404()
     thread = Thread.query\
         .filter_by(category_id=category.id, slug=thread_slug)\
@@ -128,8 +138,50 @@ def show(category_slug, thread_slug):
             return redirect(url_for('threads.show', category_slug=thread.category.slug, thread_slug=thread.slug))
         else:
             abort(403)
+    
+    # Fetch book data if this thread is linked to a book
+    book = None
+    book_format = None
+    if thread.book_id:
+        book = calibre_db.get_book(thread.book_id)
+        if book:
+            # Get available formats for the book
+            for format_obj in book.data:
+                if format_obj.format.lower() in ['epub', 'pdf', 'txt']:
+                    book_format = format_obj.format.lower()
+                    break
+    
+    # Get top contributors (users with most comments)
+    from cps.forum.database.models import Comment
+    from cps.forum import db
+    from cps import ub
+    top_contributors_data = db.session.query(
+        Comment.user_id, 
+        func.count(Comment.id).label('comment_count')
+    ).group_by(Comment.user_id)\
+     .order_by(desc('comment_count'))\
+     .limit(5).all()
+    
+    top_contributors = []
+    for user_id, comment_count in top_contributors_data:
+        user = ub.session.query(ub.User).filter(ub.User.id == user_id).first()
+        if user:
+            top_contributors.append({
+                'user': user,
+                'comment_count': comment_count
+            })
+    
+    # Get recent discussions (recent threads)
+    recent_discussions = Thread.query\
+        .order_by(Thread.updated_at.desc())\
+        .limit(5).all()
 
-    return render_template("threads/show.html", thread=thread)
+    return render_template("threads/show.html", 
+                         thread=thread, 
+                         book=book,
+                         book_format=book_format,
+                         top_contributors=top_contributors,
+                         recent_discussions=recent_discussions)
 
 
 @thread_blueprint.route("<string:category_slug>/<string:thread_slug>/edit")

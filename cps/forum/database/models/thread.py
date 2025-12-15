@@ -7,7 +7,7 @@ from .comment import Comment
 
 class Thread(Base):
 
-    json_attributes = ("id", "title", "slug", "content", "user_id", "category_id", "comments_count")
+    json_attributes = ("id", "title", "slug", "content", "user_id", "category_id", "comments_count", "book_id")
 
     __tablename__ = "forum_threads"
     title = db.Column(db.String(100), nullable=False)
@@ -15,6 +15,7 @@ class Thread(Base):
     content = db.Column(db.Text)
     user_id = db.Column(db.Integer)  # Changed from forum_users to users (Foreign key constraint removed to avoid metadata mismatch)
     category_id = db.Column(db.Integer, db.ForeignKey("forum_categories.id"))
+    book_id = db.Column(db.Integer, nullable=True)  # Link to book in calibre database
     views_count = db.Column(db.Integer, nullable=False, default=0)
     comments_count = db.Column(db.Integer, default=0)
     best_comment_id = db.Column(db.Integer, nullable=True)
