@@ -1,5 +1,7 @@
 {% from 'modal_dialogs.html' import restrict_modal, delete_book, filechooser_modal, delete_confirm_modal,
 change_confirm_modal %}
+{% from 'modal_dialogs.html' import restrict_modal, delete_book, filechooser_modal, delete_confirm_modal,
+change_confirm_modal %}
 {% import 'image.html' as image %}
 <!DOCTYPE html>
 <html lang="{{ current_user.locale }}">
@@ -21,19 +23,31 @@ change_confirm_modal %}
   <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet" media="screen">
   <link href="{{ url_for('static', filename='css/update_style.css') }}" rel="stylesheet" media="screen">
   <link href="{{ url_for('static', filename='css/upload.css') }}" rel="stylesheet" media="screen">
+  <link href="{{ url_for('static', filename='css/book-carousel.css') }}" rel="stylesheet" media="screen">
   {% if g.current_theme == 1 %}
   <link href="{{ url_for('static', filename='css/caliBlur.css') }}" rel="stylesheet" media="screen">
   <link href="{{ url_for('static', filename='css/caliBlur_override.css') }}" rel="stylesheet" media="screen">
   {% endif %}
   <link href="{{ url_for('static', filename='css/libs/fontawesome-free-6.6.0-web/css/all.min.css') }}" rel="stylesheet"
     media="screen">
-  <link href="{{ url_for('static', filename='newStyles/css/flashmessage.css') }}" rel="stylesheet" media="screen">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 
 <body class="{{ page }} {{ bodyClass }}{% if g.current_theme == 1 %} blur{% endif %}" data-text="{{_('Home')}}"
   data-textback="{{_('Back')}}">
   <!-- Static navbar -->
-  <div class="app-container">
+  <!-- Static navbar -->
+  <!-- Preloader -->
+  <div id="site-preloader" class="site-preloader">
+    <div class="preloader-content">
+      <img src="{{ url_for('static', filename='img/48x48 px.svg') }}" alt="GetMyEbook Logo" class="preloader-logo">
+      <h1 class="preloader-title"><span class="app-name-part1">GetMy</span><span class="app-name-part2">Ebook</span>
+      </h1>
+      <div class="loader-spinner"></div>
+    </div>
+  </div>
+
+  <div class="app-container initial-hidden">
     <!-- New Header Structure -->
     <div class="app-container">
       <div class="new-header-wrapper">
@@ -49,21 +63,15 @@ change_confirm_modal %}
             <i class="fas fa-search"></i>
           </button>
 
+          <button id="mobile-menu-toggle" class="mobile-menu-toggle" onclick="toggleMobileMenu()">
+            <i class="fas fa-bars"></i>
+          </button>
+
           <div class="search-container-styled" id="search-container">
-            <div class="category-select-wrapper">
-              <select class="category-select" id="category_id" name="category_id">
-                <option value="0">{{_('Categories')}}</option>
-                {% for category in categories %}
-                <option value="{{category.id}}">{{category.name}}</option>
-                {% endfor %}
-              </select>
-              <i class="fas fa-caret-down dropdown-arrow"></i>
-            </div>
-            <div class="search-divider"></div>
             <i class="fas fa-search mobile-search-icon-visual"></i> <!-- Visual Icon for Mobile -->
             <form class="search-form-styled" role="search" action="{{url_for('search.simple_search')}}" method="GET">
               <input class="search-input-styled" type="text" id="query" name="query"
-                placeholder="{{_('Search yourProduct\'s.....')}}" value="{{searchterm}}">
+                placeholder="{{_('Search Library')}}" value="{{searchterm}}">
               <button class="search-btn-styled" type="submit"><i class="fas fa-search"></i></button>
             </form>
             <button class="mobile-search-close" onclick="toggleSearch()">
@@ -75,10 +83,7 @@ change_confirm_modal %}
             <div class="toggle_switch custom-lang-toggle">
               <label class="switch">
                 <input type="checkbox" id="locale" onclick="setLocale()">
-                <span class="slider round">
-                  <span class="lang-text en">E</span>
-                  <span class="lang-text ta">த</span>
-                </span>
+                <span class="slider round"></span>
               </label>
             </div>
           </div>
@@ -186,6 +191,20 @@ change_confirm_modal %}
             </div><!--/.nav-collapse -->
           </div>
         </div>
+
+        <!-- Header 2 -->
+        <div class="header-row-2">
+          <ul class="main-menu">
+            {% for element in sidebar %}
+            {% if current_user.check_visibility(element['visibility']) and element['public'] %}
+            <li {% if page==element['page'] %}class="active" {% endif %}>
+              <a
+                href="{{url_for(element['link'], data=element['page'], sort_param='stored')}}">{{_(element['text'])}}</a>
+            </li>
+            {% endif %}
+            {% endfor %}
+          </ul>
+        </div>
       </div>
       <div class="main-container">
         {% if current_user.is_authenticated or g.allow_anonymous %}
@@ -267,6 +286,35 @@ change_confirm_modal %}
 
 
     </div>
+
+    <!-- Mobile Menu Wrapper -->
+    <div class="mobile-menu-wrapper" id="mobileMenuWrapper">
+      <div class="mobile-menu-overlay" onclick="toggleMobileMenu()"></div>
+      <div class="mobile-menu-area">
+        <div class="mobile-logo-section">
+          <div class="logo-section">
+            <img src="{{ url_for('static', filename='img/48x48 px.svg') }}" alt="Brand Image" style="height: 40px;">
+            <span class="sitename"><span class="app-name-part1">GetMy</span><span
+                class="app-name-part2">Ebook</span></span>
+          </div>
+          <button class="mobile-menu-close" onclick="toggleMobileMenu()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="mobile-menu-content">
+          <ul class="mobile-menu-list">
+            {% for element in sidebar %}
+            {% if current_user.check_visibility(element['visibility']) and element['public'] %}
+            <li {% if page==element['page'] %}class="active" {% endif %}>
+              <a
+                href="{{url_for(element['link'], data=element['page'], sort_param='stored')}}">{{_(element['text'])}}</a>
+            </li>
+            {% endif %}
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
     {% for message in get_flashed_messages(with_categories=True) %}
     {%if message[0] == "error" %}
     <div class="row-fluid text-center">
@@ -298,96 +346,115 @@ change_confirm_modal %}
       </center>
     </div>
     {%endif%}
-    <div class="modal fade" id="bookDetailsModal" tabindex="-1" role="dialog" aria-labelledby="bookDetailsModalLabel">
-      <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-          <div class="modal-header">
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
-                aria-hidden="true">&times;</span></button>
-            <h4 class="modal-title" id="bookDetailsModalLabel">{{_('Book Details')}}</h4>
-          </div>
-          <div class="modal-body">...</div>
-          <div class="modal-footer">
-            <button type="button" id="details_close" class="btn btn-default"
-              data-dismiss="modal">{{_('Close')}}</button>
-          </div>
-        </div>
+  </div>
+  <div class="modal fade" id="bookDetailsModal" tabindex="-1" role="dialog" aria-labelledby="bookDetailsModalLabel">
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content" style="position: relative; padding: 20px; border-radius: 15px; border: none;">
+        <button type="button" class="close-modal-btn" data-dismiss="modal" aria-label="Close">
+          <i class="fas fa-times"></i>
+        </button>
+        <div class="modal-body" style="padding: 0;">...</div>
       </div>
     </div>
-    {% block modal %}{% endblock %}
-    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
-    <script src="{{ url_for('static', filename='js/libs/jquery.min.js') }}"></script>
-    <!-- Include all compiled plugins (below), or include individual files as needed -->
-    <script src="{{ url_for('static', filename='js/libs/bootstrap.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/libs/underscore-umd-min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/libs/intention.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/libs/context.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/libs/plugins.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/libs/jquery.form.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/uploadprogress.js') }}"> </script>
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-    {% if g.current_theme == 1 %}
-    <script src="{{ url_for('static', filename='js/libs/jquery.visible.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/libs/compromise.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/libs/readmore.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/caliBlur.js') }}"></script>
-    {% endif %}
-    <script>
-      function setLocale() {
-        var checkBox = document.getElementById("locale");
-        var text = document.getElementById("text");
-        if (checkBox.checked == true) {
-          document.cookie = 'get_my_ebook_locale=ta;path=/';
-          window.location.reload();
-        } else {
-          document.cookie = 'get_my_ebook_locale=en;path=/'
-          window.location.reload();
-        }
-      }
+  </div>
+  {% block modal %}{% endblock %}
+  <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+  <script src="{{ url_for('static', filename='js/libs/jquery.min.js') }}"></script>
+  <!-- Include all compiled plugins (below), or include individual files as needed -->
+  <script src="{{ url_for('static', filename='js/libs/bootstrap.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/libs/underscore-umd-min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/libs/intention.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/libs/context.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/libs/plugins.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/libs/jquery.form.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/uploadprogress.js') }}"> </script>
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/book-carousel.js') }}"></script>
+  {% if g.current_theme == 1 %}
+  <script src="{{ url_for('static', filename='js/libs/jquery.visible.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/libs/compromise.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/libs/readmore.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/caliBlur.js') }}"></script>
+  {% endif %}
+  <script>
+    function setLocale() {
       var checkBox = document.getElementById("locale");
-      if ((document.cookie == '') || (document.cookie == 'get_my_ebook_locale=en')) {
-        checkBox.checked = false
+      var text = document.getElementById("text");
+      if (checkBox.checked == true) {
+        document.cookie = 'get_my_ebook_locale=ta;path=/';
+        window.location.reload();
+      } else {
+        document.cookie = 'get_my_ebook_locale=en;path=/'
+        window.location.reload();
       }
-      else {
-        checkBox.checked = true
+    }
+    var checkBox = document.getElementById("locale");
+    if ((document.cookie == '') || (document.cookie == 'get_my_ebook_locale=en')) {
+      checkBox.checked = false
+    }
+    else {
+      checkBox.checked = true
+    }
+    function toggleSearch() {
+      var searchContainer = document.getElementById("search-container");
+      searchContainer.classList.toggle("active");
+      document.body.classList.toggle("search-active"); // Toggle body class for CSS control
+      if (searchContainer.classList.contains("active")) {
+        document.getElementById("query").focus();
       }
-      function toggleSearch() {
-        var searchContainer = document.getElementById("search-container");
-        searchContainer.classList.toggle("active");
-        document.body.classList.toggle("search-active"); // Toggle body class for CSS control
-        if (searchContainer.classList.contains("active")) {
-          document.getElementById("query").focus();
-        }
-      }
+    }
 
-      function toggleUserDropdown() {
-        document.getElementById("user-dropdown").classList.toggle("show");
-      }
+    function toggleUserDropdown() {
+      document.getElementById("user-dropdown").classList.toggle("show");
+    }
 
-      // Close the dropdown if the user clicks outside of it
-      window.onclick = function (event) {
-        // Close User Dropdown
-        if (!event.target.closest('.user-profile')) {
-          var dropdowns = document.getElementsByClassName("user-dropdown-content");
-          for (var i = 0; i < dropdowns.length; i++) {
-            var openDropdown = dropdowns[i];
-            if (openDropdown.classList.contains('show')) {
-              openDropdown.classList.remove('show');
-            }
+    // Close the dropdown if the user clicks outside of it
+    window.onclick = function (event) {
+      // Close User Dropdown
+      if (!event.target.closest('.user-profile')) {
+        var dropdowns = document.getElementsByClassName("user-dropdown-content");
+        for (var i = 0; i < dropdowns.length; i++) {
+          var openDropdown = dropdowns[i];
+          if (openDropdown.classList.contains('show')) {
+            openDropdown.classList.remove('show');
           }
         }
-
-        // Close Search Overlay if clicked outside
-        var searchContainer = document.getElementById("search-container");
-        var searchToggle = document.getElementById("mobile-search-toggle");
-        if (searchContainer.classList.contains('active') &&
-          !searchContainer.contains(event.target) &&
-          !searchToggle.contains(event.target)) {
-          searchContainer.classList.remove("active");
-        }
       }
-    </script>
-    {% block js %}{% endblock %}
+
+      // Close Search Overlay if clicked outside
+      var searchContainer = document.getElementById("search-container");
+      var searchToggle = document.getElementById("mobile-search-toggle");
+      if (searchContainer.classList.contains('active') &&
+        !searchContainer.contains(event.target) &&
+        !searchToggle.contains(event.target)) {
+        searchContainer.classList.remove("active");
+      }
+    }
+
+    function toggleMobileMenu() {
+      document.getElementById("mobileMenuWrapper").classList.toggle("active");
+      document.body.classList.toggle("mobile-menu-active");
+    }
+
+    // Preloader Logic
+    window.addEventListener('load', function () {
+      var preloader = document.getElementById('site-preloader');
+      var appContainer = document.querySelector('.app-container');
+
+      // Always show preloader
+      setTimeout(function () {
+        preloader.classList.add('fade-out');
+        appContainer.classList.remove('initial-hidden');
+        appContainer.classList.add('animate-up');
+
+        // Remove preloader from DOM after animation
+        setTimeout(function () {
+          preloader.style.display = 'none';
+        }, 500);
+      }, 1500); // Show for at least 1.5 seconds
+    });
+  </script>
+  {% block js %}{% endblock %}
 </body>
 
 </html>

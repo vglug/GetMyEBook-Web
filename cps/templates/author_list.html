@@ -1,0 +1,103 @@
+{% extends "layout.html" %}
+{% block body %}
+<div class="feature-author space">
+    <div class="container">
+        <div class="title-area2 animation-style1 title-anime">
+            <h1 class="{{page}}">{{_(title)}}</h1>
+        </div>
+        <div class="filterheader" style="text-align: right; margin-bottom: 20px;">
+            <div class="dropdown" style="display: inline-block;">
+                <button class="btn btn-default dropdown-toggle sort-dropdown-btn" type="button" id="sortMenu"
+                    data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                    <i class="fas fa-sort-amount-down" style="color: #ff7174;"></i> {{_('Sort By')}}
+                    <span class="caret" style="margin-left: 5px;"></span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-right sort-dropdown-menu" aria-labelledby="sortMenu">
+                    <li><a href="#" class="sort-btn" data-order="asc">{{_('Name: A to Z')}}</a></li>
+                    <li><a href="#" class="sort-btn" data-order="desc">{{_('Name: Z to A')}}</a></li>
+                </ul>
+            </div>
+            {% if charlist|length %}
+            <div class="btn-group character-filter" role="group" style="margin-left: 10px;">
+                <button type="button" class="btn btn-default filter-btn active" data-char="all">{{_('All')}}</button>
+                {% for char in charlist %}
+                <button type="button" class="btn btn-default filter-btn" data-char="{{char[0]}}">{{char[0]}}</button>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="row" id="author-grid">
+            {% for entry in entries %}
+            <div class="col-lg-2 col-md-3 col-sm-4 col-xs-6 author-item wow animate__fadeInUp" data-wow-delay="0.20s"
+                data-name="{{ entry[0].name }}">
+                <div class="feature-style2">
+                    <span class="feature-img">
+                        {% set author_name = entry[0].name %}
+                        {% set first_letter = author_name[0] | upper %}
+                        <!-- Placeholder for author image using first letter -->
+                        <div class="author-initial-placeholder">
+                            {{ first_letter }}
+                        </div>
+                    </span>
+                    <h2 class="feature-title">
+                        <a
+                            href="{{url_for('web.books_list', data='author', sort_param='stored', book_id=entry[0].id )}}">{{
+                            author_name }}</a>
+                    </h2>
+                    <span class="book-count">{{ entry[1] }} {{_('Books')}}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+    $(document).ready(function () {
+        // Sorting Logic
+        $('.sort-btn').click(function (e) {
+            e.preventDefault();
+            var order = $(this).data('order');
+            var $grid = $('#author-grid');
+            var $items = $grid.children('.author-item');
+
+            $items.sort(function (a, b) {
+                var nameA = $(a).data('name').toUpperCase();
+                var nameB = $(b).data('name').toUpperCase();
+                if (order === 'asc') {
+                    return (nameA < nameB) ? -1 : (nameA > nameB) ? 1 : 0;
+                } else {
+                    return (nameA > nameB) ? -1 : (nameA < nameB) ? 1 : 0;
+                }
+            });
+
+            $grid.append($items);
+        });
+
+        // Filtering Logic
+        $('.filter-btn').click(function () {
+            $('.filter-btn').removeClass('active');
+            $(this).addClass('active');
+
+            var char = $(this).data('char');
+            var $items = $('.author-item');
+
+            if (char === 'all') {
+                $items.show();
+            } else {
+                $items.each(function () {
+                    var name = $(this).data('name').toUpperCase();
+                    if (name.startsWith(char)) {
+                        $(this).show();
+                    } else {
+                        $(this).hide();
+                    }
+                });
+            }
+        });
+    });
+</script>
+{% endblock %}

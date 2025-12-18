@@ -954,7 +954,7 @@ def author_list():
         author_copy = copy.deepcopy(entries)
         for entry in author_copy:
             entry.Authors.name = entry.Authors.name.replace('|', ',')
-        return render_title_template('list.html', entries=author_copy, folder='web.books_list', charlist=char_list,
+        return render_title_template('author_list.html', entries=author_copy, folder='web.books_list', charlist=char_list,
                                      title="Authors", page="authorlist", data='author', order=order_no)
     else:
         abort(404)
@@ -1003,7 +1003,7 @@ def publisher_list():
             entries.append([db.Category(_("None"), "-1"), no_publisher_count])
         entries = sorted(entries, key=lambda x: x[0].name.lower(), reverse=not order_no)
         char_list = generate_char_list(entries)
-        return render_title_template('list.html', entries=entries, folder='web.books_list', charlist=char_list,
+        return render_title_template('publisher_list.html', entries=entries, folder='web.books_list', charlist=char_list,
                                      title=_("Publishers"), page="publisherlist", data="publisher", order=order_no)
     else:
         abort(404)
