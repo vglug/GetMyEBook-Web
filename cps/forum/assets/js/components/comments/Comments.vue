@@ -1,11 +1,12 @@
 <template>
     <div>
-        <div class="comments-list mb-2">
+        <div class="comments-list">
             <Comment v-for="comment in comments" :comment="comment" :key="comment.id"
+                :users="mentionableUsers"
                 @delete="removeComment" @update="updateComment" @reply="handleReply"
             />
         </div>
-        <CommentForm ref="commentForm" :threadId="id" @submit="handleNewComment"/>
+        <CommentForm class="forum-chat-box" ref="commentForm" :threadId="id" :users="mentionableUsers" @submit="handleNewComment"/>
     </div>
 </template>
 
@@ -22,6 +23,23 @@ export default {
     data() {
         return {
             comments: []
+        }
+    },
+    computed: {
+        mentionableUsers() {
+            const users = new Map();
+            // Include current user for testing/self-mention
+            if (window.Auth && window.Auth.id) {
+                users.set(window.Auth.id, window.Auth);
+            }
+            this.comments.forEach(c => {
+                
+                if (c.owner && c.user_id) {
+                    users.set(c.user_id, c.owner);
+                }
+            });
+            console.log("user values :",users.values())
+            return Array.from(users.values());
         }
     },
     mounted() {
@@ -61,3 +79,16 @@ export default {
     },
 }
 </script>
+<style scoped>
+    .forum-chat-box {
+        position: fixed;
+        bottom: 0;
+        width: 55%;
+        background: #fff;
+        padding: 12px;
+    }
+    .comments-list{
+        margin-bottom: 3.4rem !important;
+
+    }
+</style>

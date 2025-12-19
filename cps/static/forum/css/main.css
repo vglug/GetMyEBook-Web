@@ -163,11 +163,6 @@ h1, h2, h3, h4, h5, h6 {
 .form-control[data-v-153bc589]::placeholder {
         color: #999;
 }
-.chat-input-container[data-v-153bc589] {
-    background: #fff;
-    border-top: 1px solid #e5e7eb;
-    padding: 12px;
-}
 .chat-input-box[data-v-153bc589] {
     display: flex;
     align-items: center;
@@ -192,6 +187,46 @@ h1, h2, h3, h4, h5, h6 {
 .chat-input-box[data-v-153bc589]:focus-within {
     border-color: #10a37f;
     box-shadow: 0 0 0 1px rgba(16, 163, 127, 0.3);
+}
+.chat-input-box[data-v-153bc589] {
+    position: relative; /* For mentions popup */
+}
+.mentions-popup[data-v-153bc589] {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    width: 300px;
+    max-height: 250px;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
+    z-index: 9999;
+    margin-bottom: 8px;
+    display: flex;
+    flex-direction: column;
+}
+.mention-item[data-v-153bc589] {
+    display: flex;
+    align-items: center;
+    padding: 10px 14px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background 0.1s;
+}
+.mention-item[data-v-153bc589]:last-child {
+    border-bottom: none;
+}
+.mention-item.active[data-v-153bc589], .mention-item[data-v-153bc589]:hover {
+    background: #f3f4f6;
+}
+.avatar-small[data-v-153bc589] {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    margin-right: 12px;
+    object-fit: cover;
 }
 
 /* Left icons */
@@ -264,5 +299,50 @@ h1, h2, h3, h4, h5, h6 {
     opacity: 0.6;
     cursor: not-allowed;
 }
+.emoji-popup[data-v-153bc589] {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    width: 320px;
+    height: 250px;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
+    z-index: 9999;
+    margin-bottom: 8px;
+    display: flex;
+    flex-direction: column;
+}
+.emoji-grid[data-v-153bc589] {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 5px;
+    padding: 10px;
+}
+.emoji-item[data-v-153bc589] {
+    font-size: 1.5rem;
+    cursor: pointer;
+    text-align: center;
+    border-radius: 4px;
+    transition: background 0.1s;
+    user-select: none;
+}
+.emoji-item[data-v-153bc589]:hover {
+    background: #f3f4f6;
+}
 
+
+
+.forum-chat-box[data-v-4a363ec4] {
+    position: fixed;
+    bottom: 0;
+    width: 55%;
+    background: #fff;
+    padding: 12px;
+}
+.comments-list[data-v-4a363ec4]{
+    margin-bottom: 3.4rem !important;
+}
 

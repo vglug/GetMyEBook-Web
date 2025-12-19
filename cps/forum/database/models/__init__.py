@@ -44,3 +44,4 @@ from .category import Category
 from .thread import Thread
 from .comment import Comment
 from .like import CommentLike
+from .emoji import Emoji

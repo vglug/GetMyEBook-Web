@@ -1,11 +1,11 @@
-from flask import redirect, url_for, flash, Blueprint, render_template, abort, request
+from flask import redirect, url_for, flash, Blueprint, render_template, abort, request , jsonify
 from flask_login import login_required, current_user
 from slugify import slugify
 from .forms import ThreadCreationForm
-from cps.forum.database.models import Thread, Category
+from cps.forum.database.models import Thread, Category , Emoji
 from cps.forum.src.decorators.email_verified import email_verified
 from sqlalchemy.orm import joinedload
-
+import requests
 from cps.logger import create
 
 thread_blueprint = Blueprint("threads", __name__, template_folder="templates")
@@ -178,13 +178,14 @@ def show(category_slug, thread_slug):
     recent_discussions = Thread.query\
         .order_by(Thread.updated_at.desc())\
         .limit(5).all()
-    log.info(f"show.html chacking parms {book},{book_format}")
-    return render_template("threads/show.html", 
-                         thread=thread, 
-                         book=book,
-                         book_format=book_format,
-                         top_contributors=top_contributors,
-                         recent_discussions=recent_discussions)
+
+    log.info(f"show.html chacking parms {book},{book_format} thread {thread}")
+    return render_template("threads/show.html",
+                        thread=thread, 
+                        book=book,
+                        book_format=book_format,
+                        top_contributors=top_contributors,
+                        recent_discussions=recent_discussions)
 
 
 @thread_blueprint.route("<string:category_slug>/<string:thread_slug>/edit")
@@ -205,3 +206,73 @@ def edit(category_slug, thread_slug):
     thread_form.submit.label.text = "Edit"
 
     return render_template("threads/edit.html", thread=thread, form=thread_form)
+
+@thread_blueprint.route("/api/emojis")
+def emojis():
+    from cps.forum import db
+
+    # Check if emojis exist in the database
+    if Emoji.query.count() > 0:
+        emojis_list = Emoji.query.all()
+        return jsonify([{
+            "annotation": e.annotation,
+            "emoji": e.emoji,
+            "group": e.group,
+            "subgroup": e.subgroup,
+            "hexcode": e.hexcode,
+            "unicode": e.unicode,
+            "order": e.order,
+            "tags": e.tags,
+            "shortcodes": e.shortcodes
+        } for e in emojis_list])
+
+    url = "https://emoji.family/api/emojis"
+
+    try:
+        response = requests.get(url, timeout=20)
+        response.raise_for_status()
+    except requests.RequestException as e:
+        log.error(f"Error fetching emojis: {e}")
+        return jsonify({"error": "Failed to fetch emojis"}), 500
+
+    emojis_data = response.json()   # list of emoji objects
+    new_emojis_response = []
+
+    for e in emojis_data:
+        emoji = Emoji(
+            annotation=e.get("annotation"),
+            emoji=e.get("emoji"),
+            group=e.get("group"),
+            subgroup=e.get("subgroup"),
+            hexcode=e.get("hexcode"),
+            unicode=e.get("unicode"),
+            order=e.get("order"),
+            directional=e.get("directional", False),
+            variation=e.get("variation", False),
+            emoticons=e.get("emoticons", []),
+            shortcodes=e.get("shortcodes", []),
+            tags=e.get("tags", []),
+            skintone=e.get("skintone"),
+            skintone_base=e.get("skintoneBase"),
+            skintone_combination=e.get("skintoneCombination"),
+            variation_base=e.get("variationBase")
+        )
+
+        db.session.add(emoji)
+        
+        new_emojis_response.append({
+            "annotation": e.get("annotation"),
+            "emoji": e.get("emoji"),
+            "group": e.get("group"),
+            "subgroup": e.get("subgroup"),
+            "hexcode": e.get("hexcode"),
+            "unicode": e.get("unicode"),
+            "order": e.get("order"),
+            "tags": e.get("tags", []),
+            "shortcodes": e.get("shortcodes", [])
+        })
+
+    db.session.commit()
+    print(f"✅ Inserted {len(emojis_data)} emojis")
+    
+    return jsonify(new_emojis_response)

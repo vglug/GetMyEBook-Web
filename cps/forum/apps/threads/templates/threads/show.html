@@ -16,7 +16,7 @@
                     <i class="fa-solid fa-house"></i>
                 </a>
                 <div class="discussion-book-cover">
-                    <img src="{{ url_for('static',filename='generic_cover.jpg') }}" alt="Book Cover">
+                    <img src="{{ url_for('web.get_cover', book_id=thread.book_id, resolution='og') }}"  alt="Book Cover">
                 </div>
                 <div class="discussion-header">
                     <h1 class="thread-title">{{ thread.title }}</h1>

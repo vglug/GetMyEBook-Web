@@ -8,7 +8,11 @@
                 <h6 class="font-weight-bold m-0 mr-2" style="font-size: 0.95rem;">
                     {{ comment.owner.name }}
                 </h6>
-                <span class="text-muted" style="font-size: 0.8rem;">{{ postedAt }}</span>
+                <span class="text-muted" style="font-size: 0.8rem;">
+                    {{ postedAt }} 
+                    <span class="mx-1">&bull;</span>
+                    {{ messageTime }}
+                </span>
                  <!-- Push to right end -->
                 <div class="position-relative ml-auto">
                     <span class="three-btn" @click="toggleMenu">
@@ -36,8 +40,7 @@
             
             <div class="comment-body">
                 <textarea v-model="content" class="form-control mb-2" v-if="editing" rows="3"></textarea>
-                <div v-else class="text-dark" style="font-size: 0.95rem; line-height: 1.5;">
-                    {{ comment.content }}
+                <div v-else class="text-dark" style="font-size: 0.95rem; line-height: 1.5;" v-html="formattedContent">
                 </div>
             </div>
 
@@ -67,7 +70,8 @@
 
     export default {
         props: [
-            'comment'
+            'comment',
+            'users'
         ],
         data() {
             return {
@@ -94,6 +98,19 @@
             clearInterval(this.timer);
         },
         methods: {
+            escapeHtml(text) {
+                const map = {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#039;'
+                };
+                return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+            },
+            escapeRegex(string) {
+                return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            },
             endpoint() {
                 return `/forum/api/comments/${this.comment.id}`;
             },
@@ -186,9 +203,34 @@
             },
             isAdmin() {
                 return !! window.Auth && window.Auth.isAdmin;
+            },
+            formattedContent() {
+                let content = this.escapeHtml(this.comment.content || "");
+                if (!this.users || !this.users.length) return content;
+                
+                // Sort users by name length desc to prioritize longer names
+                const sortedUsers = [...this.users].sort((a, b) => b.name.length - a.name.length);
+                
+                sortedUsers.forEach(user => {
+                    const name = user.name;
+                    // Match @Name
+                    // strict matching to avoid partial replacements of same name if possible
+                    // simple replace for now:
+                    const escapedName = this.escapeRegex(name);
+                    const regex = new RegExp(`@${escapedName}`, 'g');
+                    content = content.replace(regex, `<span class="text-primary font-weight-bold">@${this.escapeHtml(name)}</span>`);
+                });
+                return content;
+            },
+            messageTime() {
+                if (!this.comment.created_at) return '';
+                let dateStr = this.comment.created_at;
+                if (typeof dateStr === 'string') dateStr = dateStr.replace(' ', 'T');
+                const date = new Date(dateStr);
+                return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             }
         }
-    }
+        }
 </script>
 
 <style scoped>
