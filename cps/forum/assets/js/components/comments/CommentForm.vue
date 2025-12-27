@@ -477,6 +477,13 @@
 @media (max-width: 768px) {
     .chat-input-box{
         width: 100%;
+        min-height : 0;
+        padding: 8px 12px;
+
+        
+    }
+    #emoji-btn {
+        display: none;
     }
 }
 

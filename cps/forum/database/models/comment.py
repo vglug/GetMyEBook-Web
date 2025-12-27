@@ -9,9 +9,21 @@ class Comment(Base):
     user_id = db.Column(db.Integer)  # Changed from forum_users to users (Foreign key constraint removed to avoid metadata mismatch)
     thread_id = db.Column(db.Integer, db.ForeignKey("forum_threads.id"))
     
+    # Self-referential relationship for nested replies
+    parent_id = db.Column(db.Integer, db.ForeignKey("forum_comments.id"), nullable=True)
+    
     # Relationship within forum database
     thread = db.relationship("Thread", back_populates="comments")
     likes = db.relationship("CommentLike", backref="comment", cascade="all, delete-orphan", lazy='dynamic')
+    
+    # Self-referential relationship for replies
+    replies = db.relationship(
+        "Comment",
+        backref=db.backref("parent", remote_side="Comment.id"),
+        cascade="all, delete-orphan",
+        lazy="select",  # Lazy load to ensure deep nesting works (Marshmallow triggers loading)
+        order_by="Comment.created_at"
+    )
 
     @property
     def likes_count(self):
@@ -61,3 +73,21 @@ class Comment(Base):
 
     def is_owner(self, user):
         return user and user.id == self.user_id
+
+    @property
+    def is_reply(self):
+        """Check if this comment is a reply to another comment"""
+        return self.parent_id is not None
+
+    @property
+    def replies_count(self):
+        """Get the count of direct replies to this comment"""
+        return len(self.replies) if self.replies else 0
+
+    def get_all_replies(self):
+        """Get all replies (recursively) to this comment"""
+        all_replies = []
+        for reply in self.replies:
+            all_replies.append(reply)
+            all_replies.extend(reply.get_all_replies())
+        return all_replies

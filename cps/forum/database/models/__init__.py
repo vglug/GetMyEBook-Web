@@ -36,6 +36,11 @@ class Base(db.Model):
         column_value = getattr(self, column, 0)
         self.update({column: column_value + 1})
 
+    def decrement(self, column):
+        column_value = getattr(self, column, 0)
+        if column_value > 0:
+            self.update({column: column_value - 1})
+
 
 
 # User is loaded dynamically via properties in Thread and Comment models

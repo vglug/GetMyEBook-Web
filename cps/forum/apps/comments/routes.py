@@ -23,15 +23,35 @@ def index(thread_id):
         except ValidationError as err:
             return jsonify(err.messages), 400
 
-        comment = Comment(content=request.json["content"], user_id=current_user.id, thread_id=thread.id)
+        # Get parent_id if this is a reply
+        parent_id = request.json.get("parent_id", None)
+        
+        # If parent_id is provided, verify the parent comment exists
+        if parent_id:
+            parent_comment = Comment.query.get(parent_id)
+            if not parent_comment:
+                return jsonify({"error": "Parent comment not found"}), 404
+            # Ensure parent belongs to the same thread
+            if parent_comment.thread_id != thread.id:
+                return jsonify({"error": "Parent comment must be in the same thread"}), 400
+
+        comment = Comment(
+            content=request.json["content"], 
+            user_id=current_user.id, 
+            thread_id=thread.id,
+            parent_id=parent_id
+        )
         comment.save()
 
+        # Increment comment count for all comments (including replies)
         thread.increment("comments_count")
 
         return jsonify(comment_schema.dump(comment)), 201
 
     else:
-        comments = Comment.query.filter_by(thread_id=thread.id)\
+        # Only return top-level comments (parent_id is None)
+        # Replies are automatically included via the relationship
+        comments = Comment.query.filter_by(thread_id=thread.id, parent_id=None)\
                                 .order_by(Comment.created_at.desc())\
                                 .all()
         return jsonify(comments_schema.dump(comments)), 200
@@ -44,7 +64,10 @@ def show(comment_id):
         return jsonify(comment_schema.dump(comment)), 200
 
     if request.method == "DELETE":
+        thread = comment.thread
         comment.delete()
+        if thread:
+            thread.decrement("comments_count")
         return jsonify([]), 204
 
     if request.method == "PATCH":

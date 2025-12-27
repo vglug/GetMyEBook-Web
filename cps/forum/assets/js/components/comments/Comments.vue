@@ -65,13 +65,34 @@ export default {
                 return comment
             })
         },
-        handleReply(comment) {
+        handleReply(payload) {
+            // Check if this is an inline reply (has content)
+            if (payload && payload.content && payload.originalComment) {
+                this.submitInlineReply(payload);
+                return;
+            }
+
+            // Legacy behavior (if payload is just comment object)
+            const comment = payload; 
             const form = this.$refs.commentForm;
             if (form) {
                 // Populate with username and focus
                 form.content = `@${comment.owner.name} `;
                 form.focusInput();
             }
+        },
+        submitInlineReply(payload) {
+             // Optional: Prepend mention if desired, or just send content.
+             // For now sending content as typed by user.
+             // If mention is critical, we could add: `@${payload.originalComment.owner.name} ${payload.content}`
+             // But usually inline reply implies context. 
+             // Let's assume content is enough or user typed what they wanted.
+             
+             axios.post(`/forum/api/threads/${this.id}/comments`, { content: payload.content })
+                .then(({data}) => {
+                     this.handleNewComment(data);
+                })
+                .catch(error => console.error("Error posting inline reply:", error));
         }
     },
 }

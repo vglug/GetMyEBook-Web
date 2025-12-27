@@ -308,6 +308,13 @@ button {
 
 /* 📱 Mobile Responsive */
 @media (max-width: 768px) {
+
+    .menu__inner,
+    .menu__inner::before,
+    .menu__inner::after {
+        width: 25px;
+    }
+
     .thread-content {
         display: none;
     }
@@ -317,7 +324,7 @@ button {
         width: 40px;
         height: 30px;
         position: absolute;
-        top: 15px;
+        top: 20px;
         left: 15px;
     }
 
@@ -335,12 +342,23 @@ button {
 
     .thread-title {
         font-size: 1.5rem;
+        /* margin-top: 40px; */
+        /* Space for the menu button */
+        line-height: 1.4;
+        word-wrap: break-word;
+        text-align: center;
+        padding: 0 10px;
+        /* Horizontal padding */
     }
 
     .thread-meta {
-        /* flex-direction: column; */
-        align-items: flex-start;
+        display: none;
+        align-items: center;
         gap: 10px;
+        width: 100%;
+        flex-wrap: wrap;
+        justify-content: center;
+        font-size: 0.85rem;
     }
 
     .comment-content {
@@ -358,11 +376,10 @@ button {
 
     .thread-header-card {
         flex-direction: column;
-        padding: 6px;
-    }
-
-    .thread-meta {
-        display: none;
+        padding: 16px;
+        /* Increased padding */
+        position: sticky;
+        /* Keep sticky */
     }
 
     .discussion-book-cover {
@@ -374,12 +391,9 @@ button {
     }
 
     .discussion-header {
+        margin-top: 0px;
         align-items: center;
-    }
-
-    .thread-meta {
-        justify-content: center;
-        font-size: 0.85rem;
+        width: 100%;
     }
 
     .thread-actions {

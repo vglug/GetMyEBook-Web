@@ -13,6 +13,10 @@ class CommentSchema(ma.SQLAlchemyAutoSchema):
     liked_by_current_user = fields.Boolean(dump_only=True)
     current_user_reaction = fields.String(dump_only=True)
     top_reaction = fields.String(dump_only=True)
+    
+    # Self-referential nested field for replies
+    replies = fields.Nested("CommentSchema", many=True, dump_only=True)
+    parent_id = fields.Integer(allow_none=True)
 
     class Meta:
         model = Comment

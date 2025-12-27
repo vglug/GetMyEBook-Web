@@ -22,7 +22,7 @@
 
         <!-- Admin Link (if authenticated) -->
         {% if current_user.is_authenticated and current_user.role == 1 %}
-        <a href="/admin" class="sidebar-menu-item">
+        <a href="/admin/views" class="sidebar-menu-item">
             <i class="fas fa-user-shield"></i>
             <span>Admin Panel</span>
         </a>
@@ -30,7 +30,7 @@
 
         <!-- User Profile -->
         {% if current_user.is_authenticated %}
-        <a href="{{ url_for('web.profile', user_id=current_user.id) }}" class="sidebar-menu-item">
+        <a href="/forum/settings/" class="sidebar-menu-item">
             <i class="fas fa-user"></i>
             <span>{{ current_user.name }}</span>
         </a>
@@ -82,7 +82,7 @@
 
         <div class="sidebar-menu-item sidebar-info">
             <i class="fas fa-comments"></i>
-            <span>{{ thread.comments_count }} comments</span>
+            <span>{{ thread.comments|length }} comments</span>
         </div>
     </div>
 </div>
@@ -173,7 +173,7 @@
             <div class="comments-section">
                 <!-- <h2 class="comments-header" style="display: none;">
                     <i class="fas fa-comments"></i>
-                    Chat ({{ thread.comments_count }} messages)
+                    Chat ({{ thread.comments|length }} messages)
                 </h2> -->
                 <comments :id="{{ thread.id }}"></comments>
             </div>
@@ -249,7 +249,7 @@
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                     <div
                         style="text-align: center; padding: 16px; background: linear-gradient(135deg, #6366f1, #818cf8); border-radius: 12px; color: white;">
-                        <div style="font-size: 2rem; font-weight: 700;">{{ thread.comments_count }}</div>
+                        <div style="font-size: 2rem; font-weight: 700;">{{ thread.comments|length }}</div>
                         <div style="font-size: 0.8rem; opacity: 0.9; margin-top: 4px;">Comments</div>
                     </div>
                     <div

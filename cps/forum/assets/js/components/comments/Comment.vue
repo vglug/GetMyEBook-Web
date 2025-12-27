@@ -1,7 +1,7 @@
 <template>
-    <div class="comment-item d-flex mb-4 mt-1">
+    <div class="comment-item d-flex mb-4 mt-1" :class="{'nested-reply': isReply}">
         <div class="flex-shrink-0 mr-3 comment-icon">
-            <img :src="comment.owner.profile_picture" class="rounded-circle" width="36" height="36" style="object-fit: cover;">
+            <img :src="comment.owner.profile_picture" class="rounded-circle" :width="isReply ? 28 : 36" :height="isReply ? 28 : 36" style="object-fit: cover;">
         </div>
         <div class="flex-grow-1">
             <div class="d-flex align-items-baseline mb-1">
@@ -19,9 +19,6 @@
                         <i class="fa-solid fa-ellipsis-vertical"></i>
                     </span>
                     <div v-if="showMenu" class="dropdown-menu dropdown-menu-right show shadow-sm" style="top: 100%; right: 0; min-width: 120px; z-index: 1000; position: absolute;">
-                        <button class="dropdown-item" @click="reply">
-                            <i class="fas fa-reply mr-2"></i>Reply
-                        </button>
                         <template v-if="isOwner || isAdmin">
                             <button class="dropdown-item" @click="showEditionInput">
                                 <i class="fas fa-pen mr-2"></i>Edit
@@ -44,21 +41,25 @@
                 </div>
             </div>
             <div class="comment-actions mt-1 d-flex align-items-center"> 
-                <div class="like-wrapper mr-3 d-flex align-items-center">
-                    <div class="reaction-box">
-                        <span class="reaction-icon" @click.stop="triggerReaction('like')" title="Like">👍</span>
-                        <span class="reaction-icon" @click.stop="triggerReaction('celebrate')" title="Celebrate">👏</span>
-                        <span class="reaction-icon" @click.stop="triggerReaction('support')" title="Support">🤝</span>
-                        <span class="reaction-icon" @click.stop="triggerReaction('love')" title="Love">❤️</span>
-                        <span class="reaction-icon" @click.stop="triggerReaction('insightful')" title="Insightful">💡</span>
-                        <span class="reaction-icon" @click.stop="triggerReaction('funny')" title="Funny">😂</span>
+                <div class="d-flex align-items-center mr-3">
+                    <div class="like-wrapper d-flex align-items-center">
+                        <div class="reaction-box">
+                            <span class="reaction-icon" @click.stop="triggerReaction('like')" title="Like">👍</span>
+                            <span class="reaction-icon" @click.stop="triggerReaction('celebrate')" title="Celebrate">👏</span>
+                            <span class="reaction-icon" @click.stop="triggerReaction('support')" title="Support">🤝</span>
+                            <span class="reaction-icon" @click.stop="triggerReaction('love')" title="Love">❤️</span>
+                            <span class="reaction-icon" @click.stop="triggerReaction('insightful')" title="Insightful">💡</span>
+                            <span class="reaction-icon" @click.stop="triggerReaction('funny')" title="Funny">😂</span>
+                        </div>
+                        
+                        <button class="like-btn btn-link btn-sm p-0 text-muted font-weight-bold" @click="toggleLike" style="text-decoration: none; font-size: 0.9rem;">
+                            <span :class="{'text-primary': liked && reactionType === 'like', 'text-success': liked && reactionType === 'celebrate', 'text-warning': liked && (reactionType === 'support' || reactionType === 'insightful'), 'text-danger': liked && reactionType === 'love', 'text-info': liked && reactionType === 'funny'}">
+                                {{ reactionLabel }}
+                            </span>
+                        </button>
                     </div>
-                    
-                    <button class="like-btn btn-link btn-sm p-0 text-muted font-weight-bold" @click="toggleLike" style="text-decoration: none; font-size: 0.9rem;">
-                        <span :class="{'text-primary': liked && reactionType === 'like', 'text-success': liked && reactionType === 'celebrate', 'text-warning': liked && (reactionType === 'support' || reactionType === 'insightful'), 'text-danger': liked && reactionType === 'love', 'text-info': liked && reactionType === 'funny'}">
-                            {{ reactionLabel }}
-                        </span>
-                    </button>
+
+                    <span class="text-muted mx-2">&middot;</span>
 
                     <!-- Reaction Status (Icons + Count) -->
                     <div v-if="likesCount > 0" class="ml-2 d-flex align-items-center text-muted small" style="cursor: pointer;" @click="toggleLike">
@@ -84,7 +85,17 @@
                         <span class="ml-1">{{ likesCount }}</span>
                     </div>
                 </div>
-                
+                <!-- Reply button with message icon -->
+                    <button class="btn btn-link btn-sm p-0 reply-btn" @click="toggleReply" style="text-decoration: none; font-size: 0.9rem;">
+                        <i class="far fa-comment-dots message-icon"></i>
+                        <span class="reply-text">Reply</span>
+                    </button>
+                    
+                    <!-- Reply count - clickable to toggle replies -->
+                    <button v-if="hasReplies" class="btn btn-link btn-sm p-0 reply-count-btn" @click="toggleRepliesOnly" style="text-decoration: none; font-size: 0.9rem;">
+                        <span class="text-muted mx-2">&middot;</span>
+                        <span class="reply-count-text">{{ comment.replies.length }} {{ comment.replies.length === 1 ? 'reply' : 'replies' }}</span>
+                    </button>
                 <template v-if="isOwner || isAdmin">
                      <button class="btn btn-link btn-sm p-0 mr-3 text-primary" v-if="editing" @click="updateComment">
                         <small>Save</small>
@@ -94,6 +105,71 @@
                     </button>
                 </template>
             </div>
+            
+            <!-- Reply Input Section -->
+            <!-- Reply Input Section -->
+            <div v-if="isReplying" class="reply-container mt-3 d-flex animate-fade-in">
+                
+                <div v-if="!canReply" class="w-100 login-prompt text-center p-3" style="background: #f8f9fa; border-radius: 12px;">
+                     <template v-if="isLoggedIn">
+                         <span class="text-secondary"><i class="fas fa-envelope mr-2"></i> Please verify your email to reply.</span>
+                     </template>
+                     <template v-else>
+                         <span class="text-secondary">
+                             <a href="/login" class="font-weight-bold text-primary">Login</a> or <a href="/register" class="font-weight-bold text-primary">Sign up</a> to reply
+                         </span>
+                     </template>
+                </div>
+
+                <template v-else>
+                    <div class="flex-shrink-0 mr-3">
+                         <img :src="comment.owner.profile_picture" class="rounded-circle" width="36" height="36" style="object-fit: cover;">
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="reply-card">
+                             <div class="reply-header mb-2 px-3 pt-3">
+                                <span class="font-weight-bold text-dark">{{ currentUserName }}</span>
+                             </div>
+                             <div class="px-3 pb-2">
+                                <textarea 
+                                    v-model="replyContent" 
+                                    ref="replyInput"
+                                    class="form-control border-0 p-0 reply-textarea" 
+                                    placeholder="What are your thoughts?" 
+                                    rows="2" 
+                                ></textarea>
+                             </div>
+                             <div class="reply-footer d-flex justify-content-between align-items-center px-3 pb-3">
+                                  <div class="d-flex text-muted gap-3">
+                                      <i class="far fa-face-smile action-icon" title="Emoji"></i>
+                                      <i class="far fa-image action-icon" title="Image"></i>
+                                  </div>
+                                  <button class="btn btn-primary btn-sm rounded-pill px-4 font-weight-bold" @click="submitReply">Reply</button>
+                             </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            
+            <!-- View Previous Replies Toggle - Now hidden as we use the reply count button instead -->
+            <!-- Keeping it for animation purposes if needed -->
+
+            <!-- Recursive Replies with smooth animation -->
+            <transition name="replies-expand">
+                <div v-if="showReplies && hasReplies" class="replies-wrapper">
+                    <Comment 
+                        v-for="reply in comment.replies" 
+                        :key="reply.id" 
+                        :comment="reply" 
+                        :users="users"
+                        :is-reply="true"
+                        class="nested-reply"
+                        @reply="$emit('reply', $event)"
+                        @update="$emit('update', $event)"
+                        @delete="$emit('delete', $event)"
+                    />
+                </div>
+            </transition>
         </div>
     </div>
 </template>
@@ -102,9 +178,11 @@
     import axios from "axios";
 
     export default {
+        name: 'Comment',
         props: [
             'comment',
-            'users'
+            'users',
+            'isReply'
         ],
         data() {
             return {
@@ -115,7 +193,10 @@
                 likesCount: 0,
                 reactionType: 'like', // default
                 topReaction: null,
-                now: new Date()
+                now: new Date(),
+                isReplying: false,
+                replyContent: "",
+                showReplies: false
             }
         },
         mounted() {
@@ -319,9 +400,59 @@
             toggleMenu() {
                 this.showMenu = !this.showMenu;
             },
+            toggleReply() {
+                this.isReplying = !this.isReplying;
+                if (this.isReplying && this.canReply) {
+                    this.$nextTick(() => {
+                        if(this.$refs.replyInput) this.$refs.replyInput.focus();
+                    });
+                }
+            },
+            submitReply() {
+                if (!this.replyContent.trim()) return;
+                
+                // Create nested reply with parent_id
+                const threadId = this.comment.thread_id;
+                const payload = {
+                    content: this.replyContent,
+                    parent_id: this.comment.id  // This comment is the parent
+                };
+                
+                axios.post(`/forum/api/threads/${threadId}/comments`, payload)
+                    .then(response => {
+                        console.log('Reply created successfully:', response.data);
+                        
+                        // Add the new reply to this comment's replies array
+                        if (!this.comment.replies) {
+                            this.$set(this.comment, 'replies', []);
+                        }
+                        this.comment.replies.push(response.data);
+                        
+                        // Show the replies section
+                        this.showReplies = true;
+                        
+                        // Clear and close
+                        this.replyContent = "";
+                        this.isReplying = false;
+                        
+                        // Emit to parent for any additional handling
+                        this.$emit('reply', response.data);
+                    })
+                    .catch(error => {
+                        console.error('Error creating reply:', error);
+                        alert('Failed to post reply. Please try again.');
+                    });
+            },
+            // Legacy reply method if used by something else, redirected
             reply() {
-                this.showMenu = false;
-                this.$emit('reply', this.comment);
+                this.toggleReply();
+            },
+            toggleReplies() {
+                this.showReplies = !this.showReplies;
+            },
+            toggleRepliesOnly() {
+                // Only toggle replies visibility, don't open reply input
+                this.showReplies = !this.showReplies;
             }
         },
         computed: {
@@ -410,9 +541,32 @@
                 if (typeof dateStr === 'string') dateStr = dateStr.replace(' ', 'T');
                 const date = new Date(dateStr);
                 return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            },
+            currentUserAvatar() {
+                if (window.Auth && window.Auth.profile_picture) {
+                    return window.Auth.profile_picture;
+                }
+                // Fallback to UI Avatars if user has name but no picture
+                if (window.Auth && window.Auth.name) {
+                    return `https://ui-avatars.com/api/?name=${encodeURIComponent(window.Auth.name)}&background=random&color=fff`;
+                }
+                // Generic fallback
+                return 'https://www.gravatar.com/avatar/default?d=mp';
+            },
+            currentUserName() {
+                return window.Auth ? window.Auth.name : 'Guest';
+            },
+            isLoggedIn() {
+                return !!window.Auth;
+            },
+            canReply() {
+                return !!window.Auth && window.Auth.email_verified;
+            },
+            hasReplies() {
+                return this.comment.replies && this.comment.replies.length > 0;
             }
         }
-        }
+    }
 </script>
 
 <style scoped>
@@ -437,15 +591,65 @@
         transition: background-color 0.2s;
         border-bottom: 1px solid var(--border-color);
     }
+    
+    /* Remove border for nested replies */
+    .comment-item.nested-reply {
+        border-bottom: none;
+        margin-bottom: 8px !important;
+        margin-top: 8px !important;
+    }
 
     .comment-item:last-child {
         border-bottom: none;
     }
+    
+    /* View Replies Toggle */
+    .view-replies-container {
+        position: relative;
+    }
+
+    .view-replies-line {
+        display: flex;
+        align-items: center;
+        color: #8e8e8e;
+        font-size: 0.8rem;
+        font-weight: 600;
+        cursor: pointer;
+        user-select: none;
+        margin-left: 2px; /* Align with text */
+    }
+    
+    .line-dashes {
+        display: inline-block;
+        width: 24px;
+        height: 1px;
+        background-color: #8e8e8e;
+        margin-right: 8px;
+        vertical-align: middle;
+    }
+    
+    /* Thread Connection Line */
+    .replies-wrapper {
+        position: relative;
+        border-left: 2px solid #eef0f2; /* Vertical Thread Line */
+        margin-left: 12px;
+        padding-left: 16px;
+    }
+
+    /* Curve the line slightly for the toggle if desired, or keep straight */
+    
+    .view-replies-line:hover {
+        color: #555;
+    }
+    .view-replies-line:hover .line-dashes {
+        background-color: #555;
+    }
+
     .comment-actions {
         transition: opacity 0.2s;
         display: flex;
         gap: 16px;
-        padding-bottom: 0.6rem;
+        padding-bottom: 0.2rem;
     }
     /* Reaction Picker Details */
     .like-wrapper {
@@ -539,5 +743,199 @@
             height: 30px;
             margin-top: 30%;
         }
+        
+        .comment-actions {
+            gap: 12px;
+        }
+
+        .reply-container .flex-shrink-0 {
+            display: none !important; /* Hide avatar in reply box on mobile to save space */
+        }
+        .reply-container .flex-grow-1 {
+            width: 100%;
+        }
+        .reply-card {
+            border-radius: 12px;
+        }
     }
+
+    /* Reply Card Styles */
+    .reply-card {
+        background: #fff;
+        border: 1px solid #e0e0e0;
+        border-radius: 16px;
+        transition: box-shadow 0.2s;
+        position: relative;
+    }
+    
+    .reply-card:focus-within {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        border-color: #d0d0d0;
+    }
+
+    .reply-textarea {
+        background: transparent;
+        resize: none;
+        box-shadow: none !important;
+        font-size: 0.95rem;
+    }
+    .reply-textarea::placeholder {
+        color: #888;
+    }
+
+    .action-icon {
+        font-size: 1.25rem;
+        color: #666;
+        cursor: pointer;
+        transition: color 0.2s;
+    }
+    .action-icon:hover {
+        color: #333;
+    }
+
+    .animate-fade-in {
+        animation: fadeIn 0.3s ease-out;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .gap-3 {
+        gap: 1rem;
+    }
+    
+    .login-prompt {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 8px;
+        text-align: center;
+        border: 1px dashed #dee2e6;
+    }
+    
+    /* Reply Button with Message Icon */
+    .reply-btn {
+        color: #8e8e8e !important;
+        font-weight: 600 !important;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: color 0.2s ease;
+    }
+    
+    .reply-btn:hover {
+        color: #555 !important;
+    }
+    
+    .message-icon {
+        font-size: 0.95rem;
+        stroke-width: 1.5;
+    }
+    
+    .reply-text {
+        font-weight: 600;
+    }
+    
+    /* Reply Count Button */
+    .reply-count-btn {
+        color: #8e8e8e;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+    }
+    
+    .reply-count-text {
+        font-weight: 600;
+        position: relative;
+    }
+    
+    .reply-count-btn:hover .reply-count-text {
+        color: #555;
+        text-decoration: underline;
+    }
+    
+    /* Smooth Expand/Collapse Animation for Replies */
+    .replies-expand-enter-active,
+    .replies-expand-leave-active {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow: hidden;
+    }
+    
+    .replies-expand-enter-from {
+        max-height: 0;
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    
+    .replies-expand-enter-to {
+        max-height: 2000px;
+        opacity: 1;
+        transform: translateY(0);
+    }
+    
+    .replies-expand-leave-from {
+        max-height: 2000px;
+        opacity: 1;
+        transform: translateY(0);
+    }
+    
+    .replies-expand-leave-to {
+        max-height: 0;
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    
+    /* Nested Reply Indentation - Desktop */
+    .nested-reply {
+        padding-left: 0;
+        margin-top: 12px;
+    }
+    
+    .replies-wrapper {
+        position: relative;
+        border-left: 2px solid #eef0f2; /* Vertical Thread Line */
+        margin-left: 20px;
+        padding-left: 16px;
+        margin-top: 12px;
+    }
+    
+    /* Highlight new replies briefly */
+    @keyframes highlight {
+        0% { background-color: rgba(0, 123, 255, 0.1); }
+        100% { background-color: transparent; }
+    }
+    .new-reply {
+        animation: highlight 3s ease-out;
+    }
+
+    /* Mobile Touch-Friendly Design - Reduced Indentation */
+    @media (max-width: 768px) {
+        .replies-wrapper {
+            margin-left: 10px;
+            padding-left: 10px;
+            border-left-width: 2px;
+        }
+        
+        .comment-icon img {
+            width: 28px !important;
+            height: 28px !important;
+        }
+        
+        .reply-btn,
+        .reply-count-btn {
+            padding: 4px 8px !important;
+            min-height: 44px; /* iOS recommended touch target */
+        }
+        
+        .message-icon {
+            font-size: 1.1rem;
+        }
+        
+        .reply-text,
+        .reply-count-text {
+            font-size: 0.9rem;
+        }
+    }
+
 </style>
