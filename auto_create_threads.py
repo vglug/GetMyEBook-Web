@@ -8,6 +8,7 @@ sys.path.append(os.getcwd())
 
 from cps import create_app, calibre_db, ub, db
 from cps.forum.database.models import Thread, Category
+from cps.forum.database.seeds.category_seeder import categories_run
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -16,6 +17,13 @@ log = logging.getLogger(__name__)
 def create_threads():
     app = create_app()
     with app.app_context():
+        # Auto-create default categories if they don't exist
+        try:
+            categories_run()
+            log.info("Default categories checked/created successfully.")
+        except Exception as e:
+            log.warning(f"Could not auto-create categories: {e}")
+        
         log.info("Starting thread creation for existing books...")
         
         # Get "General" category

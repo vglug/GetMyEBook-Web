@@ -36,6 +36,32 @@ def ensure_pgloader_installed():
         log.info("✔ pgloader installed successfully.")
 
 
+# -------------------------------------
+# Helper: Create DB
+# -------------------------------------
+def create_database_if_not_exists():
+    # Encode password safely
+    encoded_pw = urllib.parse.quote_plus(DB_PASSWORD)
+
+    # Admin DB connection for creating DB
+    POSTGRES_ADMIN_URL = (
+        f"postgresql+psycopg2://{DB_USER}:{encoded_pw}@{DB_HOST}:{DB_PORT}/postgres"
+    )
+    
+    engine = create_engine(POSTGRES_ADMIN_URL, isolation_level="AUTOCOMMIT")
+
+    try:
+        with engine.connect() as conn:
+            conn.execute(text(f"CREATE DATABASE {DB_NAME};"))
+            log.info(f"✔ Database '{DB_NAME}' created.")
+    except ProgrammingError as e:
+        if "already exists" in str(e):
+            log.info(f"✔ Database '{DB_NAME}' already exists.")
+        else:
+            log.error(f"⚠ Error creating database: {e}")
+            raise
+
+
 # ---------------------------
 # Migration workflow
 # ---------------------------
@@ -47,6 +73,7 @@ def migrate_sqlite_to_postgres(SQLITE_PATH):
     encoded_pw = urllib.parse.quote_plus(DB_PASSWORD)
 
     # Admin DB connection for creating DB
+    # (We still define this for logging purposes, though creation is handled by helper)
     POSTGRES_ADMIN_URL = (
         f"postgresql+psycopg2://{DB_USER}:{encoded_pw}@{DB_HOST}:{DB_PORT}/postgres"
     )
@@ -65,18 +92,7 @@ def migrate_sqlite_to_postgres(SQLITE_PATH):
     # -------------------------------------
     # Create database if not exists
     # -------------------------------------
-    engine = create_engine(POSTGRES_ADMIN_URL, isolation_level="AUTOCOMMIT")
-
-    try:
-        with engine.connect() as conn:
-            conn.execute(text(f"CREATE DATABASE {DB_NAME};"))
-            log.info(f"✔ Database '{DB_NAME}' created.")
-    except ProgrammingError as e:
-        if "already exists" in str(e):
-            log.info(f"✔ Database '{DB_NAME}' already exists.")
-        else:
-            log.error(f"⚠ Error creating database: {e}")
-            return
+    create_database_if_not_exists()
 
     # -------------------------------------
     # Run pgloader migration

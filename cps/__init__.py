@@ -161,6 +161,14 @@ def create_app():
         csrf.init_app(app)
 
     cli_param.init()
+
+    # Ensure PostgreSQL database exists before initializing tables
+    try:
+        from cps.create_metadata_psql import create_database_if_not_exists
+        create_database_if_not_exists()
+    except Exception as e:
+        log.error(f"Failed to check/create database: {e}")
+
     ub.init_db()
     # Initialize PostgreSQL database FIRST
     db_engine, db_session = init_postgresql()
