@@ -306,6 +306,12 @@ button {
     color: #fff;
 }
 
+@media (max-width: 1200px) {
+    .book-reader-panel {
+        display: none;
+    }
+}
+
 /* 📱 Mobile Responsive */
 @media (max-width: 768px) {
 
