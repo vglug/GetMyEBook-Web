@@ -2,7 +2,7 @@
     <div>
         <div class="comments-list">
             <Comment v-for="comment in comments" :comment="comment" :key="comment.id"
-                :users="mentionableUsers"
+                :users="mentionableUsers" :thread-id="id"
                 @delete="removeComment" @update="updateComment" @reply="handleReply"
             />
         </div>
