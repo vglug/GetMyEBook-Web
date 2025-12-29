@@ -26,6 +26,7 @@ class CommentSchema(ma.SQLAlchemyAutoSchema):
 
 class CommentValidationSchema(Schema):
     content = fields.Str(required=True, validate=Length(min=2))
+    parent_id = fields.Integer(required=False, allow_none=True)
 
 
 comment_schema = CommentSchema()

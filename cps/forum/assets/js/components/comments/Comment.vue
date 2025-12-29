@@ -162,6 +162,7 @@
                         :key="reply.id" 
                         :comment="reply" 
                         :users="users"
+                        :thread-id="threadId"
                         :is-reply="true"
                         class="nested-reply"
                         @reply="$emit('reply', $event)"
@@ -182,7 +183,8 @@
         props: [
             'comment',
             'users',
-            'isReply'
+            'isReply',
+            'threadId'
         ],
         data() {
             return {
@@ -409,37 +411,61 @@
                 }
             },
             submitReply() {
-                if (!this.replyContent.trim()) return;
+                console.log('=== submitReply Called ===');
+                if (!this.replyContent.trim()) {
+                    console.log('Reply content is empty');
+                    return;
+                }
                 
                 // Create nested reply with parent_id
-                const threadId = this.comment.thread_id;
+                const threadId = this.threadId || this.comment.thread_id;
+                console.log('Thread ID:', threadId);
+                console.log('Parent Comment ID:', this.comment.id);
+
                 const payload = {
                     content: this.replyContent,
                     parent_id: this.comment.id  // This comment is the parent
                 };
+                console.log('Payload:', payload);
                 
-                axios.post(`/forum/api/threads/${threadId}/comments`, payload)
+                const url = `/forum/api/threads/${threadId}/comments`;
+                console.log('Posting to URL:', url);
+                
+                axios.post(url, payload)
                     .then(response => {
-                        console.log('Reply created successfully:', response.data);
+                        console.log('Reply created successfully. Response data:', response.data);
+                        console.log('Response status:', response.status);
                         
                         // Add the new reply to this comment's replies array
                         if (!this.comment.replies) {
+                            console.log('Initializing replies array');
                             this.$set(this.comment, 'replies', []);
                         }
                         this.comment.replies.push(response.data);
                         
                         // Show the replies section
+                        console.log('Showing replies section');
                         this.showReplies = true;
                         
                         // Clear and close
                         this.replyContent = "";
                         this.isReplying = false;
+                        console.log('isReplying set to false');
                         
                         // Emit to parent for any additional handling
                         this.$emit('reply', response.data);
                     })
                     .catch(error => {
                         console.error('Error creating reply:', error);
+                        if (error.response) {
+                             console.error('Error Response Data:', error.response.data);
+                             console.error('Error Response Status:', error.response.status);
+                             console.error('Error Response Headers:', error.response.headers);
+                        } else if (error.request) {
+                             console.error('Error Request:', error.request);
+                        } else {
+                             console.error('Error Message:', error.message);
+                        }
                         alert('Failed to post reply. Please try again.');
                     });
             },
@@ -862,7 +888,7 @@
         overflow: hidden;
     }
     
-    .replies-expand-enter-from {
+    .replies-expand-enter {
         max-height: 0;
         opacity: 0;
         transform: translateY(-10px);
@@ -874,7 +900,7 @@
         transform: translateY(0);
     }
     
-    .replies-expand-leave-from {
+    .replies-expand-leave {
         max-height: 2000px;
         opacity: 1;
         transform: translateY(0);
