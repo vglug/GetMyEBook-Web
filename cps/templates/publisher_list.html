@@ -18,14 +18,6 @@
                     <li><a href="#" class="sort-btn" data-order="desc">{{_('Name: Z to A')}}</a></li>
                 </ul>
             </div>
-            {% if charlist|length %}
-            <div class="btn-group character-filter" role="group" style="margin-left: 10px;">
-                <button type="button" class="btn btn-default filter-btn active" data-char="all">{{_('All')}}</button>
-                {% for char in charlist %}
-                <button type="button" class="btn btn-default filter-btn" data-char="{{char[0]}}">{{char[0]}}</button>
-                {% endfor %}
-            </div>
-            {% endif %}
         </div>
 
         <div class="row" id="publisher-grid">

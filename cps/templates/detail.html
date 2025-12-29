@@ -1,36 +1,75 @@
 {% extends is_xhr|yesno("fragment.html", "layout.html") %}
 {% block body %}
-<div class="container-fluid">
-    <div class="row gx-60">
-        <div class="col-lg-6">
+<div class="container-fluid detail-page-container">
+    <div class="row display-flex">
+        <!-- Left Column: Image -->
+        <div class="col-md-6 col-sm-12">
             <div class="product-img-box">
                 <img id="detailcover" title="{{ entry.title }}"
                     src="{{ url_for('web.get_cover', book_id=entry.id, resolution='og', c=entry|last_modified) }}"
                     alt="Product Image">
             </div>
         </div>
-        <div class="col-lg-6">
+
+        <!-- Right Column: Details -->
+        <div class="col-md-6 col-sm-12">
             <div class="product-details-box">
 
                 <div class="product-rating-review">
                     {% if entry.ratings.__len__() > 0 %}
-                    <span class="review-text">Review ({{ entry.ratings|length }})</span>
+                    <div class="rating">
+                        {% set rating_val = (entry.ratings[0].rating / 2) | int %}
+                        {% for i in range(rating_val) %}
+                        <span class="glyphicon glyphicon-star good"></span>
+                        {% endfor %}
+                        {% for i in range(5 - rating_val) %}
+                        <span class="glyphicon glyphicon-star-empty"></span>
+                        {% endfor %}
+                    </div>
                     {% endif %}
                 </div>
 
-                <h2 class="product-title">{{ entry.title }}</h2>
+                <!-- Title -->
+                <div class="product-title-container">
+                    <h2 class="product-title">{{ entry.title }}</h2>
+                    <!-- Shelf Button (Adapted from Reference Logic) -->
+                    {% if current_user.is_authenticated %}
+                    <div class="btn-group wishlist-btn-group">
+                        {% if current_user.shelf.all() or g.shelves_access %}
+                        <button type="button" class="icon-btn style-brown dropdown-toggle" data-toggle="dropdown"
+                            title="{{ _('Add to shelf') }}">
+                            <i class="far fa-heart"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-right">
+                            {% for shelf in g.shelves_access %}
+                            {% if not shelf.id in books_shelfs and ( not shelf.is_public or
+                            current_user.role_edit_shelfs() ) %}
+                            <li>
+                                <a href="#"
+                                    data-href="{{ url_for('shelf.add_to_shelf', book_id=entry.id, shelf_id=shelf.id) }}"
+                                    data-shelf-action="add">
+                                    {{ shelf.name }}{% if shelf.is_public == 1 %} {{ _('(Public)') }}{% endif %}
+                                </a>
+                            </li>
+                            {% endif %}
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
 
+                <!-- Author -->
                 <div class="product-author-section">
                     <span class="author-label">By:</span>
                     {% for author in entry.ordered_authors %}
                     <a href="{{ url_for('web.books_list',  data='author', sort_param='stored', book_id=author.id ) }}"
-                        class="author-link">{{ author.name.replace('|',',') }}</a>{% if not loop.last %}, {% endif %}
+                        class="author-link">{{ author.name.replace('|',',') }}</a>
+                    {% if not loop.last %}, {% endif %}
                     {% endfor %}
                 </div>
 
-                <!-- Price Placeholder (if needed, or just skip as it is library) -->
-                <!-- <div class="product-price">$155.00 <del>$23.85</del></div> -->
-
+                <!-- Description -->
                 <div class="product-description">
                     {% if entry.comments|length > 0 and entry.comments[0].text|length > 0 %}
                     {{ entry.comments[0].text|safe }}
@@ -39,21 +78,25 @@
                     {% endif %}
                 </div>
 
+                <!-- Actions (Download, Send, Read, Listen) -->
                 <div class="product-actions">
                     <!-- Download -->
                     {% if current_user.role_download() and entry.data|length %}
                     {% if entry.data|length < 2 %} {% for format in entry.data %} <a
-                        href="{{ url_for('web.download_link', book_id=entry.id, book_format=format.format|lower, anyname=entry.id|string+'.'+format.format|lower) }}"
-                        class="vs-btn style-brown">Download {{ format.format }}</a>
+                        href="{{ url_for('web.download_link', book_id=entry.id, book_format=format.format|lower, anyname=entry.id|string+'.'+format.format|lower|replace('kepub', 'kepub.epub')) }}"
+                        class="vs-btn style-brown">
+                        {{ _('Download') }} {{ format.format }}
+                        </a>
                         {% endfor %}
                         {% else %}
                         <div class="btn-group">
-                            <button type="button" class="vs-btn style-brown dropdown-toggle"
-                                data-toggle="dropdown">Download <span class="caret"></span></button>
+                            <button type="button" class="vs-btn style-brown dropdown-toggle" data-toggle="dropdown">
+                                {{ _('Download') }} <span class="caret"></span>
+                            </button>
                             <ul class="dropdown-menu">
                                 {% for format in entry.data %}
                                 <li><a
-                                        href="{{ url_for('web.download_link', book_id=entry.id, book_format=format.format|lower, anyname=entry.id|string+'.'+format.format|lower) }}">{{
+                                        href="{{ url_for('web.download_link', book_id=entry.id, book_format=format.format|lower, anyname=entry.id|string+'.'+format.format|lower|replace('kepub', 'kepub.epub')) }}">{{
                                         format.format }} ({{ format.uncompressed_size|filesizeformat }})</a></li>
                                 {% endfor %}
                             </ul>
@@ -61,12 +104,37 @@
                         {% endif %}
                         {% endif %}
 
-                        <!-- Read -->
+                        <!-- Send to eReader -->
+                        {% if current_user.kindle_mail and entry.email_share_list %}
+                        {% if entry.email_share_list.__len__() == 1 %}
+                        <button class="vs-btn style-brown sendbtn-form"
+                            data-href="{{url_for('web.send_to_ereader', book_id=entry.id, book_format=entry.email_share_list[0]['format'], convert=entry.email_share_list[0]['convert'])}}">
+                            <span class="glyphicon glyphicon-send"></span> {{entry.email_share_list[0]['text']}}
+                        </button>
+                        {% else %}
+                        <div class="btn-group">
+                            <button type="button" class="vs-btn style-brown dropdown-toggle" data-toggle="dropdown">
+                                <span class="glyphicon glyphicon-send"></span> {{ _('Send to eReader') }} <span
+                                    class="caret"></span>
+                            </button>
+                            <ul class="dropdown-menu">
+                                {% for format in entry.email_share_list %}
+                                <li><a class="sendbtn-form"
+                                        data-href="{{url_for('web.send_to_ereader', book_id=entry.id, book_format=format['format'], convert=format['convert'])}}">{{
+                                        format['text'] }}</a></li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                        {% endif %}
+
+                        <!-- Read in Browser -->
                         {% if entry.reader_list and current_user.role_viewer() %}
                         {% if entry.reader_list|length > 1 %}
                         <div class="btn-group">
-                            <button type="button" class="vs-btn style-brown dropdown-toggle" data-toggle="dropdown">Read
-                                <span class="caret"></span></button>
+                            <button type="button" class="vs-btn style-brown dropdown-toggle" data-toggle="dropdown">
+                                {{ _('Read') }} <span class="caret"></span>
+                            </button>
                             <ul class="dropdown-menu">
                                 {% for format in entry.reader_list %}
                                 <li><a target="_blank"
@@ -77,32 +145,55 @@
                         </div>
                         {% else %}
                         <a href="{{ url_for('web.read_book', book_id=entry.id, book_format=entry.reader_list[0]) }}"
-                            target="_blank" class="vs-btn style-brown">Read</a>
+                            target="_blank" class="vs-btn style-brown">{{ _('Read') }}</a>
                         {% endif %}
                         {% endif %}
 
-                        <!-- Wishlist -->
-                        {% if current_user.is_authenticated %}
+                        <!-- Listen in Browser -->
+                        {% if entry.audio_entries|length > 0 and current_user.role_viewer() %}
+                        {% if entry.audio_entries|length > 1 %}
                         <div class="btn-group">
-                            <button type="button" class="icon-btn style-brown dropdown-toggle" data-toggle="dropdown"
-                                title="{{ _('Add to shelf') }}"><i class="far fa-heart"></i></button>
+                            <button type="button" class="vs-btn style-brown dropdown-toggle" data-toggle="dropdown">
+                                {{ _('Listen') }} <span class="caret"></span>
+                            </button>
                             <ul class="dropdown-menu">
-                                {% for shelf in g.shelves_access %}
-                                {% if not shelf.id in books_shelfs and ( not shelf.is_public or
-                                current_user.role_edit_shelfs() ) %}
-                                <li><a href="#"
-                                        data-href="{{ url_for('shelf.add_to_shelf', book_id=entry.id, shelf_id=shelf.id) }}"
-                                        data-shelf-action="add">{{ shelf.name }}</a></li>
+                                {% for format in entry.reader_list %}
+                                <li><a target="_blank"
+                                        href="{{ url_for('web.read_book', book_id=entry.id, book_format=format) }}">{{
+                                        format }}</a></li>
+                                {% endfor %}
+                                {% for format in entry.data %}
+                                {% if format.format|lower in entry.audio_entries %}
+                                <li><a target="_blank"
+                                        href="{{ url_for('web.read_book', book_id=entry.id, book_format=format.format|lower) }}">{{
+                                        format.format|lower }}</a></li>
                                 {% endif %}
                                 {% endfor %}
                             </ul>
                         </div>
+                        {% else %}
+                        <a target="_blank"
+                            href="{{ url_for('web.read_book', book_id=entry.id, book_format=entry.audio_entries[0]) }}"
+                            class="vs-btn style-brown">{{ _('Listen') }}</a>
+                        {% endif %}
+                        {% endif %}
+
+                        <!-- Discussion -->
+                        {% if current_user.is_authenticated %}
+                        <div class="discussion-btn-container">
+                            <a href="{{ url_for('threads.book_thread', book_id=entry.id) }}"
+                                class="discussion-btn-popup" role="button">
+                                <i class="fas fa-comments"></i> {{ _('Discussion') }}
+                            </a>
+                        </div>
                         {% endif %}
                 </div>
 
+                <!-- Meta Info -->
                 <div class="product-meta-info">
                     <h4 class="meta-title">Information:</h4>
 
+                    <!-- Series -->
                     {% if entry.series|length > 0 %}
                     <div class="meta-row">
                         <span class="meta-label">Series:</span>
@@ -112,6 +203,7 @@
                     </div>
                     {% endif %}
 
+                    <!-- Tags -->
                     {% if entry.tags|length > 0 %}
                     <div class="meta-row">
                         <span class="meta-label">Tags:</span>
@@ -124,6 +216,7 @@
                     </div>
                     {% endif %}
 
+                    <!-- Language -->
                     {% if entry.languages|length > 0 %}
                     <div class="meta-row">
                         <span class="meta-label">Language:</span>
@@ -132,6 +225,7 @@
                     </div>
                     {% endif %}
 
+                    <!-- Publisher -->
                     {% if entry.publishers|length > 0 %}
                     <div class="meta-row">
                         <span class="meta-label">Publisher:</span>
@@ -140,15 +234,110 @@
                                 entry.publishers[0].name }}</a></span>
                     </div>
                     {% endif %}
+
+                    <!-- Published Date -->
+                    {% if (entry.pubdate|string)[:10] != '0101-01-01' %}
+                    <div class="meta-row">
+                        <span class="meta-label">{{ _('Published') }}:</span>
+                        <span class="meta-value">{{ entry.pubdate|formatdate }}</span>
+                    </div>
+                    {% endif %}
+
+                    <!-- Identifiers -->
+                    {% if entry.identifiers|length > 0 %}
+                    <div class="meta-row">
+                        <span class="meta-label">Ids:</span>
+                        <span class="meta-value">
+                            {% for identifier in entry.identifiers %}
+                            <a href="{{ identifier|escape }}" target="_blank" class="tag-link">{{
+                                identifier.format_type() }}</a>{% if not loop.last %}, {% endif %}
+                            {% endfor %}
+                        </span>
+                    </div>
+                    {% endif %}
+
+                    <!-- Custom Columns -->
+                    {% if cc|length > 0 %}
+                    {% for c in cc %}
+                    {% if entry['custom_column_' ~ c.id]|length > 0 %}
+                    <div class="meta-row">
+                        <span class="meta-label">{{ c.name }}:</span>
+                        <span class="meta-value">
+                            {% for column in entry['custom_column_' ~ c.id] %}
+                            {% if c.datatype == 'rating' %}
+                            {{ (column.value / 2)|formatfloat }}
+                            {% else %}
+                            {% if c.datatype == 'bool' %}
+                            {% if column.value == true %}
+                            <span class="glyphicon glyphicon-ok"></span>
+                            {% else %}
+                            <span class="glyphicon glyphicon-remove"></span>
+                            {% endif %}
+                            {% else %}
+                            {% if c.datatype == 'float' %}
+                            {{ column.value|formatfloat(2) }}
+                            {% elif c.datatype == 'datetime' %}
+                            {{ column.value|formatdate }}
+                            {% elif c.datatype == 'comments' %}
+                            {{ column.value|safe }}
+                            {% elif c.datatype == 'series' %}
+                            {{ '%s [%s]' % (column.value, column.extra|formatfloat(2)) }}
+                            {% elif c.datatype == 'text' %}
+                            {{ column.value.strip() }}{% if not loop.last %}, {% endif %}
+                            {% else %}
+                            {{ column.value }}
+                            {% endif %}
+                            {% endif %}
+                            {% endif %}
+                            {% endfor %}
+                        </span>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                    {% endif %}
                 </div>
 
-                {# Discussion Forum Button #}
-                {% if current_user.is_authenticated %}
-                <div class="btn-group" role="group" style="margin:20px 20px 20px 0;">
-                    <a href="{{ url_for('threads.book_thread', book_id=entry.id) }}" class="btn btn-primary"
-                        role="button">
-                        <span class="glyphicon glyphicon-comment"></span> {{ _('Discussion') }}
+                <!-- User State (Read/Archive) -->
+                {% if not current_user.is_anonymous %}
+                <div class="user-state-section">
+                    <form id="have_read_form" action="{{ url_for('web.toggle_read', book_id=entry.id) }}" method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <label class="block-label" style="cursor: pointer;">
+                            <input id="have_read_cb" data-checked="{{ _('Mark As Unread') }}"
+                                data-unchecked="{{ _('Mark As Read') }}" type="checkbox" {% if entry.read_status
+                                %}checked{% endif %}>
+                            <span>{{ _('Read') }}</span>
+                        </label>
+                    </form>
+
+                    {% if current_user.check_visibility(32768) %}
+                    <form id="archived_form" action="{{ url_for('web.toggle_archived', book_id=entry.id) }}"
+                        method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <label class="block-label" style="cursor: pointer;">
+                            <input id="archived_cb" data-checked="{{ _('Restore from archive') }}"
+                                data-unchecked="{{ _('Add to archive') }}" type="checkbox" {% if entry.is_archived
+                                %}checked{% endif %}>
+                            <span>{{ _('Archive') }}</span>
+                        </label>
+                    </form>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <!-- Remove from Shelves (Reference Logic) -->
+                {% if current_user.is_authenticated and books_shelfs %}
+                <div class="remove-shelves-section" style="margin-top: 15px;">
+                    {% for shelf in g.shelves_access %}
+                    {% if shelf.id in books_shelfs %}
+                    <a data-href="{{ url_for('shelf.remove_from_shelf', book_id=entry.id, shelf_id=shelf.id) }}"
+                        data-add-href="{{ url_for('shelf.add_to_shelf', book_id=entry.id, shelf_id=shelf.id) }}"
+                        class="btn btn-sm btn-default" role="button" data-shelf-action="remove"
+                        style="margin-bottom: 5px;">
+                        <span class="glyphicon glyphicon-remove"></span> {{ shelf.name }}
                     </a>
+                    {% endif %}
+                    {% endfor %}
                 </div>
                 {% endif %}
 
@@ -159,7 +348,6 @@
                             class="fas fa-edit"></i> {{ _('Edit Metadata') }}</a>
                 </div>
                 {% endif %}
-
             </div>
         </div>
     </div>

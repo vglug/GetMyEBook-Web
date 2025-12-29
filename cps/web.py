@@ -416,15 +416,15 @@ def render_books_list(data, sort_param, book_id, page):
         offset = int(int(config.config_books_per_page) * (page - 1))
         return render_adv_search_results(term, offset, order, config.config_books_per_page)
     else:
-        website = data or "newest"
+        website = "newest"
         entries, random, pagination = calibre_db.fill_indexpage(page, 0, db.Books, True, order[0],
                                                                 True, config.config_read_column,
                                                                 db.books_series_link,
                                                                 db.Books.id == db.books_series_link.c.book,
                                                                 db.Series)
-        random = get_rated_books(page, book_id, order=order)
+        random = get_rated_books(page, order=order)
         return render_title_template('index.html', random=random, entries=entries, pagination=pagination,
-                                     title=_("Books"), page=website, order=order[1])
+                                     title=_("Books"), page="root", order=order[1])
 
 
 def render_rated_books(page, book_id, order):
@@ -443,7 +443,7 @@ def render_rated_books(page, book_id, order):
     else:
         abort(404)
 
-def get_rated_books(page, book_id, order):
+def get_rated_books(page, order):
     entries, random, pagination = calibre_db.fill_indexpage(page, 0,db.Books,db.Books.ratings.any(db.Ratings.rating > 9),order[0],True, config.config_read_column,db.books_series_link,db.Books.id == db.books_series_link.c.book,db.Series)
     return entries
 
@@ -476,18 +476,18 @@ def render_hot_books(page, order):
             random = false()
 
         off = int(int(config.config_books_per_page) * (page - 1))
-        all_books = ub.session.query(ub.Downloads, func.count(ub.Downloads.book_id)) \
+        all_books = ub.session.query(ub.Downloads.book_id, func.count(ub.Downloads.book_id).label('count')) \
             .order_by(*order[0]).group_by(ub.Downloads.book_id)
         hot_books = all_books.offset(off).limit(config.config_books_per_page)
         entries = list()
         for book in hot_books:
             query = calibre_db.generate_linked_query(config.config_read_column, db.Books)
             download_book = query.filter(calibre_db.common_filters()).filter(
-                book.Downloads.book_id == db.Books.id).first()
+                book.book_id == db.Books.id).first()
             if download_book:
                 entries.append(download_book)
             else:
-                ub.delete_download(book.Downloads.book_id)
+                ub.delete_download(book.book_id)
         num_books = entries.__len__()
         pagination = Pagination(page, config.config_books_per_page, num_books)
         return render_title_template('index.html', random=random, entries=entries, pagination=pagination,
@@ -554,6 +554,7 @@ def render_author_books(page, author_id, order):
         author_info = services.goodreads_support.get_author_info(author_name)
         book_entries = [entry.Books for entry in entries]
         other_books = services.goodreads_support.get_other_books(author_info, book_entries)
+    random = get_rated_books(page, order=order)
     return render_title_template('author.html', entries=entries, pagination=pagination, id=author_id,
                                  title=_("Author: %(name)s", name=author_name), author=author_info,
                                  other_books=other_books, page="author", order=order[1])
@@ -589,7 +590,7 @@ def render_publisher_books(page, book_id, order):
             publisher = publisher.name
         else:
             abort(404)
-
+    random = get_rated_books(page, order=order)
     return render_title_template('index.html', random=random, entries=entries, pagination=pagination, id=book_id,
                                  title=_("Publisher: %(name)s", name=publisher),
                                  page="publisher",
@@ -671,7 +672,7 @@ def render_formats_books(page, book_id, order):
                                                                     True, config.config_read_column)
         else:
             abort(404)
-
+    random = get_rated_books(page, order=order)
     return render_title_template('index.html', random=random, pagination=pagination, entries=entries, id=book_id,
                                  title=_("File format: %(format)s", format=name),
                                  page="formats",
@@ -707,7 +708,7 @@ def render_category_books(page, book_id, order):
             tagsname = tagsname.name
         else:
             abort(404)
-    random = get_rated_books(page, book_id, order=order)
+    random = get_rated_books(page, order=order)
     return render_title_template('index.html', random=random, entries=entries, pagination=pagination, id=book_id,
                                  title=_("Category: %(name)s", name=tagsname), page="category", order=order[1])
 
@@ -737,6 +738,7 @@ def render_language_books(page, name, order):
                                                                 db.Books.languages.any(db.Languages.lang_code == name),
                                                                 [order[0][0]],
                                                                 True, config.config_read_column)
+    random = get_rated_books(page, order=order)
     return render_title_template('index.html', random=random, entries=entries, pagination=pagination, id=name,
                                  title=_("Language: %(name)s", name=lang_name), page="language", order=order[1])
 
@@ -782,7 +784,7 @@ def render_read_books(page, are_read, as_xml=False, order=None):
         else:
             name = _('Unread Books') + ' (' + str(pagination.total_count) + ')'
             page_name = "unread"
-        return render_title_template('index.html', random=random, entries=entries, pagination=pagination,
+        return render_title_template('read_unread_list.html', random=random, entries=entries, pagination=pagination,
                                      title=name, page=page_name, order=order[1])
 
 
@@ -945,9 +947,11 @@ def author_list():
         else:
             order = db.Authors.sort.asc()
             order_no = 1
-        entries = calibre_db.session.query(db.Authors, func.count('books_authors_link.book').label('count')) \
-            .join(db.books_authors_link).join(db.Books).filter(calibre_db.common_filters()) \
-            .group_by(text('books_authors_link.author')).order_by(order).all()
+        subquery = calibre_db.session.query(db.books_authors_link.c.author, func.count(db.books_authors_link.c.book).label('count')) \
+            .join(db.Books, db.Books.id == db.books_authors_link.c.book).filter(calibre_db.common_filters()) \
+            .group_by(db.books_authors_link.c.author).subquery()
+        entries = calibre_db.session.query(db.Authors, subquery.c.count) \
+            .join(subquery, db.Authors.id == subquery.c.author).order_by(order).all()
         char_list = query_char_list(db.Authors.sort, db.books_authors_link)
         # If not creating a copy, readonly databases can not display authornames with "|" in it as changing the name
         # starts a change session
@@ -955,7 +959,7 @@ def author_list():
         for entry in author_copy:
             entry.Authors.name = entry.Authors.name.replace('|', ',')
         return render_title_template('author_list.html', entries=author_copy, folder='web.books_list', charlist=char_list,
-                                     title="Authors", page="authorlist", data='author', order=order_no)
+                                     title="Authors", page="author", data='author', order=order_no)
     else:
         abort(404)
 
@@ -970,13 +974,15 @@ def download_list():
         order = ub.User.name.asc()
         order_no = 1
     if current_user.check_visibility(constants.SIDEBAR_DOWNLOAD) and current_user.role_admin():
-        entries = ub.session.query(ub.User, func.count(ub.Downloads.book_id).label('count')) \
-            .join(ub.Downloads).group_by(ub.Downloads.user_id).order_by(order).all()
+        subquery = ub.session.query(ub.Downloads.user_id, func.count(ub.Downloads.book_id).label('count')) \
+            .group_by(ub.Downloads.user_id).subquery()
+        entries = ub.session.query(ub.User, subquery.c.count) \
+            .join(subquery, ub.User.id == subquery.c.user_id).order_by(order).all()
         char_list = ub.session.query(func.upper(func.substr(ub.User.name, 1, 1)).label('char')) \
             .filter(ub.User.role.op('&')(constants.ROLE_ANONYMOUS) != constants.ROLE_ANONYMOUS) \
             .group_by(func.upper(func.substr(ub.User.name, 1, 1))).all()
         return render_title_template('list.html', entries=entries, folder='web.books_list', charlist=char_list,
-                                     title=_("Downloads"), page="downloadlist", data="download", order=order_no)
+                                     title=_("Downloads"), page="download", data="download", order=order_no)
     else:
         abort(404)
 
@@ -991,9 +997,11 @@ def publisher_list():
         order = db.Publishers.name.asc()
         order_no = 1
     if current_user.check_visibility(constants.SIDEBAR_PUBLISHER):
-        entries = calibre_db.session.query(db.Publishers, func.count('books_publishers_link.book').label('count')) \
-            .join(db.books_publishers_link).join(db.Books).filter(calibre_db.common_filters()) \
-            .group_by(text('books_publishers_link.publisher')).order_by(order).all()
+        subquery = calibre_db.session.query(db.books_publishers_link.c.publisher, func.count(db.books_publishers_link.c.book).label('count')) \
+            .join(db.Books, db.Books.id == db.books_publishers_link.c.book).filter(calibre_db.common_filters()) \
+            .group_by(db.books_publishers_link.c.publisher).subquery()
+        entries = calibre_db.session.query(db.Publishers, subquery.c.count) \
+            .join(subquery, db.Publishers.id == subquery.c.publisher).order_by(order).all()
         no_publisher_count = (calibre_db.session.query(db.Books)
                            .outerjoin(db.books_publishers_link).outerjoin(db.Publishers)
                            .filter(db.Publishers.name == None)
@@ -1004,7 +1012,7 @@ def publisher_list():
         entries = sorted(entries, key=lambda x: x[0].name.lower(), reverse=not order_no)
         char_list = generate_char_list(entries)
         return render_title_template('publisher_list.html', entries=entries, folder='web.books_list', charlist=char_list,
-                                     title=_("Publishers"), page="publisherlist", data="publisher", order=order_no)
+                                     title=_("Publishers"), page="publisher", data="publisher", order=order_no)
     else:
         abort(404)
 
@@ -1021,9 +1029,11 @@ def series_list():
             order_no = 1
         char_list = query_char_list(db.Series.sort, db.books_series_link)
         if current_user.get_view_property('series', 'series_view') == 'list':
-            entries = calibre_db.session.query(db.Series, func.count('books_series_link.book').label('count')) \
-                .join(db.books_series_link).join(db.Books).filter(calibre_db.common_filters()) \
-                .group_by(text('books_series_link.series')).order_by(order).all()
+            subquery = calibre_db.session.query(db.books_series_link.c.series, func.count(db.books_series_link.c.book).label('count')) \
+                .join(db.Books, db.Books.id == db.books_series_link.c.book).filter(calibre_db.common_filters()) \
+                .group_by(db.books_series_link.c.series).subquery()
+            entries = calibre_db.session.query(db.Series, subquery.c.count) \
+                .join(subquery, db.Series.id == subquery.c.series).order_by(order).all()
             no_series_count = (calibre_db.session.query(db.Books)
                             .outerjoin(db.books_series_link).outerjoin(db.Series)
                             .filter(db.Series.name == None)
@@ -1037,18 +1047,18 @@ def series_list():
                                          folder='web.books_list',
                                          charlist=char_list,
                                          title=_("Series"),
-                                         page="serieslist",
+                                         page="series",
                                          data="series", order=order_no)
         else:
             entries = (calibre_db.session.query(db.Books, func.count('books_series_link').label('count'),
                                                 func.max(db.Books.series_index), db.Books.id)
                        .join(db.books_series_link).join(db.Series).filter(calibre_db.common_filters())
-                       .group_by(text('books_series_link.series'))
+                       .group_by(db.Series.id, db.Books.id)
                        .having(or_(func.max(db.Books.series_index), db.Books.series_index==""))
                        .order_by(order)
                        .all())
             return render_title_template('grid.html', entries=entries, folder='web.books_list', charlist=char_list,
-                                         title=_("Series"), page="serieslist", data="series", bodyClass="grid-view",
+                                         title=_("Series"), page="series", data="series", bodyClass="grid-view",
                                          order=order_no)
     else:
         abort(404)
@@ -1064,11 +1074,11 @@ def ratings_list():
         else:
             order = db.Ratings.rating.asc()
             order_no = 1
-        entries = calibre_db.session.query(db.Ratings, func.count('books_ratings_link.book').label('count'),
-                                           (db.Ratings.rating / 2).label('name')) \
-            .join(db.books_ratings_link).join(db.Books).filter(calibre_db.common_filters()) \
-            .filter(db.Ratings.rating > 0) \
-            .group_by(text('books_ratings_link.rating')).order_by(order).all()
+        subquery = calibre_db.session.query(db.books_ratings_link.c.rating, func.count(db.books_ratings_link.c.book).label('count')) \
+            .join(db.Books, db.Books.id == db.books_ratings_link.c.book).filter(calibre_db.common_filters()) \
+            .group_by(db.books_ratings_link.c.rating).subquery()
+        entries = calibre_db.session.query(db.Ratings, subquery.c.count, (db.Ratings.rating / 2).label('name')) \
+            .join(subquery, db.Ratings.id == subquery.c.rating).filter(db.Ratings.rating > 0).order_by(order).all()
         no_rating_count = (calibre_db.session.query(db.Books)
                            .outerjoin(db.books_ratings_link).outerjoin(db.Ratings)
                            .filter(or_(db.Ratings.rating == None, db.Ratings.rating == 0))
@@ -1078,7 +1088,7 @@ def ratings_list():
             entries.append([db.Category(_("None"), "-1", -1), no_rating_count])
         entries = sorted(entries, key=lambda x: x[0].rating, reverse=not order_no)
         return render_title_template('list.html', entries=entries, folder='web.books_list', charlist=list(),
-                                     title=_("Ratings list"), page="ratingslist", data="ratings", order=order_no)
+                                     title=_("Ratings list"), page="rating", data="ratings", order=order_no)
     else:
         abort(404)
 
@@ -1093,19 +1103,23 @@ def formats_list():
         else:
             order = db.Data.format.asc()
             order_no = 1
-        entries = calibre_db.session.query(db.Data,
-                                           func.count('data.book').label('count'),
-                                           db.Data.format.label('format')) \
+        entries = calibre_db.session.query(db.Data.format.label('format'),
+                                           func.count('data.book').label('count')) \
             .join(db.Books).filter(calibre_db.common_filters()) \
             .group_by(db.Data.format).order_by(order).all()
+        
+        final_entries = []
+        for entry in entries:
+            final_entries.append([db.Category(entry.format, entry.format), entry.count])
+        
         no_format_count = (calibre_db.session.query(db.Books).outerjoin(db.Data)
                            .filter(db.Data.format == None)
                            .filter(calibre_db.common_filters())
                            .count())
         if no_format_count:
-            entries.append([db.Category(_("None"), "-1"), no_format_count])
-        return render_title_template('list.html', entries=entries, folder='web.books_list', charlist=list(),
-                                     title=_("File formats list"), page="formatslist", data="formats", order=order_no)
+            final_entries.append([db.Category(_("None"), "-1"), no_format_count])
+        return render_title_template('formats.html', entries=final_entries, folder='web.books_list', charlist=list(),
+                                     title=_("File formats list"), page="format", data="formats", order=order_no)
     else:
         abort(404)
 
@@ -1117,8 +1131,8 @@ def language_overview():
         order_no = 0 if current_user.get_view_property('language', 'dir') == 'desc' else 1
         languages = calibre_db.speaking_language(reverse_order=not order_no, with_count=True)
         char_list = generate_char_list(languages)
-        return render_title_template('list.html', entries=languages, folder='web.books_list', charlist=char_list,
-                                     title=_("Languages"), page="langlist", data="language", order=order_no)
+        return render_title_template('language.html', entries=languages, folder='web.books_list', charlist=char_list,
+                                     title=_("Languages"), page="language", data="language", order=order_no)
     else:
         abort(404)
 
@@ -1133,9 +1147,11 @@ def category_list():
         else:
             order = db.Tags.name.asc()
             order_no = 1
-        entries = calibre_db.session.query(db.Tags, func.count('books_tags_link.book').label('count')) \
-            .join(db.books_tags_link).join(db.Books).order_by(order).filter(calibre_db.common_filters()) \
-            .group_by(db.Tags.id).all()
+        subquery = calibre_db.session.query(db.books_tags_link.c.tag, func.count(db.books_tags_link.c.book).label('count')) \
+            .join(db.Books, db.Books.id == db.books_tags_link.c.book).filter(calibre_db.common_filters()) \
+            .group_by(db.books_tags_link.c.tag).subquery()
+        entries = calibre_db.session.query(db.Tags, subquery.c.count) \
+            .join(subquery, db.Tags.id == subquery.c.tag).order_by(order).all()
         no_tag_count = (calibre_db.session.query(db.Books)
                          .outerjoin(db.books_tags_link).outerjoin(db.Tags)
                         .filter(db.Tags.name == None)
@@ -1146,7 +1162,7 @@ def category_list():
         entries = sorted(entries, key=lambda x: x[0].name.lower(), reverse=not order_no)
         char_list = generate_char_list(entries)
         return render_title_template('list.html', entries=entries, folder='web.books_list', charlist=char_list,
-                                     title=_("Categories"), page="catlist", data="category", order=order_no)
+                                     title=_("Categories"), page="category", data="category", order=order_no)
     else:
         abort(404)
 

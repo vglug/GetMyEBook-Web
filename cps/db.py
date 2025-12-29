@@ -682,7 +682,7 @@ class CalibreDB:
                 DATABASE_URL,
                 echo=False,
                 pool_pre_ping=True,
-                pool_recycle=3600,
+                pool_recycle=300,
                 pool_size=10,
                 max_overflow=20
             )
@@ -874,12 +874,23 @@ class CalibreDB:
                      f"allow_show_archived={allow_show_archived}, join_archive_read={join_archive_read}, "
                      f"config_read_column={config_read_column}, join={join}")
             
-            random_query = self.generate_linked_query(config_read_column, database)
-            randm = (random_query.filter(self.common_filters(allow_show_archived))
-                     .order_by(func.random())
-                     .limit(self.config.config_random_books).all())
+            try:
+                random_query = self.generate_linked_query(config_read_column, database)
+                randm = (random_query.filter(self.common_filters(allow_show_archived))
+                         .order_by(func.random())
+                         .limit(self.config.config_random_books).all())
+            except OperationalError:
+                # Retry once if connection was lost
+                self.session.rollback()
+                random_query = self.generate_linked_query(config_read_column, database)
+                randm = (random_query.filter(self.common_filters(allow_show_archived))
+                         .order_by(func.random())
+                         .limit(self.config.config_random_books).all())
+            except Exception as e:
+                log.error(f"Error fetching random books: {e}")
+                randm = []
         else:
-            randm = false()
+            randm = []
         if join_archive_read:
             query = self.generate_linked_query(config_read_column, database)
         else:
@@ -907,7 +918,19 @@ class CalibreDB:
         pagination = list()
         try:
             pagination = Pagination(page, pagesize, query.count())
-            entries = query.order_by(*order).offset(off).limit(pagesize).all()
+            try:
+                entries = query.order_by(*order).offset(off).limit(pagesize).all()
+            except OperationalError:
+                self.session.rollback()
+                # Re-generate query after rollback
+                if join_archive_read:
+                    query = self.generate_linked_query(config_read_column, database)
+                else:
+                    query = self.session.query(database)
+                entries = query.order_by(*order).offset(off).limit(pagesize).all()
+            except Exception as e:
+                log.error(f"Error fetching books list: {e}")
+                entries = []
         except Exception as ex:
             log.error_or_exception(ex)
         entries = self.order_authors(entries, True, join_archive_read)
@@ -1034,10 +1057,12 @@ class CalibreDB:
 
         if with_count:
             if not languages:
-                languages = self.session.query(Languages, func.count('books_languages_link.book'))\
-                    .join(books_languages_link).join(Books)\
+                subquery = self.session.query(books_languages_link.c.lang_code, func.count(books_languages_link.c.book).label('count'))\
+                    .join(Books, Books.id == books_languages_link.c.book)\
                     .filter(self.common_filters(return_all_languages=return_all_languages)) \
-                    .group_by(text('books_languages_link.lang_code')).all()
+                    .group_by(books_languages_link.c.lang_code).subquery()
+                languages = self.session.query(Languages, subquery.c.count) \
+                    .join(subquery, Languages.id == subquery.c.lang_code).all()
             tags = list()
             for lang in languages:
                 tag = Category(isoLanguages.get_language_name(get_locale(), lang[0].lang_code), lang[0].lang_code)
@@ -1057,7 +1082,7 @@ class CalibreDB:
                     .join(books_languages_link) \
                     .join(Books) \
                     .filter(self.common_filters(return_all_languages=return_all_languages)) \
-                    .group_by(text('books_languages_link.lang_code')).all()
+                    .group_by(Languages.id).all()
             for lang in languages:
                 lang.name = isoLanguages.get_language_name(get_locale(), lang.lang_code)
             return sorted(languages, key=lambda x: x.name, reverse=reverse_order)

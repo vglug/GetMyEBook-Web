@@ -704,7 +704,7 @@ def init_db_thread():
         DATABASE_URL,
         echo=False,
         pool_pre_ping=True,  # Add connection health checks
-        pool_recycle=3600    # Recycle connections after 1 hour
+        pool_recycle=300    # Recycle connections after 5 minutes
     )
     
     log.info(f"Initializing PostgreSQL connection: {DATABASE_URL}")
@@ -727,7 +727,7 @@ def init_db(app_db_path=None):
         DATABASE_URL,
         echo=False,
         pool_pre_ping=True,
-        pool_recycle=3600
+        pool_recycle=300
     )
     
     log.info(f"Initializing main PostgreSQL connection: {DATABASE_URL}")
