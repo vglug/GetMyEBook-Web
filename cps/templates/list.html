@@ -14,14 +14,6 @@
       <li><a href="#" class="sort-btn" data-order="desc">{{_('Name: Z to A')}}</a></li>
     </ul>
   </div>
-  {% if charlist|length %}
-  <div class="btn-group character-filter" role="group" style="margin-left: 10px;">
-    <button type="button" class="btn btn-default filter-btn active" data-char="all">{{_('All')}}</button>
-    {% for char in charlist %}
-    <button type="button" class="btn btn-default filter-btn" data-char="{{char[0]}}">{{char[0]}}</button>
-    {% endfor %}
-  </div>
-  {% endif %}
 
   {% if data == "series" %}
   <button class="update-view btn btn-primary" data-target="series_view" id="grid-button"
@@ -30,9 +22,7 @@
 </div>
 <div class="data-display-container">
   <div class="category-grid" id="category-grid">
-    {% set icons = ['fa-book', 'fa-book-open', 'fa-swatchbook', 'fa-atlas', 'fa-scroll', 'fa-bookmark', 'fa-pen-nib',
-    'fa-feather-alt', 'fa-glasses', 'fa-theater-masks', 'fa-palette', 'fa-flask', 'fa-heart', 'fa-globe-americas',
-    'fa-landmark', 'fa-music', 'fa-camera', 'fa-film'] %}
+    {% set icons = ['fa-book', 'fa-book-open', 'fa-swatchbook'] %}
     {% for entry in entries %}
     {% set sort_name = '' %}
     {% if entry.name %}{% set sort_name = entry.name %}{% elif entry.format %}{% set sort_name = entry.format %}{% else

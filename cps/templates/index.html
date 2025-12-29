@@ -38,26 +38,25 @@
             </div>
             {% endif %}
 
-            <p class="book-description">Discover amazing books from our collection. Available in multiple formats for
-              your reading pleasure.</p>
+            <div class="hero-buttons">
+              <a href="{{ url_for('web.show_book', book_id=entry.Books.id) }}" {% if simple==false %}data-toggle="modal"
+                data-target="#bookDetailsModal" data-remote="false" {% endif %} class="view-details-btn">View
+                Details</a>
 
-            <a href="{{ url_for('web.show_book', book_id=entry.Books.id) }}" {% if simple==false %}data-toggle="modal"
-              data-target="#bookDetailsModal" data-remote="false" {% endif %} class="view-details-btn">View Details</a>
+              {# Discussion Forum Button #}
+              {% if current_user.is_authenticated %}
+              <div class="discussion-btn-container">
+                <a href="{{ url_for('threads.book_thread', book_id=entry.Books.id) }}" class="discussion-btn"
+                  role="button">
+                  <i class="fas fa-comments"></i> {{ _('Discussion') }}
+                </a>
+              </div>
+              {% endif %}
+            </div>
           </div>
-
-          {# Discussion Forum Button #}
-          {% if current_user.is_authenticated %}
-          <div class="btn-group" role="group" style="margin:20px 20px 20px 0;">
-            <a href="{{ url_for('threads.book_thread', book_id=entry.Books.id) }}" class="btn btn-primary"
-              role="button">
-              <span class="glyphicon glyphicon-comment"></span> {{ _('Discussion') }}
-            </a>
-          </div>
-          {% endif %}
 
           <div class="book-cover-container">
-            <a href="{{ url_for('web.show_book', book_id=entry.Books.id) }}" {% if simple==false %}data-toggle="modal"
-              data-target="#bookDetailsModal" data-remote="false" {% endif %}>
+            <a href="{{ url_for('web.show_book', book_id=entry.Books.id) }}">
               <div class="book-cover">
                 {{ image.book_cover(entry.Books) }}
                 {% if entry[2] == True %}<span class="badge read glyphicon glyphicon-ok"></span>{% endif %}
@@ -100,26 +99,25 @@
             </div>
             {% endif %}
 
-            <p class="book-description">Discover amazing books from our collection. Available in multiple formats for
-              your reading pleasure.</p>
+            <div class="hero-buttons">
+              <a href="{{ url_for('web.show_book', book_id=entry.Books.id) }}" {% if simple==false %}data-toggle="modal"
+                data-target="#bookDetailsModal" data-remote="false" {% endif %} class="view-details-btn">View
+                Details</a>
 
-            <a href="{{ url_for('web.show_book', book_id=entry.Books.id) }}" {% if simple==false %}data-toggle="modal"
-              data-target="#bookDetailsModal" data-remote="false" {% endif %} class="view-details-btn">View Details</a>
+              {# Discussion Forum Button #}
+              {% if current_user.is_authenticated %}
+              <div class="discussion-btn-container">
+                <a href="{{ url_for('threads.book_thread', book_id=entry.Books.id) }}" class="discussion-btn"
+                  role="button">
+                  <i class="fas fa-comments"></i> {{ _('Discussion') }}
+                </a>
+              </div>
+              {% endif %}
+            </div>
           </div>
-
-          {# Discussion Forum Button #}
-          {% if current_user.is_authenticated %}
-          <div class="btn-group" role="group" style="margin:20px 20px 20px 0;">
-            <a href="{{ url_for('threads.book_thread', book_id=entry.Books.id) }}" class="btn btn-primary"
-              role="button">
-              <span class="glyphicon glyphicon-comment"></span> {{ _('Discussion') }}
-            </a>
-          </div>
-          {% endif %}
 
           <div class="book-cover-container">
-            <a href="{{ url_for('web.show_book', book_id=entry.Books.id) }}" {% if simple==false %}data-toggle="modal"
-              data-target="#bookDetailsModal" data-remote="false" {% endif %}>
+            <a href="{{ url_for('web.show_book', book_id=entry.Books.id) }}">
               <div class="book-cover">
                 {{ image.book_cover(entry.Books) }}
                 {% if entry[2] == True %}<span class="badge read glyphicon glyphicon-ok"></span>{% endif %}
@@ -178,8 +176,7 @@
     <div class="session book-container" id="books">
       <div class="book-card-new">
         <div class="book-card-img-container">
-          <a href="{{ url_for('web.show_book', book_id=entry.Books.id) }}" {% if simple==false %}data-toggle="modal"
-            data-target="#bookDetailsModal" data-remote="false" {% endif %}>
+          <a href="{{ url_for('web.show_book', book_id=entry.Books.id) }}">
             {{ image.book_cover(entry.Books) }}
             <div class="book-card-overlay"></div>
           </a>

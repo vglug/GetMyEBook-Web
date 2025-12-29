@@ -990,7 +990,7 @@ def do_download_file(book, book_format, client, data, headers):
 
 def do_kepubify_metadata_replace(book, file_path):
     custom_columns = (calibre_db.session.query(db.CustomColumns)
-                      .filter(db.CustomColumns.mark_for_delete == 0)
+                      .filter(db.CustomColumns.mark_for_delete == False)
                       .filter(db.CustomColumns.datatype.notin_(db.cc_exceptions))
                       .order_by(db.CustomColumns.label).all())
 

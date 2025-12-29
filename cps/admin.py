@@ -253,9 +253,9 @@ def calibreweb_alive():
 @admin_required
 def view_configuration():
     read_column = calibre_db.session.query(db.CustomColumns) \
-        .filter(and_(db.CustomColumns.datatype == 'bool', db.CustomColumns.mark_for_delete == 0)).all()
+        .filter(and_(db.CustomColumns.datatype == 'bool', db.CustomColumns.mark_for_delete == False)).all()
     restrict_columns = calibre_db.session.query(db.CustomColumns) \
-        .filter(and_(db.CustomColumns.datatype == 'text', db.CustomColumns.mark_for_delete == 0)).all()
+        .filter(and_(db.CustomColumns.datatype == 'text', db.CustomColumns.mark_for_delete == False)).all()
     languages = calibre_db.speaking_language()
     translations = get_available_locale()
     return render_title_template("config_view_edit.html", conf=config, readColumns=read_column,
@@ -276,7 +276,7 @@ def edit_user_table():
         .join(db.books_tags_link) \
         .join(db.Books) \
         .filter(calibre_db.common_filters()) \
-        .group_by(text('books_tags_link.tag')) \
+        .group_by(db.Tags.id) \
         .order_by(db.Tags.name).all()
     if config.config_restricted_column:
         custom_values = calibre_db.session.query(db.cc_classes[config.config_restricted_column]).all()
@@ -494,7 +494,7 @@ def edit_list_user(param):
                         .join(db.books_languages_link) \
                         .join(db.Books) \
                         .filter(calibre_db.common_filters()) \
-                        .group_by(text('books_languages_link.lang_code')).all()
+                        .group_by(db.Languages.id).all()
                     lang_codes = [lang.lang_code for lang in languages] + ["all"]
                     if vals['value'] in lang_codes:
                         user.default_language = vals['value']
@@ -892,14 +892,14 @@ def do_full_kobo_sync(userid):
 def check_valid_read_column(column):
     if column != "0":
         if not calibre_db.session.query(db.CustomColumns).filter(db.CustomColumns.id == column) \
-          .filter(and_(db.CustomColumns.datatype == 'bool', db.CustomColumns.mark_for_delete == 0)).all():
+          .filter(and_(db.CustomColumns.datatype == 'bool', db.CustomColumns.mark_for_delete == False)).all():
             return False
     return True
 
 def check_valid_restricted_column(column):
     if column != "0":
         if not calibre_db.session.query(db.CustomColumns).filter(db.CustomColumns.id == column) \
-          .filter(and_(db.CustomColumns.datatype == 'text', db.CustomColumns.mark_for_delete == 0)).all():
+          .filter(and_(db.CustomColumns.datatype == 'text', db.CustomColumns.mark_for_delete == False)).all():
             return False
     return True
 
@@ -1870,7 +1870,7 @@ def migrate_metadata_to_postgres(sqlite_path, postgres_url):
         sqlite_cur = sqlite_conn.cursor()
         
         # Connect to PostgreSQL
-        postgres_engine = create_engine(postgres_url)
+        postgres_engine = create_engine(postgres_url, pool_pre_ping=True)
         postgres_conn = postgres_engine.connect()
         
         # Begin transaction
