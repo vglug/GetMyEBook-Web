@@ -7,7 +7,6 @@
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
     height: 100vh;
-    overflow: hidden;
     background-color: #ffffff;
 }
 
@@ -15,7 +14,7 @@ body {
     width: 100%;
     display: flex;
     justify-content: center;
-    height: 100vh;
+    height: 84vh;
 }
 
 /* ========== LEFT COLUMN - FORM ========== */
@@ -59,6 +58,7 @@ h1 {
     font-weight: 700;
     color: #1a1a1a;
     margin-bottom: 8px;
+    padding: 10px 5px;
 }
 
 .subtitle {
@@ -192,6 +192,7 @@ input[type="checkbox"] {
     text-align: center;
     font-size: 14px;
     color: #6b7280;
+    margin-top: 10px;
 }
 
 .footer-link {
@@ -228,12 +229,12 @@ input[type="checkbox"] {
         max-width: 50%;
         left: 0;
     }
-    
+
     .logo {
         font-size: 36px;
         margin-bottom: 50px;
     }
-    
+
     h1 {
         font-size: 28px;
     }
@@ -244,7 +245,7 @@ input[type="checkbox"] {
     .log-container {
         flex-direction: column;
         height: auto;
-        min-height: 100vh;
+        /* min-height: 100vh; */
         overflow-y: auto;
     }
 
@@ -257,7 +258,6 @@ input[type="checkbox"] {
         padding: 40px 24px;
         left: 0;
         justify-content: flex-start;
-        min-height: 100vh;
     }
 
     .logo {
@@ -294,7 +294,9 @@ input[type="checkbox"] {
 /* Small Mobile Devices (up to 480px) */
 @media (max-width: 480px) {
     .left-column {
-        padding: 30px 20px;
+        padding: 10px;
+        margin: 0;
+        height: auto;
     }
 
     .logo {
@@ -304,6 +306,7 @@ input[type="checkbox"] {
 
     h1 {
         font-size: 24px;
+        margin: 0;
     }
 
     .subtitle {
@@ -326,6 +329,8 @@ input[type="checkbox"] {
     .btn-secondary {
         padding: 12px;
         font-size: 14px;
+        margin-bottom: 12px;
+
     }
 
     .form-options {
@@ -348,7 +353,7 @@ input[type="checkbox"] {
     .left-column {
         max-width: 40%;
     }
-    
+
     .form-container {
         max-width: 450px;
     }
