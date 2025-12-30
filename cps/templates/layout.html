@@ -93,7 +93,7 @@ change_confirm_modal %}
         <!-- Desktop Search Bar -->
         <div class="search-container-styled desktop-search-container" id="desktop-search-container">
           <form class="search-form-styled" role="search" action="{{url_for('search.simple_search')}}" method="GET">
-            <input class="search-input-styled" type="text" id="query-desktop" name="query"
+            <input style="border: none;" class="search-input-styled" type="text" id="query-desktop" name="query"
               placeholder="{{_('Search Library')}}" value="{{searchterm}}">
             <button class="search-btn-styled" type="submit"><i class="fas fa-search"></i></button>
           </form>
@@ -156,7 +156,7 @@ change_confirm_modal %}
       <div class="header-row-2">
         <div class="search-container-styled mobile-search-container" id="mobile-search-container">
           <form class="search-form-styled" role="search" action="{{url_for('search.simple_search')}}" method="GET">
-            <input class="search-input-styled" type="text" id="query-mobile" name="query"
+            <input style="border: none;" class="search-input-styled" type="text" id="query-mobile" name="query"
               placeholder="{{_('Search Library')}}" value="{{searchterm}}">
             <button class="search-btn-styled" type="submit"><i class="fas fa-search"></i></button>
           </form>

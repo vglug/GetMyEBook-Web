@@ -10,8 +10,8 @@
                 </h6>
                 <span class="text-muted" style="font-size: 0.8rem;">
                     {{ postedAt }} 
-                    <span class="mx-1">&bull;</span>
-                    {{ messageTime }}
+                    <!-- <span class="mx-1">&bull;</span>
+                    {{ messageTime }} -->
                 </span>
                  <!-- Push to right end -->
                 <div class="position-relative ml-auto">
@@ -561,13 +561,13 @@
                 });
                 return content;
             },
-            messageTime() {
-                if (!this.comment.created_at) return '';
-                let dateStr = this.comment.created_at;
-                if (typeof dateStr === 'string') dateStr = dateStr.replace(' ', 'T');
-                const date = new Date(dateStr);
-                return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            },
+            // messageTime() {
+            //     if (!this.comment.created_at) return '';
+            //     let dateStr = this.comment.created_at;
+            //     if (typeof dateStr === 'string') dateStr = dateStr.replace(' ', 'T');
+            //     const date = new Date(dateStr);
+            //     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            // },
             currentUserAvatar() {
                 if (window.Auth && window.Auth.profile_picture) {
                     return window.Auth.profile_picture;

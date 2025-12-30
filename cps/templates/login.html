@@ -4,19 +4,19 @@
 
 <div class="log-container">
   <div class="left-column">
-    <div class="logo">
+    <!-- <div class="logo">
 
       <div class="logo-icon">
         <img src="{{ url_for('static', filename='newStyles/img/48x48 px.svg') }}" alt="GetMyEbook logo">
       </div>
       <span style="color:#FF7373; margin-left: 12px;">GetMy</span>
       <span style="color:#303AB7;">Ebook</span>
-    </div>
+    </div> -->
     <div class="form-container">
       <!-- ========== LOGIN FORM ========== -->
       <div id="loginForm">
-        <h1>Welcome back</h1>
-        <p class="subtitle">Please enter your details</p>
+        <h1>Sign In</h1>
+        <p class="subtitle">Wellcome Back</p>
 
         <form method="POST" role="form">
           <input type="hidden" name="next" value="{{next_url}}">
@@ -39,17 +39,17 @@
           </div>
 
           <div class="form-options">
-            <div class="checkbox-group">
+            <!-- <div class="checkbox-group">
               <input type="checkbox" id="remember" name="remember_me" checked>
               <label for="remember" class="checkbox-label">{{_('Remember Me')}}</label>
-            </div>
+            </div> -->
             <a href="#" class="forgot-link">Forgot password</a>
           </div>
 
           <button type="submit" name="submit" class="btn-primary">{{_('Login')}}</button>
           <a href="{{url_for('oauth.google_login')}}" style="text-decoration: none;">
 
-            <button type="button" class="btn-secondary" >
+            <button type="button" class="btn-secondary">
               <svg class="google-icon" viewBox="0 0 24 24">
                 <path fill="#4285F4"
                   d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />

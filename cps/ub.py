@@ -31,7 +31,7 @@ from .cw_login import user_logged_in
 
 from sqlalchemy import create_engine, exc, exists, event, text
 from sqlalchemy import Column, ForeignKey
-from sqlalchemy import String, Integer, SmallInteger, Boolean, DateTime, Float, JSON
+from sqlalchemy import String, Integer, SmallInteger, Boolean, DateTime, Float, JSON , Text
 from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy.sql.expression import func
 try:
@@ -281,7 +281,7 @@ class OAuth(Base):
     provider = Column(String(50), nullable=False)
     provider_user_id = Column(String(256), nullable=False)
     user_id = Column(Integer, ForeignKey(User.id))
-    token = Column(String(1000))  # Store token as JSON string
+    token = Column(Text)  # Store token as JSON string
     user = relationship(User)
 
     def __repr__(self):
