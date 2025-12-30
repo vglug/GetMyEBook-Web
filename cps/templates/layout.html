@@ -33,6 +33,7 @@ change_confirm_modal %}
     media="screen">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link href="{{ url_for('static', filename='newStyles/css/flashmessage.css') }}" rel="stylesheet" media="screen">
+  <link href="{{ url_for('static', filename='css/share_modal.css') }}" rel="stylesheet" media="screen">
 </head>
 
 <body class="{{ page }} {{ bodyClass }}{% if g.current_theme == 1 %} blur{% endif %}" data-text="{{_('Home')}}"
@@ -183,6 +184,31 @@ change_confirm_modal %}
       </div>
     </div>
     <div class="main-container">
+      <!-- Flash Messages Container -->
+      <div class="flash-messages-container">
+        {% for message in get_flashed_messages(with_categories=True) %}
+        {% set category = message[0] %}
+        {% set msg_text = message[1] %}
+        {% set icon_class = 'fa-info-circle' %}
+
+        {% if category == 'error' or category == 'danger' %}
+        {% set category = 'error' %}
+        {% set icon_class = 'fa-exclamation-circle' %}
+        {% elif category == 'warning' %}
+        {% set icon_class = 'fa-exclamation-triangle' %}
+        {% elif category == 'success' %}
+        {% set icon_class = 'fa-check-circle' %}
+        {% endif %}
+
+        <div class="flash-message {{ category }}">
+          <i class="fas {{ icon_class }} flash-icon"></i>
+          <div class="flash-content">{{ msg_text }}</div>
+          <button class="flash-close" onclick="this.parentElement.style.display='none'"><i
+              class="fas fa-times"></i></button>
+          <div class="flash-progress"></div>
+        </div>
+        {% endfor %}
+      </div>
       <div class="right-side-container">
         {% block body %}{% endblock %}
         {% if pagination and (pagination.has_next or pagination.has_prev) %}
@@ -291,30 +317,6 @@ change_confirm_modal %}
     </div>
   </div>
 
-  <!-- Flash Messages Container -->
-  <div class="flash-messages-container">
-    {% for message in get_flashed_messages(with_categories=True) %}
-    {% set category = message[0] %}
-    {% set msg_text = message[1] %}
-    {% set icon_class = 'fa-info-circle' %}
-
-    {% if category == 'error' or category == 'danger' %}
-    {% set category = 'error' %}
-    {% set icon_class = 'fa-exclamation-circle' %}
-    {% elif category == 'warning' %}
-    {% set icon_class = 'fa-exclamation-triangle' %}
-    {% elif category == 'success' %}
-    {% set icon_class = 'fa-check-circle' %}
-    {% endif %}
-
-    <div class="flash-message {{ category }}">
-      <i class="fas {{ icon_class }} flash-icon"></i>
-      <div class="flash-content">{{ msg_text }}</div>
-      <button class="flash-close" onclick="this.parentElement.style.display='none'"><i
-          class="fas fa-times"></i></button>
-    </div>
-    {% endfor %}
-  </div>
   {% block flash %}{% endblock %}
   {% if g.current_theme == 1 %}
   <div id="loader" hidden="true">
@@ -418,24 +420,32 @@ change_confirm_modal %}
 
     // Close the dropdown if the user clicks outside of it
     window.onclick = function (event) {
-      // Close User Dropdown
-      if (!event.target.closest('.user-profile')) {
-        var dropdowns = document.getElementsByClassName("user-dropdown-content");
-        for (var i = 0; i < dropdowns.length; i++) {
-          var openDropdown = dropdowns[i];
-          if (openDropdown.classList.contains('show')) {
-            openDropdown.classList.remove('show');
+      try {
+        // Close User Dropdown
+        if (!event.target.closest('.user-profile')) {
+          var dropdowns = document.getElementsByClassName("user-dropdown-content");
+          for (var i = 0; i < dropdowns.length; i++) {
+            var openDropdown = dropdowns[i];
+            if (openDropdown && openDropdown.classList && openDropdown.classList.contains('show')) {
+              openDropdown.classList.remove('show');
+            }
           }
         }
-      }
 
-      // Close Search Overlay if clicked outside
-      var searchContainer = document.getElementById("search-container");
-      var searchToggle = document.getElementById("mobile-search-toggle");
-      if (searchContainer.classList.contains('active') &&
-        !searchContainer.contains(event.target) &&
-        !searchToggle.contains(event.target)) {
-        searchContainer.classList.remove("active");
+        // Close Search Overlay if clicked outside
+        // Note: IDs might be desktop-search-container or mobile-search-container
+        var searchContainer = document.getElementById("search-container");
+        var searchToggle = document.getElementById("mobile-search-toggle");
+
+        if (searchContainer && searchToggle) {
+          if (searchContainer.classList.contains('active') &&
+            !searchContainer.contains(event.target) &&
+            !searchToggle.contains(event.target)) {
+            searchContainer.classList.remove("active");
+          }
+        }
+      } catch (e) {
+        console.error("Error in window.onclick:", e);
       }
     }
 
@@ -489,6 +499,19 @@ change_confirm_modal %}
       if (appContainer) {
         appContainer.classList.remove('initial-hidden');
         appContainer.classList.add('animate-up');
+      }
+
+      // Auto-hide flash messages after 20 seconds
+      var flashMessages = document.querySelectorAll('.flash-message');
+      if (flashMessages.length > 0) {
+        setTimeout(function () {
+          flashMessages.forEach(function (msg) {
+            msg.classList.add('flash-hiding');
+            setTimeout(function () {
+              msg.style.display = "none";
+            }, 500); // Wait for animation
+          });
+        }, 10000);
       }
     });
 

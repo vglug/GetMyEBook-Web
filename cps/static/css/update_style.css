@@ -270,9 +270,6 @@ h2 {
 }
 
 @media (max-width: 560px) {
-  .sitename {
-    display: none;
-  }
 
   .main-book-container {
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
@@ -2964,133 +2961,8 @@ h2 {
     }
   }
 
-  /* Flash Message / Toast Styles */
-  .flash-messages-container {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 10000;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    max-width: 350px;
-    width: 90%;
-    pointer-events: none;
-    /* Allow clicking through container */
-  }
-
-  .flash-message {
-    background: #fff;
-    border-radius: 12px;
-    padding: 15px 20px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    transform: translateX(120%);
-    animation: slideInRight 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-    pointer-events: auto;
-    /* Re-enable clicks on messages */
-    border-left: 5px solid #ccc;
-    overflow: hidden;
-  }
-
-  .flash-message.success {
-    border-left-color: #2ecc71;
-  }
-
-  .flash-message.error {
-    border-left-color: #e74c3c;
-  }
-
-  .flash-message.warning {
-    border-left-color: #f1c40f;
-  }
-
-  .flash-message.info {
-    border-left-color: #3498db;
-  }
-
-  .flash-icon {
-    font-size: 20px;
-    flex-shrink: 0;
-  }
-
-  .flash-message.success .flash-icon {
-    color: #2ecc71;
-  }
-
-  .flash-message.error .flash-icon {
-    color: #e74c3c;
-  }
-
-  .flash-message.warning .flash-icon {
-    color: #f1c40f;
-  }
-
-  .flash-message.info .flash-icon {
-    color: #3498db;
-  }
-
-  .flash-content {
-    flex-grow: 1;
-    font-size: 14px;
-    color: #333;
-    font-weight: 500;
-  }
-
-  .flash-close {
-    background: none;
-    border: none;
-    color: #999;
-    cursor: pointer;
-    font-size: 16px;
-    padding: 0;
-    transition: color 0.2s;
-  }
-
-  .flash-close:hover {
-    color: #555;
-  }
-
-  @keyframes slideInRight {
-    to {
-      transform: translateX(0);
-    }
-  }
-
-  @keyframes fadeOutRight {
-    to {
-      transform: translateX(120%);
-      opacity: 0;
-    }
-  }
-
-  /* Responsive Flash */
-  @media (max-width: 576px) {
-    .flash-messages-container {
-      right: 50%;
-      transform: translateX(50%);
-      top: 10px;
-      width: 95%;
-    }
-
-    .flash-message {
-      animation: slideInTop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-    }
-
-    @keyframes slideInTop {
-      from {
-        transform: translateY(-100%);
-        opacity: 0;
-      }
-
-      to {
-        transform: translateY(0);
-        opacity: 1;
-      }
-    }
-  }
+  /* Flash Message / Toast Styles - MOVED TO flashmessage.css */
+  /* All flash message styles are now in /static/newStyles/css/flashmessage.css */
 
 
   /* Detail Page Layout Fixes */
