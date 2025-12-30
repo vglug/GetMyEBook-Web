@@ -1,6 +1,6 @@
 .tooltip.bottom .tooltip-inner {
   font-size: 13px;
-  font-family: Open Sans Semibold, Helvetica Neue, Helvetica, Arial, sans-serif;
+  font-family: Open Sans Semibold, 'Noto Sans Tamil', Helvetica Neue, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   padding: 3px 10px;
@@ -599,7 +599,7 @@ div.log {
 
 body {
   background: #fff;
-  font-family: 'Inter', 'Segoe UI', Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: 'Inter', 'Noto Sans Tamil', 'Segoe UI', Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 /* ... existing code ... */

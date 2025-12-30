@@ -6,7 +6,7 @@
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-    /* height: 100vh; */
+    height: 100vh;
     background-color: #ffffff;
 }
 
@@ -14,7 +14,8 @@ body {
     width: 100%;
     display: flex;
     justify-content: center;
-    height: 84vh;
+    /* height: 84vh; */
+    min-height: 80dvh;
 }
 
 /* ========== LEFT COLUMN - FORM ========== */
@@ -219,21 +220,15 @@ input[type="checkbox"] {
 
 /* ========== ENHANCED RESPONSIVE DESIGN ========== */
 
-/* Tablet (769px - 1024px) */
-@media (max-width: 1024px) and (min-width: 769px) {
+/* Tablet Devices (769px - 968px) */
+@media (max-width: 968px) and (min-width: 769px) {
     .right-column {
         display: none;
     }
 
     .left-column {
-        padding: 40px;
+        padding: 12px 24px;
         max-width: 100%;
-        align-items: center;
-    }
-
-    .form-container {
-        max-width: 500px;
-        /* Prevent form from being too wide on tablet */
     }
 
     .logo {
@@ -249,20 +244,24 @@ input[type="checkbox"] {
     .subtitle {
         text-align: center;
         font-size: 14px;
-        margin-bottom: 24px;
     }
 
     .form-options {
-        flex-direction: row;
-        justify-content: space-between;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    .forgot-link {
+        align-self: flex-end;
     }
 }
 
-/* Mobile & Small Tablet (up to 768px) */
+/* Mobile & Tablet (up to 768px) */
 @media (max-width: 768px) {
     .log-container {
         flex-direction: column;
-        height: 80dvh;
+        height: auto;
         overflow-y: auto;
     }
 
@@ -272,19 +271,18 @@ input[type="checkbox"] {
 
     .left-column {
         max-width: 100%;
-        padding: 30px 20px;
-        justify-content: center;
+        padding: 12px 24px;
+        justify-content: flex-start;
     }
 
     .logo {
         font-size: 32px;
-        margin-bottom: 30px;
+        margin-bottom: 40px;
         justify-content: center;
     }
 
     .form-container {
         max-width: 100%;
-        width: 100%;
     }
 
     h1 {
@@ -311,34 +309,35 @@ input[type="checkbox"] {
 /* Small Mobile Devices (up to 480px) */
 @media (max-width: 480px) {
     .left-column {
-        padding: 20px 16px;
+        padding: 10px;
+        margin: 0;
+        height: auto;
     }
 
     .logo {
         font-size: 28px;
-        margin-bottom: 25px;
+        margin-bottom: 30px;
     }
 
     h1 {
         font-size: 24px;
+        margin: 0;
     }
 
     .subtitle {
         font-size: 13px;
-        margin-bottom: 20px;
+        margin-bottom: 24px;
     }
 
     .form-group {
-        margin-bottom: 15px;
+        margin-bottom: 16px;
     }
 
     input[type="email"],
     input[type="password"],
     input[type="text"] {
-        padding: 12px;
-        /* Comfortable touch target */
-        font-size: 16px;
-        /* Prevent zoom on iOS */
+        padding: 10px 12px;
+        font-size: 14px;
     }
 
     .btn-primary,
@@ -346,11 +345,12 @@ input[type="checkbox"] {
         padding: 12px;
         font-size: 14px;
         margin-bottom: 12px;
+
     }
 
     .form-options {
+        flex-direction: column;
         align-items: stretch;
-        /* Full width options */
     }
 
     .checkbox-group {
@@ -359,44 +359,35 @@ input[type="checkbox"] {
 
     .forgot-link {
         align-self: center;
-        /* Center link on very small screens */
-        margin-top: 5px;
-    }
-}
-
-/* Extra Small (up to 360px) */
-@media (max-width: 360px) {
-    .logo-icon {
-        width: 48px;
-        height: 48px;
-    }
-
-    .logo {
-        font-size: 22px;
-        gap: 8px;
-    }
-
-    h1 {
-        font-size: 20px;
-    }
-
-    .footer-text {
-        font-size: 12px;
+        margin-top: 10px;
     }
 }
 
 /* Large Desktop Screens (min-width: 1200px) */
-@media (min-width: 1020px) {
+@media (min-width: 1200px) {
     .left-column {
-        max-width: 45%;
-        /* slightly wider on large screens */
-        padding: 40px;
+        max-width: 40%;
+        padding: 12px 24px;
+
     }
 
     .form-container {
-        /* max-width: 480px; */
-        /* Let it fill the 45% container */
-        width: 100%;
         max-width: 450px;
+    }
+}
+
+/* Very Small Mobile Devices (up to 360px) */
+@media (max-width: 360px) {
+    .logo {
+        font-size: 24px;
+        margin-bottom: 25px;
+    }
+
+    h1 {
+        font-size: 22px;
+    }
+
+    .footer-text {
+        font-size: 13px;
     }
 }
