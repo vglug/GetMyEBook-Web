@@ -2,8 +2,9 @@
 {% extends "layout.html" %}
 {% block body %}
 {# Temporarily showing carousel always for testing #}
-{% if page != "discover" %}
+{% if page != "discover" and page != "rated" %}
 <div class="discover random-books">
+  {% if random.__len__() > 0 %}
   <div class="book-carousel-wrapper">
     <div class="book-carousel" id="heroCarousel">
       {% for entry in random %}
@@ -129,6 +130,7 @@
       {% endfor %}
     </div>
   </div>
+  {% endif %}
 </div>
 {% endif %}
 <div class="discover load-more random-books">

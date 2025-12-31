@@ -1,7 +1,19 @@
 <template>
-    <div class="chat-input-container">
+    <div class="chat-input-container" :style="boxStyle">
     <form method="POST" @submit.prevent="handleSubmit" v-if="canComment" class="chat-form">
-        <div class="chat-input-box">
+        
+        <!-- Reply Banner -->
+        <div v-if="replyingTo" class="reply-banner">
+            <div class="reply-info">
+                <span class="reply-label">Replying to</span>
+                <span class="reply-name">{{ replyingTo.owner.name }}</span>
+            </div>
+            <button type="button" class="close-reply-btn" @click="$emit('cancel-reply')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <div class="chat-input-box" :class="{'has-reply': replyingTo}">
             
             <!-- Mentions Popup -->
             <div v-if="showMentions && filteredUsers.length" class="mentions-popup">
@@ -99,6 +111,10 @@
             users: {
                 type: Array,
                 default: () => []
+            },
+            replyingTo: {
+                type: Object,
+                default: null
             }
         },
         data() {
@@ -113,10 +129,34 @@
                 mentionStartPos: -1,
                 showEmojiPicker: false,
                 emojis: [],
-                loadingEmojis: false
+                loadingEmojis: false,
+                boxStyle: {}
             }
         },
+        mounted() {
+            this.updatePosition();
+            window.addEventListener('resize', this.updatePosition);
+            // Also update on scroll of parent/window just in case, though fixed shouldn't need it unless layout shifts
+            window.addEventListener('scroll', this.updatePosition, true); 
+        },
+        destroyed() {
+            window.removeEventListener('resize', this.updatePosition);
+            window.removeEventListener('scroll', this.updatePosition, true);
+        },
         methods: {
+            updatePosition() {
+                const feed = this.$el.closest('.discussion-feed');
+                if (feed) {
+                    const rect = feed.getBoundingClientRect();
+                    this.boxStyle = {
+                        width: `${rect.width}px`,
+                        left: `${rect.left}px`,
+                        position: 'fixed',
+                        bottom: '0',
+                        zIndex: '1000'
+                    };
+                }
+            },
             toggleEmojiPicker() {
                 this.showEmojiPicker = !this.showEmojiPicker;
                 if (this.showEmojiPicker && this.emojis.length === 0) {
@@ -158,7 +198,12 @@
                 if (!this.content.trim()) return;
                 this.isSending = true;
 
-                axios.post(`/forum/api/threads/${this.threadId}/comments`, {content: this.content})
+                const payload = { content: this.content };
+                if (this.replyingTo) {
+                    payload.parent_id = this.replyingTo.id;
+                }
+
+                axios.post(`/forum/api/threads/${this.threadId}/comments`, payload)
                     .then(({data}) => {
                         this.content = "";
                         this.showEmojiPicker = false;
@@ -273,6 +318,12 @@
 </script>
 
 <style scoped>
+    .chat-input-container {
+        background: #fff;
+        padding: 12px;
+        border-top: 1px solid #e5e7eb;
+    }
+
     .input-group:focus-within {
         border-color: #aaa !important;
     }
@@ -285,7 +336,7 @@
     align-items: center;
 
     /* Size */
-    width: 59%;
+    width: 100%;
     min-height: 72px;            /* height increase */
     
     /* Inside spacing */
@@ -472,8 +523,63 @@
 .show-login-user{
     text-align: center;
     font-size: 0.875rem;
-    color: #6c757d; 
+    color: #6c757d;
 }
+
+/* Reply Banner Styles */
+.reply-banner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f0f2f5;
+    padding: 8px 16px;
+    border-radius: 12px 12px 0 0;
+    border: 1px solid #e5e7eb;
+    border-bottom: none;
+    margin-bottom: -1px; /* Overlap border */
+    position: relative;
+    z-index: 1;
+}
+
+.reply-info {
+    display: flex;
+    flex-direction: column;
+    font-size: 0.85rem;
+}
+
+.reply-label {
+    color: #65676b;
+    font-size: 0.75rem;
+}
+
+.reply-name {
+    font-weight: 600;
+    color: #050505;
+}
+
+.close-reply-btn {
+    background: none;
+    border: none;
+    color: #65676b;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 4px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.close-reply-btn:hover {
+    background: #e4e6eb;
+}
+
+.chat-input-box.has-reply {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}
+
 @media (max-width: 768px) {
     .chat-input-box{
         width: 100%;

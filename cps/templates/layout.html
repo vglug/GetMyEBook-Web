@@ -34,6 +34,14 @@ change_confirm_modal %}
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link href="{{ url_for('static', filename='newStyles/css/flashmessage.css') }}" rel="stylesheet" media="screen">
   <link href="{{ url_for('static', filename='css/share_modal.css') }}" rel="stylesheet" media="screen">
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-89TPPH9Y7D"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+
+    gtag('config', 'G-89TPPH9Y7D');
+  </script>
 </head>
 
 <body class="{{ page }} {{ bodyClass }}{% if g.current_theme == 1 %} blur{% endif %}" data-text="{{_('Home')}}"
@@ -541,6 +549,17 @@ change_confirm_modal %}
         hidePageLoader();
       });
     }
+
+    // Handle browser back/forward buttons
+    window.addEventListener('pageshow', function (event) {
+      if (event.persisted) {
+        // Page was restored from bfcache
+        hidePageLoader();
+      } else {
+        // Normal load, but ensure loader is hidden if it was stuck
+        hidePageLoader();
+      }
+    });
   </script>
   {% block js %}{% endblock %}
 </body>

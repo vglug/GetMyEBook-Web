@@ -120,9 +120,9 @@
         <div class="discussion-feed">
             <!-- Thread Header -->
             <div class="thread-header-card">
-                <!-- <a href="/" class="back-home" role="button">
-                    <i class="fa-solid fa-house"></i>
-                </a> -->
+                <a href="/" class="back-home" role="button" title="Back to Home">
+                    <i class="fas fa-home"></i>
+                </a>
                 <div class="discussion-book-cover">
                     <img src="{{ url_for('web.get_cover', book_id=thread.book_id, resolution='og') }}" alt="Book Cover">
                 </div>

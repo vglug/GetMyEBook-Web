@@ -1,17 +1,15 @@
 <template>
-    <div class="comment-item d-flex mb-4 mt-1" :class="{'nested-reply': isReply}">
+    <div :id="'comment-' + comment.id" class="comment-item d-flex mb-4 mt-1" :class="{'nested-reply': isReply}">
         <div class="flex-shrink-0 mr-3 comment-icon">
             <img :src="comment.owner.profile_picture" class="rounded-circle" :width="isReply ? 28 : 36" :height="isReply ? 28 : 36" style="object-fit: cover;">
         </div>
-        <div class="flex-grow-1">
+        <div class="flex-grow-1" style="min-width: 0;">
             <div class="d-flex align-items-baseline mb-1">
                 <h6 class="font-weight-bold m-0 mr-2" style="font-size: 0.95rem;">
                     {{ comment.owner.name }}
                 </h6>
                 <span class="text-muted" style="font-size: 0.8rem;">
                     {{ postedAt }} 
-                    <!-- <span class="mx-1">&bull;</span>
-                    {{ messageTime }} -->
                 </span>
                  <!-- Push to right end -->
                 <div class="position-relative ml-auto">
@@ -36,6 +34,17 @@
             </div>
             
             <div class="comment-body">
+                <!-- Quoted Parent Message -->
+                <div v-if="parentComment" class="quoted-message mb-2 p-2 border-left-primary bg-light rounded-right" @click="scrollToParent" style="cursor: pointer;">
+                    <div class="d-flex align-items-center mb-1">
+                        <i class="fas fa-reply mr-2 text-primary small"></i>
+                        <span class="small font-weight-bold text-dark">{{ parentComment.owner.name }}</span>
+                    </div>
+                    <div class="small text-muted text-line-clamp">
+                        {{ parentComment.content }}
+                    </div>
+                </div>
+
                 <textarea v-model="content" class="form-control mb-2" v-if="editing" rows="3"></textarea>
                 <div v-else class="text-dark" style="font-size: 0.95rem; line-height: 1.5;" v-html="formattedContent">
                 </div>
@@ -91,11 +100,6 @@
                         <span class="reply-text">Reply</span>
                     </button>
                     
-                    <!-- Reply count - clickable to toggle replies -->
-                    <button v-if="hasReplies" class="btn btn-link btn-sm p-0 reply-count-btn" @click="toggleRepliesOnly" style="text-decoration: none; font-size: 0.9rem;">
-                        <span class="text-muted mx-2">&middot;</span>
-                        <span class="reply-count-text">{{ comment.replies.length }} {{ comment.replies.length === 1 ? 'reply' : 'replies' }}</span>
-                    </button>
                 <template v-if="isOwner || isAdmin">
                      <button class="btn btn-link btn-sm p-0 mr-3 text-primary" v-if="editing" @click="updateComment">
                         <small>Save</small>
@@ -106,71 +110,6 @@
                 </template>
             </div>
             
-            <!-- Reply Input Section -->
-            <!-- Reply Input Section -->
-            <div v-if="isReplying" class="reply-container mt-3 d-flex animate-fade-in">
-                
-                <div v-if="!canReply" class="w-100 login-prompt text-center p-3" style="background: #f8f9fa; border-radius: 12px;">
-                     <template v-if="isLoggedIn">
-                         <span class="text-secondary"><i class="fas fa-envelope mr-2"></i> Please verify your email to reply.</span>
-                     </template>
-                     <template v-else>
-                         <span class="text-secondary">
-                             <a href="/login" class="font-weight-bold text-primary">Login</a> or <a href="/register" class="font-weight-bold text-primary">Sign up</a> to reply
-                         </span>
-                     </template>
-                </div>
-
-                <template v-else>
-                    <div class="flex-shrink-0 mr-3">
-                         <img :src="comment.owner.profile_picture" class="rounded-circle" width="36" height="36" style="object-fit: cover;">
-                    </div>
-                    <div class="flex-grow-1">
-                        <div class="reply-card">
-                             <div class="reply-header mb-2 px-3 pt-3">
-                                <span class="font-weight-bold text-dark">{{ currentUserName }}</span>
-                             </div>
-                             <div class="px-3 pb-2">
-                                <textarea 
-                                    v-model="replyContent" 
-                                    ref="replyInput"
-                                    class="form-control border-0 p-0 reply-textarea" 
-                                    placeholder="What are your thoughts?" 
-                                    rows="2" 
-                                ></textarea>
-                             </div>
-                             <div class="reply-footer d-flex justify-content-between align-items-center px-3 pb-3">
-                                  <div class="d-flex text-muted gap-3">
-                                      <i class="far fa-face-smile action-icon" title="Emoji"></i>
-                                      <i class="far fa-image action-icon" title="Image"></i>
-                                  </div>
-                                  <button class="btn btn-primary btn-sm rounded-pill px-4 font-weight-bold" @click="submitReply">Reply</button>
-                             </div>
-                        </div>
-                    </div>
-                </template>
-            </div>
-            
-            <!-- View Previous Replies Toggle - Now hidden as we use the reply count button instead -->
-            <!-- Keeping it for animation purposes if needed -->
-
-            <!-- Recursive Replies with smooth animation -->
-            <transition name="replies-expand">
-                <div v-if="showReplies && hasReplies" class="replies-wrapper">
-                    <Comment 
-                        v-for="reply in comment.replies" 
-                        :key="reply.id" 
-                        :comment="reply" 
-                        :users="users"
-                        :thread-id="threadId"
-                        :is-reply="true"
-                        class="nested-reply"
-                        @reply="$emit('reply', $event)"
-                        @update="$emit('update', $event)"
-                        @delete="$emit('delete', $event)"
-                    />
-                </div>
-            </transition>
         </div>
     </div>
 </template>
@@ -184,7 +123,8 @@
             'comment',
             'users',
             'isReply',
-            'threadId'
+            'threadId',
+            'parentComment'
         ],
         data() {
             return {
@@ -195,22 +135,12 @@
                 likesCount: 0,
                 reactionType: 'like', // default
                 topReaction: null,
-                now: new Date(),
-                isReplying: false,
-                replyContent: "",
-                showReplies: false
+                now: new Date()
             }
         },
         mounted() {
             // Debug: Log the full comment object to see what backend is actually sending
             console.log('Comment data:', this.comment);
-            console.log('User reaction data check:', {
-                current_user_reaction: this.comment.current_user_reaction,
-                reaction_type: this.comment.reaction_type,
-                user_reaction: this.comment.user_reaction,
-                reaction: this.comment.reaction,
-                liked_by_current_user: this.comment.liked_by_current_user
-            });
             
             if (this.comment.likes_count !== undefined && this.comment.likes_count !== null) {
                 this.likesCount = parseInt(this.comment.likes_count);
@@ -229,22 +159,16 @@
                 
                 if (rType && typeof rType === 'string') {
                     this.reactionType = rType;
-                    console.log('User reaction type set to:', rType);
                 } else {
-                    // Default to 'like' if user has liked but no specific type provided
                     this.reactionType = 'like';
-                    console.log('User has liked but no specific reaction type found, defaulting to "like"');
                 }
             } else {
-                // User hasn't liked, keep default 'like' type for when they do
                 this.liked = false;
                 this.reactionType = 'like';
-                console.log('User has not liked this comment');
             }
 
             if (this.comment.top_reaction) {
                 this.topReaction = this.comment.top_reaction;
-                console.log('Top reaction from others:', this.topReaction);
             }
 
             this.timer = setInterval(() => {
@@ -267,14 +191,8 @@
                 return map[type] || 'fas fa-thumbs-up';
             },
             triggerReaction(type) {
-                console.log('=== Trigger Reaction Called ===');
-                console.log('Reaction type:', type);
-                console.log('Current liked state:', this.liked);
-                console.log('Current reaction type:', this.reactionType);
-                
                 // If clicking the same reaction type that's already active, do nothing
                 if (this.liked && this.reactionType === type) {
-                    console.log('Same reaction already active, ignoring');
                     return;
                 }
 
@@ -284,21 +202,13 @@
 
                 // If not liked yet, toggle like to add reaction
                 if (!this.liked) {
-                    console.log('Not liked yet, calling toggleLike');
                     this.toggleLike();
                 } else {
-                    // User is changing from one reaction to another
-                    console.log('Changing reaction from', oldReactionType, 'to', type);
-                    
                     // Update existing reaction without toggling count
-                    // Send to backend with the new reaction type
                     axios.post(this.endpoint() + '/like', { 
                         reaction_type: this.reactionType,
                         type: this.reactionType,
                         reaction: this.reactionType
-                    })
-                    .then(response => {
-                        console.log('Reaction update successful:', response.data);
                     })
                     .catch(e => {
                         console.error('Error updating reaction:', e);
@@ -308,33 +218,22 @@
                 }
             },
             toggleLike() {
-                console.log('=== Toggle Like Called ===');
-                console.log('Current liked state BEFORE toggle:', this.liked);
-                console.log('Current reaction type:', this.reactionType);
-                
                 this.liked = !this.liked;
                 
                 // If unliking, reset type to default for next time
                 if(!this.liked) {
-                    console.log('Unliking, resetting reaction type to like');
                     this.reactionType = 'like';
                 }
 
                 this.likesCount += this.liked ? 1 : -1;
                 
-                // Send multiple variants to ensure backend compatibility
                 const payload = { 
                     reaction_type: this.liked ? this.reactionType : null,
                     type: this.liked ? this.reactionType : null,
                     reaction: this.liked ? this.reactionType : null
                 };
                 
-                console.log('Sending payload to backend:', payload);
-
                 axios.post(this.endpoint() + '/like', payload)
-                    .then(response => {
-                        console.log('Like/Unlike successful:', response.data);
-                    })
                     .catch(e => {
                         console.error('Error toggling like:', e);
                         // Revert on error
@@ -384,8 +283,6 @@
                     return;
                 }
                 else {
-                    console.log("Old content:", oldContent);
-                    console.log("Updating comment to:", this.content);
                     this.$emit('update', { ...this.comment, content: this.content });
                     this.editing = false;
                     axios.patch(this.endpoint(), { content: this.content })
@@ -403,82 +300,20 @@
                 this.showMenu = !this.showMenu;
             },
             toggleReply() {
-                this.isReplying = !this.isReplying;
-                if (this.isReplying && this.canReply) {
-                    this.$nextTick(() => {
-                        if(this.$refs.replyInput) this.$refs.replyInput.focus();
-                    });
-                }
-            },
-            submitReply() {
-                console.log('=== submitReply Called ===');
-                if (!this.replyContent.trim()) {
-                    console.log('Reply content is empty');
-                    return;
-                }
-                
-                // Create nested reply with parent_id
-                const threadId = this.threadId || this.comment.thread_id;
-                console.log('Thread ID:', threadId);
-                console.log('Parent Comment ID:', this.comment.id);
-
-                const payload = {
-                    content: this.replyContent,
-                    parent_id: this.comment.id  // This comment is the parent
-                };
-                console.log('Payload:', payload);
-                
-                const url = `/forum/api/threads/${threadId}/comments`;
-                console.log('Posting to URL:', url);
-                
-                axios.post(url, payload)
-                    .then(response => {
-                        console.log('Reply created successfully. Response data:', response.data);
-                        console.log('Response status:', response.status);
-                        
-                        // Add the new reply to this comment's replies array
-                        if (!this.comment.replies) {
-                            console.log('Initializing replies array');
-                            this.$set(this.comment, 'replies', []);
-                        }
-                        this.comment.replies.push(response.data);
-                        
-                        // Show the replies section
-                        console.log('Showing replies section');
-                        this.showReplies = true;
-                        
-                        // Clear and close
-                        this.replyContent = "";
-                        this.isReplying = false;
-                        console.log('isReplying set to false');
-                        
-                        // Emit to parent for any additional handling
-                        this.$emit('reply', response.data);
-                    })
-                    .catch(error => {
-                        console.error('Error creating reply:', error);
-                        if (error.response) {
-                             console.error('Error Response Data:', error.response.data);
-                             console.error('Error Response Status:', error.response.status);
-                             console.error('Error Response Headers:', error.response.headers);
-                        } else if (error.request) {
-                             console.error('Error Request:', error.request);
-                        } else {
-                             console.error('Error Message:', error.message);
-                        }
-                        alert('Failed to post reply. Please try again.');
-                    });
+                this.$emit('reply', this.comment);
             },
             // Legacy reply method if used by something else, redirected
             reply() {
                 this.toggleReply();
             },
-            toggleReplies() {
-                this.showReplies = !this.showReplies;
-            },
-            toggleRepliesOnly() {
-                // Only toggle replies visibility, don't open reply input
-                this.showReplies = !this.showReplies;
+            scrollToParent() {
+                if (!this.parentComment) return;
+                const parentEl = document.getElementById('comment-' + this.parentComment.id);
+                if (parentEl) {
+                    parentEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    parentEl.classList.add('highlight-comment');
+                    setTimeout(() => parentEl.classList.remove('highlight-comment'), 2000);
+                }
             }
         },
         computed: {
@@ -538,7 +373,7 @@
                 return Math.floor(seconds) + "s";
             },
             isOwner() {
-                return !! window.Auth && window.Auth.id === this.comment.user_id
+                return !! window.Auth && window.Auth.id == this.comment.user_id
             },
             isAdmin() {
                 return !! window.Auth && window.Auth.isAdmin;
@@ -561,13 +396,6 @@
                 });
                 return content;
             },
-            // messageTime() {
-            //     if (!this.comment.created_at) return '';
-            //     let dateStr = this.comment.created_at;
-            //     if (typeof dateStr === 'string') dateStr = dateStr.replace(' ', 'T');
-            //     const date = new Date(dateStr);
-            //     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            // },
             currentUserAvatar() {
                 if (window.Auth && window.Auth.profile_picture) {
                     return window.Auth.profile_picture;
@@ -629,48 +457,6 @@
         border-bottom: none;
     }
     
-    /* View Replies Toggle */
-    .view-replies-container {
-        position: relative;
-    }
-
-    .view-replies-line {
-        display: flex;
-        align-items: center;
-        color: #8e8e8e;
-        font-size: 0.8rem;
-        font-weight: 600;
-        cursor: pointer;
-        user-select: none;
-        margin-left: 2px; /* Align with text */
-    }
-    
-    .line-dashes {
-        display: inline-block;
-        width: 24px;
-        height: 1px;
-        background-color: #8e8e8e;
-        margin-right: 8px;
-        vertical-align: middle;
-    }
-    
-    /* Thread Connection Line */
-    .replies-wrapper {
-        position: relative;
-        border-left: 2px solid #eef0f2; /* Vertical Thread Line */
-        margin-left: 12px;
-        padding-left: 16px;
-    }
-
-    /* Curve the line slightly for the toggle if desired, or keep straight */
-    
-    .view-replies-line:hover {
-        color: #555;
-    }
-    .view-replies-line:hover .line-dashes {
-        background-color: #555;
-    }
-
     .comment-actions {
         transition: opacity 0.2s;
         display: flex;
@@ -773,31 +559,33 @@
         .comment-actions {
             gap: 12px;
         }
-
-        .reply-container .flex-shrink-0 {
-            display: none !important; /* Hide avatar in reply box on mobile to save space */
-        }
-        .reply-container .flex-grow-1 {
-            width: 100%;
-        }
-        .reply-card {
-            border-radius: 12px;
-        }
     }
 
-    /* Reply Card Styles */
-    .reply-card {
-        background: #fff;
-        border: 1px solid #e0e0e0;
-        border-radius: 16px;
-        transition: box-shadow 0.2s;
-        position: relative;
+    /* Quoted Message Styles */
+    .quoted-message {
+        background-color: #f8f9fa;
+        border-radius: 4px;
+        border-left: 4px solid #6366f1; /* Primary color */
+    }
+
+    .border-left-primary {
+        border-left: 4px solid #6366f1;
     }
     
-    .reply-card:focus-within {
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        border-color: #d0d0d0;
+    .highlight-comment {
+        background-color: rgba(99, 102, 241, 0.1); /* Primary color with opacity */
+        transition: background-color 0.5s ease;
     }
+
+    .text-line-clamp {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        word-break: break-word;
+    }
+</style>
 
     .reply-textarea {
         background: transparent;

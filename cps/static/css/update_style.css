@@ -1206,10 +1206,6 @@ h2 {
 }
 
 .product-title-container {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 15px;
   margin-bottom: 10px;
 }
 
@@ -2681,7 +2677,7 @@ h2 {
 
 .read-book-card {
   display: flex;
-  background: #fff;
+  background: #fcf1eb;
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
@@ -2754,12 +2750,12 @@ h2 {
   margin: 0 0 8px 0;
   font-size: 20px;
   font-weight: 700;
-  color: #2c3e50;
+  color: #1c5484;
   line-height: 1.3;
 }
 
 .read-book-title a {
-  color: #2c3e50;
+  color: #1c5484;
   text-decoration: none;
   transition: color 0.2s ease;
 }
@@ -2770,7 +2766,7 @@ h2 {
 }
 
 .read-book-author {
-  color: #7f8c8d;
+  color: #d46b5e;
   font-size: 15px;
   margin-bottom: 12px;
   display: flex;
@@ -2817,7 +2813,7 @@ h2 {
   display: flex;
   align-items: center;
   gap: 5px;
-  background: #fff9e6;
+  background: #fff;
   padding: 4px 10px;
   border-radius: 20px;
 }
@@ -2876,295 +2872,296 @@ h2 {
     display: none;
     /* Hide comment on very small screens to save space */
   }
+}
 
-  /* Pagination Styles */
-  .pagination-wrapper {
-    display: flex;
-    justify-content: center;
-    margin-top: 30px;
-    margin-bottom: 40px;
-    width: 100%;
+/* Pagination Styles - Now applies to all views */
+.pagination-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: 30px;
+  margin-bottom: 40px;
+  width: 100%;
+}
+
+.pagination-list {
+  display: flex;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.page-item {
+  display: inline-block;
+}
+
+.page-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  height: 40px;
+  padding: 0 12px;
+  background-color: #fff;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  color: #555;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
+  cursor: pointer;
+}
+
+.page-link:hover {
+  background-color: #f8f9fa;
+  color: #333;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+  text-decoration: none;
+}
+
+.page-item.active .page-link {
+  background-color: #ff7174;
+  /* Red/Pink accent from image */
+  color: #fff;
+  border-color: #ff7174;
+  box-shadow: 0 4px 10px rgba(255, 113, 116, 0.3);
+}
+
+.page-item.disabled .page-link {
+  background-color: #f9f9f9;
+  color: #ccc;
+  cursor: not-allowed;
+  border-color: #eee;
+}
+
+.page-previous .page-link,
+.page-next .page-link {
+  font-weight: 700;
+  padding: 0 15px;
+}
+
+/* Responsive Pagination - Mobile adjustments only */
+@media (max-width: 576px) {
+  .page-link {
+    min-width: 35px;
+    height: 35px;
+    font-size: 14px;
+    padding: 0 8px;
   }
 
   .pagination-list {
-    display: flex;
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    gap: 8px;
-    flex-wrap: wrap;
-    justify-content: center;
+    gap: 5px;
   }
+}
 
-  .page-item {
-    display: inline-block;
-  }
-
-  .page-link {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 40px;
-    height: 40px;
-    padding: 0 12px;
-    background-color: #fff;
-    border: 1px solid #eee;
-    border-radius: 8px;
-    color: #555;
-    font-weight: 600;
-    text-decoration: none;
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
-    cursor: pointer;
-  }
-
-  .page-link:hover {
-    background-color: #f8f9fa;
-    color: #333;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
-    text-decoration: none;
-  }
-
-  .page-item.active .page-link {
-    background-color: #ff7174;
-    /* Red/Pink accent from image */
-    color: #fff;
-    border-color: #ff7174;
-    box-shadow: 0 4px 10px rgba(255, 113, 116, 0.3);
-  }
-
-  .page-item.disabled .page-link {
-    background-color: #f9f9f9;
-    color: #ccc;
-    cursor: not-allowed;
-    border-color: #eee;
-  }
-
-  .page-previous .page-link,
-  .page-next .page-link {
-    font-weight: 700;
-    padding: 0 15px;
-  }
-
-  /* Responsive Pagination */
-  @media (max-width: 576px) {
-    .page-link {
-      min-width: 35px;
-      height: 35px;
-      font-size: 14px;
-      padding: 0 8px;
-    }
-
-    .pagination-list {
-      gap: 5px;
-    }
-  }
-
-  /* Flash Message / Toast Styles - MOVED TO flashmessage.css */
-  /* All flash message styles are now in /static/newStyles/css/flashmessage.css */
+/* Flash Message / Toast Styles - MOVED TO flashmessage.css */
+/* All flash message styles are now in /static/newStyles/css/flashmessage.css */
 
 
-  /* Detail Page Layout Fixes */
-  .detail-page-container {
-    padding-top: 20px;
-    padding-bottom: 40px;
-    max-width: 1200px;
-    margin: 0 auto;
-  }
+/* Detail Page Layout Fixes */
+.detail-page-container {
+  padding-top: 20px;
+  padding-bottom: 40px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
 
-  /* Reset layout for Modal to avoid double padding/margins */
-  .modal-content .detail-page-container {
-    padding: 0;
-    margin: 0;
+/* Reset layout for Modal to avoid double padding/margins */
+.modal-content .detail-page-container {
+  padding: 0;
+  margin: 0;
+  max-width: 100%;
+  width: 100%;
+}
+
+.modal-content .container-fluid {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.modal-content .row {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.modal-content .col-lg-6 {
+  padding-left: 0;
+  padding-right: 0;
+  width: 100%;
+  /* Stack columns in modal */
+  flex: 0 0 100%;
+  max-width: 100%;
+}
+
+/* Modal Specific Compact Styles */
+.modal-content .product-img-box {
+  padding: 10px;
+  margin-bottom: 10px;
+  background: transparent;
+  border-radius: 8px;
+  display: flex;
+  justify-content: center;
+  min-height: auto;
+}
+
+.modal-content .product-img-box img {
+  max-height: 160px;
+  /* Compact image */
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+}
+
+.modal-content .product-details-box {
+  padding: 0 10px 10px 10px;
+}
+
+.modal-content .product-title {
+  font-size: 18px;
+  margin-bottom: 5px;
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.modal-content .product-author-section {
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.modal-content .product-rating-review {
+  margin-bottom: 5px;
+  font-size: 12px;
+}
+
+.modal-content .product-description {
+  font-size: 13px;
+  line-height: 1.4;
+  margin-bottom: 10px;
+  max-height: 60px;
+  /* Very strict height limit */
+  overflow-y: auto;
+  color: #555;
+  padding-right: 5px;
+}
+
+/* Compact Actions in Modal */
+.modal-content .product-actions {
+  margin-bottom: 15px;
+  gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  width: 100%;
+}
+
+.modal-content .vs-btn,
+.modal-content .discussion-btn,
+.modal-content .btn-group,
+.modal-content .btn-group .vs-btn {
+  padding: 8px 12px !important;
+  font-size: 13px !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  border-radius: 25px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  margin: 0 !important;
+  box-shadow: none !important;
+  text-transform: capitalize !important;
+  letter-spacing: 0 !important;
+}
+
+.modal-content .discussion-btn-container {
+  margin: 0;
+  width: 100%;
+  grid-column: span 2;
+  /* Make discussion button full width or share? Let's make it span 2 if it's the main action */
+}
+
+/* If we want 3 buttons in a row, we can adjust grid-template-columns */
+/* But usually there's Download, Read, and Discussion. */
+/* Let's try to fit them better */
+.modal-content .product-actions>* {
+  grid-column: span 1;
+}
+
+.modal-content .discussion-btn-container {
+  grid-column: span 2;
+}
+
+.modal-content .discussion-btn i {
+  font-size: 16px !important;
+}
+
+/* User State Section in Modal */
+.modal-content .user-state-section {
+  margin-top: 15px;
+  margin-bottom: 15px;
+  gap: 10px;
+  justify-content: center;
+}
+
+.modal-content .user-state-section label {
+  padding: 10px;
+  min-width: 70px;
+  border-radius: 12px;
+  gap: 5px;
+}
+
+.modal-content .user-state-section input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+}
+
+.modal-content .user-state-section span {
+  font-size: 12px;
+}
+
+/* Hide less important elements in modal to save space */
+.modal-content .product-meta-info {
+  display: none;
+}
+
+/* Mobile Modal Specifics */
+@media (max-width: 576px) {
+  .modal-dialog {
+    margin: 10px;
     max-width: 100%;
-    width: 100%;
+    width: auto;
   }
 
-  .modal-content .container-fluid {
-    padding-left: 0;
-    padding-right: 0;
-  }
-
-  .modal-content .row {
-    margin-left: 0;
-    margin-right: 0;
-  }
-
-  .modal-content .col-lg-6 {
-    padding-left: 0;
-    padding-right: 0;
-    width: 100%;
-    /* Stack columns in modal */
-    flex: 0 0 100%;
-    max-width: 100%;
-  }
-
-  /* Modal Specific Compact Styles */
-  .modal-content .product-img-box {
-    padding: 10px;
-    margin-bottom: 10px;
-    background: transparent;
-    border-radius: 8px;
-    display: flex;
-    justify-content: center;
-    min-height: auto;
+  .modal-content {
+    padding: 15px !important;
+    border-radius: 12px;
   }
 
   .modal-content .product-img-box img {
-    max-height: 160px;
-    /* Compact image */
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-    border-radius: 6px;
-  }
-
-  .modal-content .product-details-box {
-    padding: 0 10px 10px 10px;
+    max-height: 140px;
+    /* Even smaller on mobile */
   }
 
   .modal-content .product-title {
-    font-size: 18px;
-    margin-bottom: 5px;
-    line-height: 1.2;
-    font-weight: 700;
+    font-size: 16px;
   }
 
-  .modal-content .product-author-section {
-    margin-bottom: 8px;
-    font-size: 13px;
-  }
-
-  .modal-content .product-rating-review {
-    margin-bottom: 5px;
-    font-size: 12px;
-  }
-
-  .modal-content .product-description {
-    font-size: 13px;
-    line-height: 1.4;
-    margin-bottom: 10px;
-    max-height: 60px;
-    /* Very strict height limit */
-    overflow-y: auto;
-    color: #555;
-    padding-right: 5px;
-  }
-
-  /* Compact Actions in Modal */
+  /* Ensure buttons in mobile modal are side-by-side where possible */
   .modal-content .product-actions {
-    margin-bottom: 15px;
-    gap: 10px;
-    display: grid;
     grid-template-columns: repeat(2, 1fr);
-    width: 100%;
+    gap: 8px;
+    display: grid;
   }
 
   .modal-content .vs-btn,
   .modal-content .discussion-btn,
-  .modal-content .btn-group,
   .modal-content .btn-group .vs-btn {
-    padding: 8px 12px !important;
-    font-size: 13px !important;
-    height: 40px !important;
-    min-height: 40px !important;
-    border-radius: 25px !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
+    padding: 6px 8px !important;
+    font-size: 12px !important;
+    height: 36px !important;
+    min-height: 36px !important;
     width: 100% !important;
-    margin: 0 !important;
-    box-shadow: none !important;
-    text-transform: capitalize !important;
-    letter-spacing: 0 !important;
   }
-
-  .modal-content .discussion-btn-container {
-    margin: 0;
-    width: 100%;
-    grid-column: span 2;
-    /* Make discussion button full width or share? Let's make it span 2 if it's the main action */
-  }
-
-  /* If we want 3 buttons in a row, we can adjust grid-template-columns */
-  /* But usually there's Download, Read, and Discussion. */
-  /* Let's try to fit them better */
-  .modal-content .product-actions>* {
-    grid-column: span 1;
-  }
-
-  .modal-content .discussion-btn-container {
-    grid-column: span 2;
-  }
-
-  .modal-content .discussion-btn i {
-    font-size: 16px !important;
-  }
-
-  /* User State Section in Modal */
-  .modal-content .user-state-section {
-    margin-top: 15px;
-    margin-bottom: 15px;
-    gap: 10px;
-    justify-content: center;
-  }
-
-  .modal-content .user-state-section label {
-    padding: 10px;
-    min-width: 70px;
-    border-radius: 12px;
-    gap: 5px;
-  }
-
-  .modal-content .user-state-section input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-  }
-
-  .modal-content .user-state-section span {
-    font-size: 12px;
-  }
-
-  /* Hide less important elements in modal to save space */
-  .modal-content .product-meta-info {
-    display: none;
-  }
-
-  /* Mobile Modal Specifics */
-  @media (max-width: 576px) {
-    .modal-dialog {
-      margin: 10px;
-      max-width: 100%;
-      width: auto;
-    }
-
-    .modal-content {
-      padding: 15px !important;
-      border-radius: 12px;
-    }
-
-    .modal-content .product-img-box img {
-      max-height: 140px;
-      /* Even smaller on mobile */
-    }
-
-    .modal-content .product-title {
-      font-size: 16px;
-    }
-
-    /* Ensure buttons in mobile modal are side-by-side where possible */
-    .modal-content .product-actions {
-      grid-template-columns: repeat(2, 1fr);
-      gap: 8px;
-      display: grid;
-    }
-
-    .modal-content .vs-btn,
-    .modal-content .discussion-btn,
-    .modal-content .btn-group .vs-btn {
-      padding: 6px 8px !important;
-      font-size: 12px !important;
-      height: 36px !important;
-      min-height: 36px !important;
-      width: 100% !important;
-    }
-  }
+}

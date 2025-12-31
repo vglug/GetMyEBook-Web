@@ -2195,7 +2195,7 @@ def _handle_new_user(to_save, content, languages, translations, kobo_support):
         content.allowed_column_value = config.config_allowed_column_value
         content.denied_column_value = config.config_denied_column_value
         # No default value for kobo sync shelf setting
-        content.kobo_only_shelves_sync = to_save.get("kobo_only_shelves_sync", 0) == "on"
+        content.kobo_only_shelves_sync = int(to_save.get("kobo_only_shelves_sync", 0) == "on")
         ub.session.add(content)
         ub.session.commit()
         flash(_("User '%(user)s' created", user=content.name), category="success")

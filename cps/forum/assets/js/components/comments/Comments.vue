@@ -2,11 +2,11 @@
     <div>
         <div class="comments-list">
             <Comment v-for="comment in comments" :comment="comment" :key="comment.id"
-                :users="mentionableUsers" :thread-id="id"
+                :users="mentionableUsers" :thread-id="id" :parent-comment="getParent(comment)"
                 @delete="removeComment" @update="updateComment" @reply="handleReply"
             />
         </div>
-        <CommentForm class="forum-chat-box" ref="commentForm" :threadId="id" :users="mentionableUsers" @submit="handleNewComment"/>
+        <CommentForm class="forum-chat-box" ref="commentForm" :threadId="id" :users="mentionableUsers" :replying-to="replyingTo" @submit="handleNewComment" @cancel-reply="cancelReply"/>
     </div>
 </template>
 
@@ -22,7 +22,8 @@ export default {
     props: ['id'],
     data() {
         return {
-            comments: []
+            comments: [],
+            replyingTo: null
         }
     },
     computed: {
@@ -46,12 +47,35 @@ export default {
     methods: {
         fetchComments() {
              axios.get(`/forum/api/threads/${this.id}/comments`)
-                .then(({data}) => this.comments = data.reverse())
+                .then(({data}) => {
+                    this.comments = this.flattenComments(data);
+                })
                 .catch(err => console.error("Error fetching comments:", err));
 
         },
+        flattenComments(comments) {
+            let flat = [];
+            comments.forEach(c => {
+                flat.push(c);
+                if (c.replies && c.replies.length > 0) {
+                    flat = flat.concat(this.flattenComments(c.replies));
+                }
+            });
+            // Sort by created_at to ensure chronological order
+            return flat.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+        },
+        getParent(comment) {
+            if (!comment.parent_id) return null;
+            return this.comments.find(c => c.id == comment.parent_id);
+        },
         handleNewComment(comment) {
-            this.comments.push(comment)
+            this.comments.push(comment);
+            this.replyingTo = null; // Clear reply state after sending
+            // Scroll to bottom
+            this.$nextTick(() => {
+                const container = this.$el.querySelector('.comments-list');
+                if(container) container.scrollTop = container.scrollHeight;
+            });
         },
         removeComment(deletedComment) {
             this.comments = this.comments.filter((comment) => comment.id !== deletedComment.id);
@@ -59,53 +83,25 @@ export default {
         updateComment(updatedComment) {
             this.comments = this.comments.map(comment => {
                 if(updatedComment.id === comment.id) {
-                    comment = updatedComment;
+                    return updatedComment;
                 }
-
                 return comment
             })
         },
-        handleReply(payload) {
-            // Check if this is an inline reply (has content)
-            if (payload && payload.content && payload.originalComment) {
-                this.submitInlineReply(payload);
-                return;
-            }
-
-            // Legacy behavior (if payload is just comment object)
-            const comment = payload; 
+        handleReply(comment) {
+            this.replyingTo = comment;
             const form = this.$refs.commentForm;
             if (form) {
-                // Populate with username and focus
-                form.content = `@${comment.owner.name} `;
                 form.focusInput();
             }
         },
-        submitInlineReply(payload) {
-             // Optional: Prepend mention if desired, or just send content.
-             // For now sending content as typed by user.
-             // If mention is critical, we could add: `@${payload.originalComment.owner.name} ${payload.content}`
-             // But usually inline reply implies context. 
-             // Let's assume content is enough or user typed what they wanted.
-             
-             axios.post(`/forum/api/threads/${this.id}/comments`, { content: payload.content })
-                .then(({data}) => {
-                     this.handleNewComment(data);
-                })
-                .catch(error => console.error("Error posting inline reply:", error));
+        cancelReply() {
+            this.replyingTo = null;
         }
     },
 }
 </script>
 <style scoped>
-    .forum-chat-box {
-        position: fixed;
-        bottom: 0;
-        width: 100%;
-        background: #fff;
-        padding: 12px;
-        margin-left: 0.5%;
-    }
     .comments-list{
         padding: 2rem;
         margin-bottom: 3.4rem !important;

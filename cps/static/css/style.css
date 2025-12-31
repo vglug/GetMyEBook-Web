@@ -773,3 +773,13 @@ body {
   color: #555;
   margin-right: 10px;
 }
+/* Fix for Author Grid Layout */
+#author-grid {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+#author-grid::before,
+#author-grid::after {
+  display: none;
+}

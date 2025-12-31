@@ -242,7 +242,7 @@
 @media (max-width: 768px) {
   .flash-messages-container {
     bottom: 20px;
-    right: 15px;
+    right: 0px;
   }
 
   .flash-message {
@@ -276,7 +276,7 @@
     margin: 10px auto;
     padding: 0 10px;
     max-width: 100%;
-    width: 100%;
+    width: 80%;
   }
 
   .flash-message {
