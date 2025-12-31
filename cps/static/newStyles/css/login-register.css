@@ -14,7 +14,8 @@ body {
     width: 100%;
     display: flex;
     justify-content: center;
-    height: 84vh;
+    /* height: 84vh; */
+    min-height: 80dvh;
 }
 
 /* ========== LEFT COLUMN - FORM ========== */
@@ -23,11 +24,9 @@ body {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    padding: 60px 80px;
+    align-items: center;
     background: #ffffff;
     max-width: 45%;
-    position: relative;
-    left: 5%;
 }
 
 .logo {
@@ -49,7 +48,6 @@ body {
 }
 
 .form-container {
-    max-width: 400px;
     width: 100%;
 }
 
@@ -224,10 +222,13 @@ input[type="checkbox"] {
 
 /* Tablet Devices (769px - 968px) */
 @media (max-width: 968px) and (min-width: 769px) {
+    .right-column {
+        display: none;
+    }
+
     .left-column {
-        padding: 50px 60px;
-        max-width: 50%;
-        left: 0;
+        padding: 12px 24px;
+        max-width: 100%;
     }
 
     .logo {
@@ -237,6 +238,22 @@ input[type="checkbox"] {
 
     h1 {
         font-size: 28px;
+        text-align: center;
+    }
+
+    .subtitle {
+        text-align: center;
+        font-size: 14px;
+    }
+
+    .form-options {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    .forgot-link {
+        align-self: flex-end;
     }
 }
 
@@ -245,7 +262,6 @@ input[type="checkbox"] {
     .log-container {
         flex-direction: column;
         height: auto;
-        /* min-height: 100vh; */
         overflow-y: auto;
     }
 
@@ -255,8 +271,7 @@ input[type="checkbox"] {
 
     .left-column {
         max-width: 100%;
-        padding: 40px 24px;
-        left: 0;
+        padding: 12px 24px;
         justify-content: flex-start;
     }
 
@@ -352,6 +367,8 @@ input[type="checkbox"] {
 @media (min-width: 1200px) {
     .left-column {
         max-width: 40%;
+        padding: 12px 24px;
+
     }
 
     .form-container {
@@ -361,10 +378,6 @@ input[type="checkbox"] {
 
 /* Very Small Mobile Devices (up to 360px) */
 @media (max-width: 360px) {
-    .left-column {
-        padding: 20px 16px;
-    }
-
     .logo {
         font-size: 24px;
         margin-bottom: 25px;
