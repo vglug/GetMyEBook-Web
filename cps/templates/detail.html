@@ -779,8 +779,11 @@
         }
     }
 
+    // Store the correct book URL from the server-side template
+    const bookUrl = "{{ url_for('web.show_book', book_id=entry.id, _external=True) }}";
+
     function shareTo(platform) {
-        const url = encodeURIComponent(window.location.href);
+        const url = encodeURIComponent(bookUrl);
         const title = encodeURIComponent("{{ entry.title }}");
         let shareUrl = '';
 
@@ -799,7 +802,8 @@
                 break;
             case 'instagram':
                 copyShareLink("Link copied! Paste it in your Instagram Bio or Story.");
-                return;
+                shareUrl = 'https://www.instagram.com/';
+                break;
         }
 
         if (shareUrl) {
@@ -807,19 +811,36 @@
         }
     }
 
-    function copyShareLink(message = "Link Copied!") {
-        const url = window.location.href;
-        const el = document.createElement('textarea');
-        el.value = url;
-        document.body.appendChild(el);
-        el.select();
-        document.execCommand('copy');
-        document.body.removeChild(el);
+    async function copyShareLink(message = "Link Copied!") {
+        try {
+            // Try modern API first
+            await navigator.clipboard.writeText(bookUrl);
+            showToast(message);
+        } catch (err) {
+            // Fallback for older browsers or non-secure contexts
+            const el = document.createElement('textarea');
+            el.value = bookUrl;
+            el.setAttribute('readonly', '');
+            el.style.position = 'absolute';
+            el.style.left = '-9999px';
+            document.body.appendChild(el);
+            el.select();
+            try {
+                document.execCommand('copy');
+                showToast(message);
+            } catch (e) {
+                console.error('Fallback copy failed', e);
+                showToast("Failed to copy link");
+            }
+            document.body.removeChild(el);
+        }
+    }
 
+    function showToast(message) {
         const toast = document.getElementById('shareToast');
         const toastMsg = document.getElementById('toastMessage');
 
-        // Ensure toast is also in body if needed, though usually fixed position works fine if not transformed
+        // Ensure toast is in body to be visible over modals
         if (toast && toast.parentNode !== document.body) {
             document.body.appendChild(toast);
         }
