@@ -980,6 +980,14 @@ def do_download_file(book, book_format, client, data, headers):
         else:
             download_name = book_name
 
+    if not download_name:
+        download_name = book_name
+    if not filename:
+        if config.config_use_google_drive:
+            filename = os.path.join(config.config_calibre_dir, book.path)
+        else:
+            filename = os.path.join(config.get_book_path(), book.path)
+
     response = make_response(send_from_directory(filename, download_name + "." + book_format))
     # ToDo Check headers parameter
     for element in headers:
