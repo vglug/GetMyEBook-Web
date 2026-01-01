@@ -75,6 +75,7 @@ except ImportError:
 
 
 mimetypes.init()
+mimetypes.add_type('application/javascript', '.mjs')
 # ... (mimetype definitions remain the same)
 
 
