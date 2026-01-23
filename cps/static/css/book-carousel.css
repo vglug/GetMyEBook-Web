@@ -265,7 +265,7 @@
 /* Responsive adjustments */
 @media (max-width: 1400px) {
     .random-books .book-carousel-item {
-        padding: 50px 60px;
+        padding: 30px 60px;
     }
 
     .random-books .book-content {

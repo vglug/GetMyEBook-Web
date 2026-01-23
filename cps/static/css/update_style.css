@@ -8,7 +8,14 @@ h2 {
   margin: 0;
 }
 
+.form-upload-class:hover .btn-file,
+.form-upload-class:hover .btn-file i {
+  color: #c08486 !important;
+}
 
+.form-upload-class:hover {
+  background-color: #f1f1f1;
+}
 
 /* Custom Language Toggle Styles */
 

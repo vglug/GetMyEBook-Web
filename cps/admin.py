@@ -102,7 +102,7 @@ def before_request():
     g.google_site_verification = os.getenv('GOOGLE_SITE_VERIFICATION', '')
     g.allow_registration = config.config_public_reg
     g.allow_anonymous = config.config_anonbrowse
-    g.allow_upload = config.config_uploading
+    g.allow_upload = 1 #config.config_uploading
     g.current_theme = config.config_theme
     g.config_authors_max = config.config_authors_max
     if '/static/' not in request.path and not config.db_configured and \

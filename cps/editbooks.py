@@ -246,7 +246,10 @@ def upload():
                 modify_date = False
                 # create the function for sorting...
                 calibre_db.update_title_sort(config)
-                calibre_db.session.connection().connection.connection.create_function('uuid4', 0, lambda: str(uuid4()))
+                try:
+                    calibre_db.session.connection().connection.connection.create_function('uuid4', 0, lambda: str(uuid4()))
+                except AttributeError:
+                    pass
 
                 meta, error = file_handling_on_upload(requested_file)
                 if error:
@@ -332,6 +335,11 @@ def upload():
                 log.error_or_exception("Database error: {}".format(e))
                 flash(_("Oops! Database Error: %(error)s.", error=e.orig if hasattr(e, "orig") else e),
                       category="error")
+            except Exception as e:
+                calibre_db.session.rollback()
+                log.error_or_exception("Upload error: {}".format(e))
+                flash(_("Error uploading file: %(error)s", error=e), category="error")
+                log.error("Upload error: {}".format(e))
         return Response(json.dumps({"location": url_for("web.index")}), mimetype='application/json')
 
 

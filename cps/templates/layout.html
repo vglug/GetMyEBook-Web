@@ -31,7 +31,9 @@ change_confirm_modal %}
   {% endif %}
   <link href="{{ url_for('static', filename='css/libs/fontawesome-free-6.6.0-web/css/all.min.css') }}" rel="stylesheet"
     media="screen">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Tamil:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Tamil:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet">
   <link href="{{ url_for('static', filename='newStyles/css/flashmessage.css') }}" rel="stylesheet" media="screen">
   <link href="{{ url_for('static', filename='css/share_modal.css') }}" rel="stylesheet" media="screen">
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-89TPPH9Y7D"></script>
@@ -131,9 +133,23 @@ change_confirm_modal %}
 
               <div id="user-dropdown" class="user-dropdown-content">
                 {% if current_user.role_upload() and g.allow_upload %}
-                <a href="{{ url_for('edit-book.upload') }}">
-                  <i class="fas fa-upload"></i> {{_('Upload')}}
-                </a>
+                <form id="form-upload" class="form-upload-class" action="{{ url_for('edit-book.upload') }}"
+                  data-title="{{_('Uploading...')}}" data-footer="{{_('Close')}}" data-failed="{{_('Error')}}"
+                  data-message="{{_('Upload done, processing, please wait...')}}" method="post"
+                  enctype="multipart/form-data" style="margin: 0; padding: 0;">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <div style="margin: 0;">
+                    <span class="btn-file"
+                      style="display: block; padding: 12px 16px; color: #333; cursor: pointer; text-decoration: none; width: 100%; text-align: left;">
+                      <i class="fas fa-upload"></i> {{_('Upload')}}
+                      <input id="btn-upload" name="btn-upload" type="file"
+                        accept="{% for format in accept %}.{% if format != ''%}{{format}}{% else %}*{% endif %}{{ ',' if not loop.last }}{% endfor %}"
+                        multiple style="cursor: pointer;">
+                    </span>
+                    <input class="hide" id="btn-upload2" name="btn-upload2" type="file"
+                      accept="{% for format in accept %}.{% if format != ''%}{{format}}{% else %}*{% endif %}{{ ',' if not loop.last }}{% endfor %}">
+                  </div>
+                </form>
                 {% endif %}
 
                 {% if not current_user.is_anonymous and not simple%}
