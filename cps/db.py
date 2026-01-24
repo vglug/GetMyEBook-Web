@@ -27,7 +27,7 @@ from weakref import WeakSet
 
 from sqlalchemy import create_engine , inspect
 from sqlalchemy import Table, Column, ForeignKey, CheckConstraint
-from sqlalchemy import String, Integer, Boolean, TIMESTAMP, Float
+from sqlalchemy import String, Integer, Boolean, TIMESTAMP, Float, Sequence
 from sqlalchemy.orm import relationship, sessionmaker, scoped_session
 from sqlalchemy.orm.collections import InstrumentedList
 from sqlalchemy.ext.declarative import DeclarativeMeta
@@ -358,7 +358,7 @@ class Data(Base):
 
 class Metadata_Dirtied(Base):
     __tablename__ = 'metadata_dirtied'
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(Integer, Sequence('metadata_dirtied_id_seq'), primary_key=True, autoincrement=True)
     book = Column(Integer, ForeignKey('books.id'), nullable=False, unique=True)
 
     def __init__(self, book):
@@ -705,7 +705,7 @@ class CalibreDB:
                 'books_authors_link', 'books_tags_link', 'books_series_link',
                 'books_ratings_link', 'books_languages_link', 'books_publishers_link',
                 'data', 'comments', 'identifiers', 'authors', 'series', 'ratings',
-                'languages', 'publishers', 'tags'
+                'languages', 'publishers', 'tags', 'metadata_dirtied'
             ]
             for table in tables_to_fix:
                 seq_name = f"{table}_id_seq"

@@ -365,7 +365,7 @@ def init_postgresql():
             database_url,
             pool_pre_ping=True,
             pool_recycle=300,
-            echo=app.config['DEBUG']
+            echo=False
         )
         
         # Test connection
