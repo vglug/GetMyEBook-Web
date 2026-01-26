@@ -953,8 +953,6 @@ def author_list():
         entries = calibre_db.session.query(db.Authors, subquery.c.count) \
             .join(subquery, db.Authors.id == subquery.c.author).order_by(order).all()
         char_list = query_char_list(db.Authors.sort, db.books_authors_link)
-        # If not creating a copy, readonly databases can not display authornames with "|" in it as changing the name
-        # starts a change session
         author_copy = copy.deepcopy(entries)
         for entry in author_copy:
             entry.Authors.name = entry.Authors.name.replace('|', ',')
@@ -962,6 +960,143 @@ def author_list():
                                      title="Authors", page="author", data='author', order=order_no)
     else:
         abort(404)
+
+
+@web.route("/admin/upload_author_image", methods=['POST'])
+@user_login_required
+def upload_author_image():
+    log.info("Author image upload request received")
+    
+    if not current_user.role_admin():
+        log.warning(f"Unauthorized upload attempt by user: {current_user.name}")
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    author_id = request.form.get('author_id')
+    image_file = request.files.get('image')
+    
+    log.info(f"Upload request - Author ID: {author_id}, File: {image_file.filename if image_file else 'None'}")
+    
+    if not image_file or not author_id:
+        log.error("Missing required fields in upload request")
+        return jsonify({'error': 'Missing required fields'}), 400
+    
+    try:
+        import uuid
+        
+        file_ext = os.path.splitext(image_file.filename)[1].lower()
+        log.info(f"File extension: {file_ext}")
+        
+        if file_ext not in ['.jpg', '.jpeg', '.png', '.gif', '.webp']:
+            log.error(f"Invalid file format: {file_ext}")
+            return jsonify({'error': 'Invalid file format'}), 400
+        
+        filename = f"author_{author_id}_{uuid.uuid4().hex[:8]}{file_ext}"
+        log.info(f"Generated filename: {filename}")
+        
+        upload_dir = os.path.join(os.path.dirname(__file__), 'static', 'author_images')
+        os.makedirs(upload_dir, exist_ok=True)
+        log.info(f"Upload directory: {upload_dir}")
+        
+        filepath = os.path.join(upload_dir, filename)
+        image_file.save(filepath)
+        log.info(f"File saved to: {filepath}")
+        
+        if constants.sqlalchemy_version2:
+            author = calibre_db.session.get(db.Authors, int(author_id))
+        else:
+            author = calibre_db.session.query(db.Authors).get(int(author_id))
+        
+        if author:
+            log.info(f"Author found: {author.name}")
+            
+            if author.image and author.image != filename:
+                old_image_path = os.path.join(upload_dir, author.image)
+                if os.path.exists(old_image_path):
+                    try:
+                        os.remove(old_image_path)
+                        log.info(f"Deleted old image: {old_image_path}")
+                    except Exception as e:
+                        log.warning(f"Could not delete old image: {e}")
+            
+            author.image = filename
+            try:
+                calibre_db.session.commit()
+                log.info(f"Database updated successfully for author {author_id}")
+            except Exception as e:
+                calibre_db.session.rollback()
+                log.error(f"Database error: {e}")
+                return jsonify({'error': f'Database error: {str(e)}'}), 500
+        else:
+            log.error(f"Author not found: {author_id}")
+            return jsonify({'error': 'Author not found'}), 404
+        
+        log.info(f"Upload completed successfully: {filename}")
+        return jsonify({'success': True, 'filename': filename})
+    except Exception as e:
+        log.error(f"Upload exception: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+
+
+
+@web.route("/admin/delete_author_image", methods=['POST'])
+@user_login_required
+def delete_author_image():
+    log.info("Author image delete request received")
+    
+    if not current_user.role_admin():
+        log.warning(f"Unauthorized delete attempt by user: {current_user.name}")
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    data = request.get_json()
+    author_id = data.get('author_id') if data else None
+    
+    log.info(f"Delete request - Author ID: {author_id}")
+    
+    if not author_id:
+        log.error("Missing author_id in delete request")
+        return jsonify({'error': 'Missing author_id'}), 400
+    
+    try:
+        if constants.sqlalchemy_version2:
+            author = calibre_db.session.get(db.Authors, int(author_id))
+        else:
+            author = calibre_db.session.query(db.Authors).get(int(author_id))
+        
+        if not author:
+            log.error(f"Author not found: {author_id}")
+            return jsonify({'error': 'Author not found'}), 404
+        
+        if not author.image:
+            log.warning(f"No image to delete for author: {author_id}")
+            return jsonify({'error': 'No image to delete'}), 400
+        
+        upload_dir = os.path.join(os.path.dirname(__file__), 'static', 'author_images')
+        image_path = os.path.join(upload_dir, author.image)
+        
+        if os.path.exists(image_path):
+            try:
+                os.remove(image_path)
+                log.info(f"Deleted image file: {image_path}")
+            except Exception as e:
+                log.error(f"Failed to delete image file: {e}")
+                return jsonify({'error': f'Failed to delete file: {str(e)}'}), 500
+        
+        author.image = ""
+        try:
+            calibre_db.session.commit()
+            log.info(f"Image removed from database for author {author_id}")
+        except Exception as e:
+            calibre_db.session.rollback()
+            log.error(f"Database error: {e}")
+            return jsonify({'error': f'Database error: {str(e)}'}), 500
+        
+        log.info(f"Delete completed successfully for author {author_id}")
+        return jsonify({'success': True})
+    except Exception as e:
+        log.error(f"Delete exception: {e}")
+        return jsonify({'error': str(e)}), 500
 
 
 @web.route("/downloadlist")

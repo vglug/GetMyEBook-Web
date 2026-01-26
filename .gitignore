@@ -43,3 +43,9 @@ legacy/
 !metadata.db
 chacking_files/
 /forum/src/storage/cache/
+cps/static/author_images/*
+library/*
+.agent/
+chacking.txt
+fix_metadata_dirtied.py
+fix_tables.py

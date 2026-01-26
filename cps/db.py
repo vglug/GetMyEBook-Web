@@ -229,12 +229,14 @@ class Authors(Base):
     name = Column(String(collation='NOCASE'), unique=True, nullable=False)
     sort = Column(String(collation='NOCASE'))
     link = Column(String, nullable=False, default="")
+    image = Column(String, nullable=False, default="")
 
-    def __init__(self, name, sort, link=""):
+    def __init__(self, name, sort, link="", image=""):
         super().__init__()
         self.name = name
         self.sort = sort
         self.link = link
+        self.image = image
 
     def get(self):
         return self.name
@@ -243,7 +245,7 @@ class Authors(Base):
         return self.name == other
 
     def __repr__(self):
-        return "<Authors('{0},{1}{2}')>".format(self.name, self.sort, self.link)
+        return "<Authors('{0},{1}{2}{3}')>".format(self.name, self.sort, self.link, self.image)
 
 
 class Series(Base):
