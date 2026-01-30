@@ -697,30 +697,31 @@ class CalibreDB:
             inspector = inspect(cls.engine)
             table_name = 'custom_columns'
             log.info(f"checking if config calibre_dir {config_calibre_dir} needs migration")
-            if table_name not in inspector.get_table_names():
-                migrate_sqlite_to_postgres(
-                    SQLITE_PATH=get_metadata_path(path=config_calibre_dir)
-                    )
+            if os.path.exists(config_calibre_dir):
+                if table_name not in inspector.get_table_names():
+                    migrate_sqlite_to_postgres(
+                        SQLITE_PATH=get_metadata_path(path=config_calibre_dir)
+                        )
 
-            # Fix PostgreSQL sequences dynamically
-            tables_to_fix = [
-                'books_authors_link', 'books_tags_link', 'books_series_link',
-                'books_ratings_link', 'books_languages_link', 'books_publishers_link',
-                'data', 'comments', 'identifiers', 'authors', 'series', 'ratings',
-                'languages', 'publishers', 'tags', 'metadata_dirtied'
-            ]
-            for table in tables_to_fix:
-                seq_name = f"{table}_id_seq"
-                try:
-                    conn.execute(text(f"CREATE SEQUENCE IF NOT EXISTS {seq_name}"))
+                # Fix PostgreSQL sequences dynamically
+                tables_to_fix = [
+                    'books_authors_link', 'books_tags_link', 'books_series_link',
+                    'books_ratings_link', 'books_languages_link', 'books_publishers_link',
+                    'data', 'comments', 'identifiers', 'authors', 'series', 'ratings',
+                    'languages', 'publishers', 'tags', 'metadata_dirtied'
+                ]
+                for table in tables_to_fix:
+                    seq_name = f"{table}_id_seq"
                     try:
-                        conn.execute(text(f"ALTER TABLE {table} ALTER COLUMN id SET DEFAULT nextval('{seq_name}')"))
-                    except Exception:
-                        pass
-                    conn.execute(text(f"SELECT setval('{seq_name}', COALESCE((SELECT MAX(id) FROM {table}), 0) + 1, false)"))
-                except Exception as e:
-                    # Log but allow continue; table might missing or other issue
-                    log.debug(f"Sequence fix check for {table}: {e}")
+                        conn.execute(text(f"CREATE SEQUENCE IF NOT EXISTS {seq_name}"))
+                        try:
+                            conn.execute(text(f"ALTER TABLE {table} ALTER COLUMN id SET DEFAULT nextval('{seq_name}')"))
+                        except Exception:
+                            pass
+                        conn.execute(text(f"SELECT setval('{seq_name}', COALESCE((SELECT MAX(id) FROM {table}), 0) + 1, false)"))
+                    except Exception as e:
+                        # Log but allow continue; table might missing or other issue
+                        log.debug(f"Sequence fix check for {table}: {e}")
 
         except Exception as ex:
             log.error(f"Failed to connect to PostgreSQL: {ex}")

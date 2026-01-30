@@ -163,6 +163,11 @@ change_confirm_modal %}
                   <i class="fas fa-cog"></i> {{_('Admin')}}
                 </a>
                 {% endif %}
+                {% if current_user.role_admin() %}
+                <a href="{{url_for('main.index')}}">
+                  <i class="fas fa-comment"></i> {{_('forums')}}
+                </a>
+                {% endif %}
 
                 <a href="{{url_for('web.logout') }}">
                   <i class="fas fa-sign-out-alt"></i> {{_('Logout')}}

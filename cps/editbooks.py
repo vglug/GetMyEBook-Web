@@ -47,7 +47,9 @@ from .kobo_sync_status import change_archived_books
 from .redirect import get_redirect_location
 from .file_helper import validate_mime_type
 from .usermanagement import user_login_required, login_required_if_no_ano
-
+from cps.forum.apps.threads.forms import ThreadCreationForm
+from cps.forum.database.models import Thread, Category
+from slugify import slugify
 
 editbook = Blueprint('edit-book', __name__)
 log = logger.create()
@@ -73,6 +75,13 @@ def edit_required(f):
     return inner
 
 
+def delete_thread_by_book(book_id):
+    thread = Thread.query.filter_by(book_id=book_id).first_or_404()
+    if thread:
+        thread.delete()
+    return True
+
+
 @editbook.route("/ajax/delete/<int:book_id>", methods=["POST"])
 @user_login_required
 def delete_book_from_details(book_id):
@@ -83,8 +92,9 @@ def delete_book_from_details(book_id):
 @editbook.route("/delete/<int:book_id>/<string:book_format>", methods=["POST"])
 @user_login_required
 def delete_book_ajax(book_id, book_format):
+    if delete_thread_by_book(book_id):
+        log.info("Thread deleted for book_id: %s", book_id)
     return delete_book_from_table(book_id, book_format, False, request.form.to_dict().get('location', ""))
-
 
 @editbook.route("/admin/book/<int:book_id>", methods=['GET'])
 @login_required_if_no_ano
@@ -212,6 +222,14 @@ def edit_book(book_id):
             and edit_error is not True \
                 and title_author_error is not True \
                 and cover_upload_success is not False:
+            
+            thread = Thread.query.filter_by(book_id=book_id).first_or_404()
+            if title_change or thread.content != to_save['description']:
+                thread.update({
+                "title": book.title,
+                "content": to_save['description']
+            })
+                
             flash(_("Metadata successfully updated"), category="success")
         if "detail_view" in to_save:
             return redirect(url_for('web.show_book', book_id=book.id))
@@ -262,6 +280,10 @@ def upload():
 
                 book_id = db_book.id
                 title = db_book.title
+                thread = Thread.query.filter_by(book_id=book_id).first()
+                if not thread:
+                    auto_create_thread_for_book(book_id, title, meta.description)
+                log.info(f"Uploading file format: {meta.extension.lower()} for book id: {book_id} by user: {current_user.name} title: {title} discription: {meta.description}")
                 if config.config_use_google_drive:
                     helper.upload_new_file_gdrive(book_id,
                                                   input_authors[0],
@@ -285,34 +307,6 @@ def upload():
                     calibre_db.set_metadata_dirty(book_id)
                 # save data to database, reread data
                 calibre_db.session.commit()
-
-                # Auto-create forum thread
-                try:
-                    from cps.forum.database.models import Thread, Category
-                    from slugify import slugify
-                    
-                    # Get "General" category or create/use first available
-                    category = Category.query.filter_by(name="General").first()
-                    if not category:
-                        category = Category.query.first()
-                    
-                    if category:
-                        # Check if thread already exists (unlikely for new book but good practice)
-                        existing_thread = Thread.query.filter_by(title=title).first()
-                        if not existing_thread:
-                            content = f"Official discussion thread for **{title}** by {input_authors[0]}."
-                            thread = Thread(
-                                title=title,
-                                category_id=category.id,
-                                content=content,
-                                user_id=current_user.id,
-                                slug=slugify(title),
-                                views_count=0
-                            )
-                            thread.save()
-                            log.info(f"Auto-created forum thread for book: {title}")
-                except Exception as e:
-                    log.error(f"Failed to auto-create forum thread: {e}")
 
                 if config.config_use_google_drive:
                     gdriveutils.updateGdriveCalibreFromLocal()
@@ -963,6 +957,42 @@ def delete_book_from_table(book_id, book_format, json_response, location=""):
         flash(message, category="error")
         return redirect(url_for('edit-book.show_edit_book', book_id=book_id))
 
+# Auto-create forum thread
+def auto_create_thread_for_book(book_id, title , description): 
+# Get "General" category or create/use first available
+    category = Category.query.filter_by(name="General").first()
+    if not category:
+        category = Category.query.first()
+
+    if not description:
+        description = f"Official discussion thread for **{title}**."
+    try:
+        existing = Thread.query.filter_by(book_id=book_id).one_or_none()
+        if existing:
+            # update title/content if different
+            changed = False
+            if existing.title != title:
+                existing.title = title
+                changed = True
+            if existing.content != description:
+                existing.content = description
+                changed = True
+            if changed:
+                existing.save()
+        else:
+            thread = Thread(title=title,
+                            category_id=(category.id if category else None),
+                            content=description,
+                            user_id=(current_user.id if hasattr(current_user, 'id') else None),
+                            slug=slugify(title),
+                            views_count=0,
+                            book_id=book_id
+                            )
+            thread.save()
+        log.info(f"Auto-created/updated forum thread for book id {book_id}")
+    except Exception as e:
+        # Keep behaviour safe: log unexpected errors
+        log.error_or_exception(f"Error in auto_create_thread_for_book: {e}")
 
 def render_edit_book(book_id):
     cc = calibre_db.session.query(db.CustomColumns).filter(db.CustomColumns.datatype.notin_(db.cc_exceptions)).all()

@@ -7,6 +7,7 @@ from cps.forum.src.decorators.email_verified import email_verified
 from sqlalchemy.orm import joinedload
 import requests
 from cps.logger import create
+from sqlalchemy.exc import IntegrityError
 
 thread_blueprint = Blueprint("threads", __name__, template_folder="templates")
 
@@ -29,27 +30,30 @@ def create():
         title_arg = request.args.get('title')
         if title_arg and not thread_form.title.data:
             thread_form.title.data = title_arg
-            thread_form.content.data = f"Official discussion thread for **{title_arg}**."
+            thread_form.content.data = request.args.get('book_description', 'formal discussion thread for **' + title_arg + '**.')
 
-    if thread_form.validate_on_submit():
-        title = thread_form.title.data
-        category_id = thread_form.category_id.data
-        content = thread_form.content.data
-        user_id = current_user.id
+    try:
+        if thread_form.validate_on_submit():
+            title = thread_form.title.data
+            category_id = thread_form.category_id.data
+            content = thread_form.content.data
+            user_id = current_user.id
 
-        thread = Thread(title=title,
-                        category_id=category_id,
-                        content=content,
-                        user_id=user_id,
-                        slug=slugify(title),
-                        views_count=0,
-                        book_id=book_id
-                        )
-        thread.save()
+            thread = Thread(title=title,
+                            category_id=category_id,
+                            content=content,
+                            user_id=user_id,
+                            slug=slugify(title),
+                            views_count=0,
+                            book_id=book_id
+                            )
+            thread.save()
 
-        flash("Your question has been posted successfully", "success")
-        return redirect(url_for("main.index"))
-
+            flash("Your question has been posted successfully", "success")
+            return redirect(url_for("main.index"))
+    except IntegrityError :
+        Thread.thread_rollback()
+        flash("A thread for this book already exists. Please edit the existing thread.", "error")
     return render_template("threads/create.html", form=thread_form, book_id=book_id)
 
 
@@ -71,8 +75,15 @@ def book_thread(book_id):
     
     # If no thread found
     if current_user.role_admin():
+        book_description = ""
+        if book.comments and len(book.comments) > 0:
+            # Extract the text from the first comment object
+            book_description = book.comments[0].text
+        else:
+            book_description = f"Official discussion thread for **{book.title}**."
+
         flash(f"No discussion thread found for '{book.title}'. You can create one now.", "info")
-        return redirect(url_for('threads.create', title=book.title, book_id=book_id))
+        return redirect(url_for('threads.create', title=book.title, book_id=book_id, book_description=book_description))
     else:
         flash(f"No discussion thread has been created for '{book.title}' yet.", "info")
         # Go to forum index or search?

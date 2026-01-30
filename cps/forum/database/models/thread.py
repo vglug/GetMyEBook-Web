@@ -15,7 +15,7 @@ class Thread(Base):
     content = db.Column(db.Text)
     user_id = db.Column(db.Integer)  # Changed from forum_users to users (Foreign key constraint removed to avoid metadata mismatch)
     category_id = db.Column(db.Integer, db.ForeignKey("forum_categories.id"))
-    book_id = db.Column(db.Integer, nullable=True)  # Link to book in calibre database
+    book_id = db.Column(db.Integer, nullable=False,unique=True)  # Link to book in calibre database
     views_count = db.Column(db.Integer, nullable=False, default=0)
     comments_count = db.Column(db.Integer, default=0)
     best_comment_id = db.Column(db.Integer, nullable=True)
@@ -44,6 +44,9 @@ class Thread(Base):
         comment.save()
 
         return comment
+    @staticmethod 
+    def thread_rollback():
+        db.session.rollback()
 
     @hybrid_property
     def has_comments(self):

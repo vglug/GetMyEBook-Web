@@ -2419,8 +2419,8 @@ msgstr "பதிவு செய்யவும்"
 msgid "Start your learning journey today"
 msgstr "உங்கள் கற்றல் பயணத்தை இன்றே தொடங்குங்கள்"
 
-msgid ""
-msgstr ""
+msgid "forums"
+msgstr "மன்றங்கள்"
 
 msgid ""
 msgstr ""
