@@ -450,11 +450,11 @@ def get_rated_books(page, order):
 
 def render_discover_books(book_id):
     if current_user.check_visibility(constants.SIDEBAR_RANDOM):
-        entries, __, ___ = calibre_db.fill_indexpage(1, 0, db.Books, True, [func.randomblob(2)],
+        entries, __, ___ = calibre_db.fill_indexpage(1, 0, db.Books, True, [func.random()],
                                                             join_archive_read=True,
                                                             config_read_column=config.config_read_column)
         pagination = Pagination(1, config.config_books_per_page, config.config_books_per_page)
-        return render_title_template('index.html', random=false(), entries=entries, pagination=pagination, id=book_id,
+        return render_title_template('index.html', random=False, entries=entries, pagination=pagination, id=book_id,
                                      title=_("Discover (Random Books)"), page="discover")
     else:
         abort(404)
