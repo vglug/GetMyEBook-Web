@@ -1189,7 +1189,7 @@ def series_list():
                                                 func.max(db.Books.series_index), db.Books.id)
                        .join(db.books_series_link).join(db.Series).filter(calibre_db.common_filters())
                        .group_by(db.Series.id, db.Books.id)
-                       .having(or_(func.max(db.Books.series_index), db.Books.series_index==""))
+                       .having(or_(func.max(db.Books.series_index) > 0))
                        .order_by(order)
                        .all())
             return render_title_template('grid.html', entries=entries, folder='web.books_list', charlist=char_list,
