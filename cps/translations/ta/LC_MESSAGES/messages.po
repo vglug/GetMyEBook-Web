@@ -2422,5 +2422,5 @@ msgstr "உங்கள் கற்றல் பயணத்தை இன்ற
 msgid "forums"
 msgstr "மன்றங்கள்"
 
-msgid ""
-msgstr ""
+msgid "Comments Panel"
+msgstr "கருத்துகள் பலகை"

@@ -31,6 +31,7 @@ from datetime import datetime, timedelta
 from datetime import time as datetime_time
 from functools import wraps
 from urllib.parse import urlparse
+from xml.etree.ElementTree import Comment
 
 from flask import Blueprint, flash, redirect, url_for, abort, request, make_response, send_from_directory, g, Response
 from markupsafe import Markup
@@ -209,6 +210,89 @@ def admin():
                                  schedule_duration=schedule_duration,
                                  title=_("Admin page"), page="admin")
 
+
+# Admin-only comments management panel
+@admi.route("/admin/comments/delete", methods=["POST"])
+@user_login_required
+@admin_required
+def delete_comment_admin():
+    from cps.forum.database.models import Comment
+    from cps.forum import db as forum_db
+    
+    try:
+        comment_id = request.form.get("comment_id")
+        if not comment_id:
+             return json.dumps({"success": False, "message": _("No comment ID provided")}), 400
+
+        comment = forum_db.session.query(Comment).filter(Comment.id == comment_id).first()
+        if comment:
+            forum_db.session.delete(comment)
+            forum_db.session.commit()
+            return json.dumps({"success": True, "message": _("Comment deleted")})
+        else:
+            return json.dumps({"success": False, "message": _("Comment not found")}), 404
+    except Exception as e:
+        log.error(f"Error deleting comment: {e}")
+        return json.dumps({"success": False, "message": _("An error occurred")}), 500
+
+@admi.route("/admin/comments/edit", methods=["POST"])
+@user_login_required
+@admin_required
+def edit_comment_admin():
+    from cps.forum.database.models import Comment
+    from cps.forum import db as forum_db
+
+    try:
+        # Check if x-editable sent parameters
+        # x-editable sends: name, value, pk
+        pk = request.form.get("pk")
+        value = request.form.get("value")
+        
+        # Fallback for manual calls
+        comment_id = pk or request.form.get("comment_id")
+        new_content = value or request.form.get("content")
+
+        if not comment_id or new_content is None:
+            return json.dumps({"success": False, "message": _("Missing data")}), 400
+
+        comment = forum_db.session.query(Comment).filter(Comment.id == comment_id).first()
+        if comment:
+            comment.content = new_content
+            forum_db.session.commit()
+            return json.dumps({"success": True, "message": _("Comment updated")})
+        else:
+             return json.dumps({"success": False, "message": _("Comment not found")}), 404
+    except Exception as e:
+        log.error(f"Error editing comment: {e}")
+        return json.dumps({"success": False, "message": _("An error occurred")}), 500
+
+@admi.route("/admin/comments-panel",methods=["GET"])
+@user_login_required
+@admin_required
+def comments_panel():
+    from cps.forum.database.models import Comment , Thread
+    from cps.forum import db as forum_db
+
+    all_comments = forum_db.session.query(Comment).all()
+    
+    log.info(f"Access for all comments :{len(all_comments)} comments found")
+    panel_datas = {}
+    for comment in all_comments:
+        dt = comment.created_at
+        # log.info(f"Date : {dt.strftime('%d-%m-%Y')} | Time : {dt.strftime('%I:%M:%S %p')}")
+        panel_datas[comment.id] = {
+            "date": dt.strftime("%d-%m-%Y") if dt else "",
+            "time": dt.strftime("%I:%M:%S %p") if dt else "",
+            "username": ub.session.query(ub.User).filter(ub.User.id == comment.user_id).first().name if comment.user_id else _("Anonymous"),
+            "book_name": forum_db.session.query(Thread).filter(Thread.id == comment.thread_id).first().title if comment.thread_id else _("Unknown"),
+            "comment": comment.content if comment.content else "",
+        }
+
+    # log.info(f"comments panel datas {panel_datas}")
+    return render_title_template("comments_panel.html", 
+                                 title=_("Comments Management"), 
+                                 page="comments-panel",
+                                 panel_datas=panel_datas)
 @admi.route("/admin/dbconfig", methods=["GET", "POST"])
 @user_login_required
 @admin_required
