@@ -1,8 +1,5 @@
 <div align="center">
-  <h1 style="font-size: 3rem; margin: 0; border-bottom: none;">
-  <img src="cps/static/newStyles/img/48x48%20px.svg" alt="GetMyEBook Logo" width="55" height="60" style="vertical-align: middle; margin-left: 15px;">
-    <span style="color: #FF7477;">GetMy</span><span style="color: #0746B3;">EBook</span>
-  </h1>
+    <img src="cps/static/img/getmyebook-full-logo-name-removebg-preview.png" alt="GetMyEBook Logo">
 </div>
 
 GetMyEBook-Web is a powerful, feature-rich web application for browsing, reading, and managing your eBook collection. It is an advanced fork of [Calibre-Web](https://github.com/janeczku/calibre-web), enhanced with PostgreSQL support, a built-in discussion forum, and a modernized UI.
@@ -23,7 +20,7 @@ GetMyEBook-Web is a powerful, feature-rich web application for browsing, reading
 </details>
 <br>
 
-![Main screen](ui-chacking/docs/images/about.png)
+![Main screen](cps/static/img/about.png)
 
 ## Features
 - Modern and responsive Bootstrap 3 HTML5 interface
