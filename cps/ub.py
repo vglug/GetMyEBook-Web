@@ -707,7 +707,7 @@ def init_db_thread():
         pool_recycle=300    # Recycle connections after 5 minutes
     )
     
-    log.info(f"Initializing PostgreSQL connection: {DATABASE_URL}")
+    # log.info(f"Initializing PostgreSQL connection: {DATABASE_URL}")
     Session = scoped_session(sessionmaker())
     Session.configure(bind=engine)
     return Session()
@@ -730,7 +730,7 @@ def init_db(app_db_path=None):
         pool_recycle=300
     )
     
-    log.info(f"Initializing main PostgreSQL connection: {DATABASE_URL}")
+    # log.info(f"Initializing main PostgreSQL connection: {DATABASE_URL}")
 
     Session = scoped_session(sessionmaker())
     Session.configure(bind=engine)
@@ -744,7 +744,7 @@ def init_db(app_db_path=None):
 
     # Check if we need to create default users
     user_count = session.query(User).count()
-    log.info(f"User count is :{user_count}")
+    # log.info(f"User count is :{user_count}")
     if user_count == 0:
         create_admin_user(session)
         create_anonymous_user(session)
@@ -785,7 +785,7 @@ def get_new_session_instance():
         pool_recycle=3600
     )
     
-    log.info(f"Creating new PostgreSQL session: {DATABASE_URL}")
+    # log.info(f"Creating new PostgreSQL session: {DATABASE_URL}")
 
     new_session = scoped_session(sessionmaker())
     new_session.configure(bind=new_engine)

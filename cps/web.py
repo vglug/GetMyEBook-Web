@@ -1086,7 +1086,7 @@ def delete_author_image():
         author.image = ""
         try:
             calibre_db.session.commit()
-            log.info(f"Image removed from database for author {author_id}")
+            # log.info(f"Image removed from database for author {author_id}")
         except Exception as e:
             calibre_db.session.rollback()
             log.error(f"Database error: {e}")
@@ -1436,7 +1436,7 @@ def register_post():
     if not config.config_public_reg:
         abort(404)
     to_save = request.form.to_dict()
-    log.info(f"User register send datas : {to_save}")
+    # log.info(f"User register send datas : {to_save}")
     try:
         limiter.check()
     except RateLimitExceeded:
@@ -1477,7 +1477,7 @@ def register_post():
         # ✅ Generate OTP
         otp_code = str(random.randint(100000, 999999))
 
-        log.info(f"Send Otp : {otp_code}")
+        # log.info(f"Send Otp : {otp_code}")
 
          # ✅ Store pending user in session (temp storage before OTP verification)
         flask_session['pending_user'] = {

@@ -63,7 +63,7 @@ def get_metadata_path(path=None):
         str: Absolute path to the metadata file
     """
     if path:
-        log.info(f"Using custom metadata path: {path}")
+        # log.info(f"Using custom metadata path: {path}")
         return path
     return os.path.join(get_project_root(), 'library/metadata.db') 
 

@@ -226,7 +226,7 @@ def create_app():
         # Auth blueprint removed - forum uses GetMyEBook SSO login via auth_bridge
         
         log.info("✅ Forum module initialized successfully")
-        log.info("✅ Forum blueprints registered: /forum, /forum/threads, /forum/api, /forum/settings")
+        # log.info("✅ Forum blueprints registered: /forum, /forum/threads, /forum/api, /forum/settings")
     except ImportError as e:
         log.warning(f"⚠️  Could not import forum module: {e}")
     except Exception as e:
@@ -281,7 +281,7 @@ def create_app():
     if os.environ.get('FLASK_DEBUG'):
         cache_buster.init_cache_busting(app)
         
-    log.info('Starting Calibre Web...')
+    log.info('Starting GetMyEBook Web...')
     Principal(app)
     lm.init_app(app)
     app.secret_key = os.environ.get('SECRET_KEY')
@@ -357,7 +357,7 @@ def init_postgresql():
 
             database_url = f"postgresql+psycopg2://{db_user}:{encoded_password}@{db_host}:{db_port}/{db_name}"
         
-        log.info(f"Connecting to PostgreSQL database: {database_url.split('@')[1] if '@' in database_url else database_url}")
+        # log.info(f"Connecting to PostgreSQL database: {database_url.split('@')[1] if '@' in database_url else database_url}")
         
         # Create engine with connection pooling
          # Create engine with connection pooling

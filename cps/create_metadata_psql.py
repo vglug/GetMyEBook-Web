@@ -68,7 +68,7 @@ def create_database_if_not_exists():
 def migrate_sqlite_to_postgres(SQLITE_PATH):
     if not SQLITE_PATH.endswith('.db'):
         SQLITE_PATH = os.path.join(SQLITE_PATH, 'metadata.db')
-    log.info(f"SQLite DB Path: {SQLITE_PATH}")
+    # log.info(f"SQLite DB Path: {SQLITE_PATH}")
     # Encode password safely
     encoded_pw = urllib.parse.quote_plus(DB_PASSWORD)
 
@@ -83,8 +83,8 @@ def migrate_sqlite_to_postgres(SQLITE_PATH):
         f"postgresql://{DB_USER}:{encoded_pw}@{DB_HOST}:{DB_PORT}/{DB_NAME.lower()}"
     )
 
-    log.info(f"PostgreSQL Admin URL = {POSTGRES_ADMIN_URL}")
-    log.info(f"pgloader Target URL  = {TARGET_PGLOADER_URL}")
+    # log.info(f"PostgreSQL Admin URL = {POSTGRES_ADMIN_URL}")
+    # log.info(f"pgloader Target URL  = {TARGET_PGLOADER_URL}")
 
     # Ensure pgloader installed
     ensure_pgloader_installed()

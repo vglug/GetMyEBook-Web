@@ -336,7 +336,7 @@ def generate_oauth_blueprints():
                     client_kwargs={'scope': 'user:email'},
                 )
                 register_oauth_blueprint(element['id'], element['provider_name'])
-                log.info(f"GitHub OAuth provider registered: {element['oauth_client_id'][:10]}...")
+                # log.info(f"GitHub OAuth provider registered: {element['oauth_client_id'][:10]}...")
                 
             elif element['provider_name'] == 'google':
                 oauth_client.register(
@@ -350,7 +350,7 @@ def generate_oauth_blueprints():
                     }
                 )
                 register_oauth_blueprint(element['id'], element['provider_name'])
-                log.info(f"Google OAuth provider registered: {element['oauth_client_id'][:10]}...")
+                # log.info(f"Google OAuth provider registered: {element['oauth_client_id'][:10]}...")
     
     return oauthblueprints
 
@@ -453,11 +453,11 @@ def github_login_unlink():
 def google_login():
     try:
         redirect_uri = url_for('oauth.google_callback', _external=True)
-        log.info(f"Google OAuth redirect_uri: {redirect_uri}")
+        # log.info(f"Google OAuth redirect_uri: {redirect_uri}")
         
         # Generate state and pass it to authorize_redirect
         state = generate_state()
-        log.info(f"Generated Google state: {state}")
+        # log.info(f"Generated Google state: {state}")
         return oauth_client.google.authorize_redirect(redirect_uri, state=state)
     except Exception as e:
         log.error(f"Error in Google login: {e}")
@@ -468,12 +468,12 @@ def google_login():
 @oauth.route('/auth/google/callback')
 def google_callback():
     try:
-        log.info("Google callback received")    
+        # log.info("Google callback received")    
         # log.info(f"get all session datas {session}")
         
         # Get state from request args and validate it
         state = request.args.get('state')
-        log.info(f"Received Google state: {state}")
+        # log.info(f"Received Google state: {state}")
         
         if not validate_state(state):
             log.error("CSRF state validation failed for Google")
@@ -489,7 +489,7 @@ def google_callback():
         
         # Get user info from the token
         user_info = token.get('userinfo')
-        log.info(f"sso user info : {user_info}")
+        # log.info(f"sso user info : {user_info}")
         if not user_info:
             # Fallback: fetch user info from Google API
             log.debug("Fetching user info from Google API")
@@ -508,10 +508,10 @@ def google_callback():
             flash(_('Invalid user information received from Google'), 'error')
             return redirect(url_for('web.login'))
 
-        log.info(f"Google user - ID: {google_id}, Email: {email}, Name: {name}")
+        # log.info(f"Google user - ID: {google_id}, Email: {email}, Name: {name}")
 
         # Update token and handle SSO login
-        log.info(f"oauthblueprint : {oauthblueprints} <==> google id : {google_id} <==> token { token }")
+        # log.info(f"oauthblueprint : {oauthblueprints} <==> google id : {google_id} <==> token { token }")
         oauth_update_token(str(oauthblueprints[1]['id']), token, google_id)
         return handle_sso_login(str(oauthblueprints[1]['id']), google_id, token, user_info, 'Google')
         

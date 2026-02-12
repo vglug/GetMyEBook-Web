@@ -785,7 +785,7 @@ def get_book_cover_internal(book, resolution=None):
         # Send the book cover from the Calibre directory
         else:
             cover_file_path = os.path.join(config.get_book_path(), book.path)
-            log.info(f" book cover file path chacking !! {cover_file_path}")
+            # log.info(f" book cover file path chacking !! {cover_file_path}")
 
             if os.path.isfile(os.path.join(cover_file_path, "cover.jpg")):
                 return send_from_directory(cover_file_path, "cover.jpg")
