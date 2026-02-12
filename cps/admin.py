@@ -275,7 +275,7 @@ def comments_panel():
 
     all_comments = forum_db.session.query(Comment).all()
     
-    log.info(f"Access for all comments :{len(all_comments)} comments found")
+    # log.info(f"Access for all comments :{len(all_comments)} comments found")
     panel_datas = {}
     for comment in all_comments:
         dt = comment.created_at
@@ -298,7 +298,7 @@ def comments_panel():
 @admin_required
 def db_configuration():
     if request.method == "POST":
-        log.info(f"/admin/dbconfig post method ==> working !!!  and request data :{request.form.to_dict()}")
+        # log.info(f"/admin/dbconfig post method ==> working !!!  and request data :{request.form.to_dict()}")
         return _db_configuration_update_helper()
     return _db_configuration_result()
 
@@ -306,8 +306,8 @@ def db_configuration():
 @user_login_required
 @admin_required
 def configuration():
-    log.info(f"full admin Config : {config}")
-    log.info(f"feature_supports : {feature_support}")
+    # log.info(f"full admin Config : {config}")
+    # log.info(f"feature_supports : {feature_support}")
     return render_title_template("config_edit.html",
                                  config=config,
                                  provider=oauthblueprints,
@@ -1859,7 +1859,7 @@ def _db_configuration_update_helper():
         
         # If database changed, perform cleanup operations
         if db_change:
-            log.info("Calibre Database changed, cleaning up Calibre-Web related data")
+            log.info("GetMyEBook Database changed, cleaning up GetMyEBook-Web related data")
             
             # Delete user data related to old database
             try:
@@ -1945,7 +1945,7 @@ def migrate_metadata_to_postgres(sqlite_path, postgres_url):
     import sqlite3
     from sqlalchemy import create_engine, text
     
-    log.info(f"Starting migration from {sqlite_path} to PostgreSQL")
+    # log.info(f"Starting migration from {sqlite_path} to PostgreSQL")
     
     try:
         # Connect to SQLite database
@@ -2210,7 +2210,7 @@ def _db_configuration_result(error_flash=None, gdrive_error=None):
     # Log PostgreSQL configuration status
     _log_postgresql_config_status()
     
-    log.info(f"Database configuration - config: {config}, show_authenticate_google_drive: {gdrive_authenticate}, gdriveError: {gdrive_error}, feature_support: {feature_support}")
+    # log.info(f"Database configuration - config: {config}, show_authenticate_google_drive: {gdrive_authenticate}, gdriveError: {gdrive_error}, feature_support: {feature_support}")
     
     return render_title_template("config_db.html",
                                  config=config,
@@ -2232,9 +2232,9 @@ def _log_postgresql_config_status():
     
     if all([db_user, db_host, db_port, db_name_app]):
         log.info("PostgreSQL configuration detected via environment variables")
-        log.info(f"Database Host: {db_host}:{db_port}")
-        log.info(f"App Database: {db_name_app}")
-        log.info(f"Database configured: {config.db_configured}")
+        # log.info(f"Database Host: {db_host}:{db_port}")
+        # log.info(f"App Database: {db_name_app}")
+        # log.info(f"Database configured: {config.db_configured}")
     else:
         log.warning("Incomplete PostgreSQL environment variables detected")
         missing_vars = []
@@ -2325,7 +2325,7 @@ def _delete_user(content):
             ub.session.query(ub.User).filter_by(id=content.id).delete()
 
             ub.session_commit()
-            log.info(f"User {content.name} deleted including OAuth links")
+            # log.info(f"User {content.name} deleted including OAuth links")
             return _("User '%(nick)s' deleted", nick=content.name)
         else:
             raise Exception(_("Can't delete Guest User"))

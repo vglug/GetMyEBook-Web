@@ -88,7 +88,7 @@ class CliParameter(object):
         self.settings_path = args.p or os.path.join(_CONFIG_DIR, DEFAULT_SETTINGS_FILE)
         self.gd_path = args.g or os.path.join(_CONFIG_DIR, DEFAULT_GDRIVE_FILE)
         
-        log.info(f"CLI Settings path: {self.settings_path} (PostgreSQL uses environment variables)")
+        # log.info(f"CLI Settings path: {self.settings_path} (PostgreSQL uses environment variables)")
 
         # Check if old SQLite database paths are being used and warn
         if args.p:
@@ -177,7 +177,7 @@ class CliParameter(object):
         
         if os.path.exists(env_path):
             load_dotenv(env_path)
-            log.info(f"Loading PostgreSQL configuration from: {env_path}")
+            # log.info(f"Loading PostgreSQL configuration from: {env_path}")
         else:
             log.warning(f".env file not found at: {env_path}")
         
@@ -188,8 +188,8 @@ class CliParameter(object):
         
         if all([db_user, db_host, db_port, db_name_app]):
             log.info("PostgreSQL configuration detected via environment variables")
-            log.info(f"Database Host: {db_host}:{db_port}")
-            log.info(f"App Database: {db_name_app}")
+            # log.info(f"Database Host: {db_host}:{db_port}")
+            # log.info(f"App Database: {db_name_app}")
         else:
             log.warning("Incomplete PostgreSQL environment variables detected")
             missing_vars = []

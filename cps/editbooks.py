@@ -989,7 +989,7 @@ def auto_create_thread_for_book(book_id, title , description):
                             book_id=book_id
                             )
             thread.save()
-        log.info(f"Auto-created/updated forum thread for book id {book_id}")
+        # log.info(f"Auto-created/updated forum thread for book id {book_id}")
     except Exception as e:
         # Keep behaviour safe: log unexpected errors
         log.error_or_exception(f"Error in auto_create_thread_for_book: {e}")

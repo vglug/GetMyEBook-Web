@@ -63,7 +63,7 @@ def _create_threads_logic(calibre_db, ub, db):
         target_engine = db.CalibreDB.engine
         
         if not target_engine:
-            log.info("CalibreDB global engine not initialized. Creating temporary engine from Env Vars...")
+            log.info("GetMyEBookDB global engine not initialized. Creating temporary engine from Env Vars...")
             try:
                 from sqlalchemy import create_engine
                 from dotenv import load_dotenv

@@ -637,7 +637,7 @@ class CalibreDB:
                 # Try to query the library_id table to verify connection
                 result = conn.execute(text("SELECT COUNT(*) FROM library_id"))
                 count = result.scalar()
-                log.info(f"PostgreSQL connection successful, library_id count: {count}")
+                # log.info(f"PostgreSQL connection successful, library_id count: {count}")
             
             test_engine.dispose()
             return True, False
@@ -691,12 +691,12 @@ class CalibreDB:
             
             # Test connection
             conn = cls.engine.connect()
-            log.info(f"Successfully connected to PostgreSQL calibre database: {DATABASE_URL}")
+            # log.info(f"Successfully connected to PostgreSQL GetMyEBook database: {DATABASE_URL}")
             
 
             inspector = inspect(cls.engine)
             table_name = 'custom_columns'
-            log.info(f"checking if config calibre_dir {config_calibre_dir} needs migration")
+            # log.info(f"checking if config calibre_dir {config_calibre_dir} needs migration")
             if os.path.exists(config_calibre_dir):
                 if table_name not in inspector.get_table_names():
                     migrate_sqlite_to_postgres(
@@ -750,7 +750,7 @@ class CalibreDB:
         cls._init = True
 
     def get_book(self, book_id):
-        log.info(f"Fetching book with ID: {book_id}")
+        # log.info(f"Fetching book with ID: {book_id}")
         return self.session.query(Books).filter(Books.id == book_id).first()
 
     def get_total_book_count(self):
@@ -892,10 +892,10 @@ class CalibreDB:
                                            join_archive_read, config_read_column, *join):
         pagesize = pagesize or self.config.config_books_per_page
         if current_user.show_detail_random():
-            log.info(f"fill_indexpage_with_archived_books all aguments: page={page}, pagesize={pagesize}, "
-                     f"database={database}, db_filter={db_filter}, order={order}, "
-                     f"allow_show_archived={allow_show_archived}, join_archive_read={join_archive_read}, "
-                     f"config_read_column={config_read_column}, join={join}")
+            # log.info(f"fill_indexpage_with_archived_books all aguments: page={page}, pagesize={pagesize}, "
+            #          f"database={database}, db_filter={db_filter}, order={order}, "
+            #          f"allow_show_archived={allow_show_archived}, join_archive_read={join_archive_read}, "
+            #          f"config_read_column={config_read_column}, join={join}")
             
             try:
                 random_query = self.generate_linked_query(config_read_column, database)
