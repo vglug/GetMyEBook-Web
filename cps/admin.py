@@ -266,33 +266,149 @@ def edit_comment_admin():
         log.error(f"Error editing comment: {e}")
         return json.dumps({"success": False, "message": _("An error occurred")}), 500
 
-@admi.route("/admin/comments-panel",methods=["GET"])
+@admi.route("/admin/forum/delete", methods=["POST"])
+@admi.route("/admin/forum/delete/", methods=["POST"])
+@user_login_required
+@admin_required
+def delete_forum_admin():
+    from cps.forum.database.models import Thread
+    from cps.forum import db as forum_db
+    
+    try:
+        thread_id = request.form.get("thread_id")
+        if not thread_id:
+             return json.dumps({"success": False, "message": _("No thread ID provided")}), 400
+
+        thread = forum_db.session.query(Thread).filter(Thread.id == thread_id).first()
+        if thread:
+            # Also delete related comments to maintain integrity
+            from cps.forum.database.models import Comment
+            forum_db.session.query(Comment).filter(Comment.thread_id == thread.id).delete()
+            
+            forum_db.session.delete(thread)
+            forum_db.session.commit()
+            return json.dumps({"success": True, "message": _("Forum thread and its comments deleted")})
+        else:
+            return json.dumps({"success": False, "message": _("Forum thread not found")}), 404
+    except Exception as e:
+        log.error(f"Error deleting forum thread: {e}")
+        return json.dumps({"success": False, "message": _("An error occurred")}), 500
+
+@admi.route("/admin/forum/edit", methods=["POST"])
+@admi.route("/admin/forum/edit/", methods=["POST"])
+@user_login_required
+@admin_required
+def edit_forum_admin():
+    from cps.forum.database.models import Thread
+    from cps.forum import db as forum_db
+
+    try:
+        pk = request.form.get("pk")
+        value = request.form.get("value")
+        
+        thread_id = pk or request.form.get("thread_id")
+        new_title = value or request.form.get("title")
+
+        if not thread_id or new_title is None:
+            return json.dumps({"success": False, "message": _("Missing data")}), 400
+
+        thread = forum_db.session.query(Thread).filter(Thread.id == thread_id).first()
+        if thread:
+            thread.title = new_title
+            forum_db.session.commit()
+            return json.dumps({"success": True, "message": _("Forum thread updated")})
+        else:
+             return json.dumps({"success": False, "message": _("Forum thread not found")}), 404
+    except Exception as e:
+        log.error(f"Error editing forum thread: {e}")
+        return json.dumps({"success": False, "message": _("An error occurred")}), 500
+
+@admi.route("/admin/comments-panel", methods=["GET"])
+@admi.route("/admin/comments-panel/", methods=["GET"])
 @user_login_required
 @admin_required
 def comments_panel():
-    from cps.forum.database.models import Comment , Thread
+    from cps.forum.database.models import Comment, Thread
     from cps.forum import db as forum_db
 
     all_comments = forum_db.session.query(Comment).all()
-    
-    # log.info(f"Access for all comments :{len(all_comments)} comments found")
+
     panel_datas = {}
     for comment in all_comments:
         dt = comment.created_at
-        # log.info(f"Date : {dt.strftime('%d-%m-%Y')} | Time : {dt.strftime('%I:%M:%S %p')}")
+        user = ub.session.query(ub.User).filter(ub.User.id == comment.user_id).first() if comment.user_id else None
+        thread = forum_db.session.query(Thread).filter(Thread.id == comment.thread_id).first() if comment.thread_id else None
+        
         panel_datas[comment.id] = {
-            "date": dt.strftime("%d-%m-%Y") if dt else "",
+            "date": dt.strftime("%d-%m-%Y") if dt else _("Unknown"),
             "time": dt.strftime("%I:%M:%S %p") if dt else "",
-            "username": ub.session.query(ub.User).filter(ub.User.id == comment.user_id).first().name if comment.user_id else _("Anonymous"),
-            "book_name": forum_db.session.query(Thread).filter(Thread.id == comment.thread_id).first().title if comment.thread_id else _("Unknown"),
+            "username": user.name if user else _("Anonymous"),
+            "book_name": thread.title if thread else _("Unknown"),
             "comment": comment.content if comment.content else "",
         }
 
-    # log.info(f"comments panel datas {panel_datas}")
-    return render_title_template("comments_panel.html", 
-                                 title=_("Comments Management"), 
+    return render_title_template("comments_panel.html",
+                                 title=_("Comments Management"),
                                  page="comments-panel",
                                  panel_datas=panel_datas)
+
+@admi.route("/admin/forum-panel/", methods=["GET"])
+@user_login_required
+@admin_required
+def forum_panel():
+    from cps.forum.database.models import Thread
+    from cps.forum import db as forum_db
+
+    try:
+        all_threads = forum_db.session.query(Thread).all()
+        # log.info(f"Found {len(all_threads)} forum threads")
+        
+        panel_datas = {}
+        for thread in all_threads:
+            dt = thread.created_at
+            # Get book title from calibre database safely
+            book_title = _("Unknown")
+            if thread.book_id:
+                try:
+                    book = calibre_db.session.query(db.Books).filter(db.Books.id == thread.book_id).first()
+                    if book:
+                        book_title = book.title
+                except Exception as e:
+                    log.error(f"Error fetching book for thread {thread.id}: {e}")
+
+            # Get username safely
+            username = _("Anonymous")
+            if thread.user_id:
+                try:
+                    user = ub.session.query(ub.User).filter(ub.User.id == thread.user_id).first()
+                    if user:
+                        username = user.name
+                    else:
+                        username = f"Deleted User (ID: {thread.user_id})"
+                except Exception as e:
+                    log.error(f"Error fetching user for thread {thread.id}: {e}")
+
+            panel_datas[thread.id] = {
+                "date": dt.strftime("%d-%m-%Y") if dt else _("Unknown"),
+                "time": dt.strftime("%I:%M:%S %p") if dt else "",
+                "username": username,
+                "book_name": book_title,
+                "category": thread.category.name if thread.category else _("General"),
+                "category_slug": thread.category.slug if thread.category else "general",
+                "title": thread.title if thread.title else _("No Title"),
+                "thread_slug": thread.slug if thread.slug else "",
+                "description": thread.content if thread.content else "",
+            }
+        # log.info(f"panel_datas : {panel_datas}")
+        return render_title_template("forum_panel.html", 
+                                     title=_("Forum Management"), 
+                                     page="forum-panel",
+                                     panel_datas=panel_datas)
+    except Exception as e:
+        log.error(f"Error in forum_panel: {e}")
+        flash(_("An error occurred while loading the forum management panel."), category="error")
+        return redirect(url_for("admin.admin"))
+
 @admi.route("/admin/dbconfig", methods=["GET", "POST"])
 @user_login_required
 @admin_required

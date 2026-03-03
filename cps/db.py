@@ -974,9 +974,14 @@ class CalibreDB:
                 ids = [a.id for a in entry.authors]
             authors_ordered = list()
             for auth in sort_authors:
-                results = self.session.query(Authors).filter(Authors.sort == auth.lstrip().strip()).all()
+                auth = auth.lstrip().strip()
+                # log.info(f"auth data: {auth}")
+                results = self.session.query(Authors).filter(Authors.sort.ilike(auth)).all()
+                # log.info(f"results data: {results}")
                 if not len(results):
-                    log.error("Author {} not found to display name in right order".format(auth.strip()))
+                    log.info(f"author data: {auth}")
+                    log.info(f"results data: {results}")
+                    log.debug("Author {} not found to display name in right order".format(auth.strip()))
                     break
                 for r in results:
                     if r.id in ids:
