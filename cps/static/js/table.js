@@ -21,7 +21,7 @@
 var selections = [];
 var reload = false;
 
-$(function() {
+$(function () {
     $('#tasktable').bootstrapTable({
         formatNoMatches: function () {
             return '';
@@ -34,15 +34,18 @@ $(function() {
                 method: "get",
                 url: getPath() + "/ajax/emailstat",
                 async: true,
-                timeout: 900,
+                timeout: 5000,
                 success: function (data) {
                     $('#tasktable').bootstrapTable("load", data);
+                },
+                error: function () {
+                    $('#tasktable').bootstrapTable("hideLoading");
                 }
             });
         }, 1000);
     }
 
-    $("#cancel_task_confirm").click(function() {
+    $("#cancel_task_confirm").click(function () {
         //get data-id attribute of the clicked element
         var taskId = $(this).data("task-id");
         $.ajax({
@@ -50,11 +53,11 @@ $(function() {
             contentType: "application/json; charset=utf-8",
             dataType: "json",
             url: getPath() + "/ajax/canceltask",
-            data: JSON.stringify({"task_id": taskId}),
+            data: JSON.stringify({ "task_id": taskId }),
         });
     });
     //triggered when modal is about to be shown
-    $("#cancelTaskModal").on("show.bs.modal", function(e) {
+    $("#cancelTaskModal").on("show.bs.modal", function (e) {
         //get data-id attribute of the clicked element and store in button
         var taskId = $(e.relatedTarget).data("task-id");
         $(e.currentTarget).find("#cancel_task_confirm").data("task-id", taskId);
@@ -94,17 +97,17 @@ $(function() {
 
             }
         });
-    $("#delete_selection").click(function() {
+    $("#delete_selection").click(function () {
         $("#books-table").bootstrapTable("uncheckAll");
     });
 
-    $("#merge_confirm").click(function() {
+    $("#merge_confirm").click(function () {
         $.ajax({
-            method:"post",
+            method: "post",
             contentType: "application/json; charset=utf-8",
             dataType: "json",
             url: window.location.pathname + "/../ajax/mergebooks",
-            data: JSON.stringify({"Merge_books":selections}),
+            data: JSON.stringify({ "Merge_books": selections }),
             success: function success() {
                 $("#books-table").bootstrapTable("refresh");
                 $("#books-table").bootstrapTable("uncheckAll");
@@ -112,21 +115,21 @@ $(function() {
         });
     });
 
-    $("#merge_books").click(function(event) {
+    $("#merge_books").click(function (event) {
         if ($(this).hasClass("disabled")) {
             event.stopPropagation()
         } else {
             $('#mergeModal').modal("show");
         }
         $.ajax({
-            method:"post",
+            method: "post",
             contentType: "application/json; charset=utf-8",
             dataType: "json",
             url: window.location.pathname + "/../ajax/simulatemerge",
-            data: JSON.stringify({"Merge_books":selections}),
+            data: JSON.stringify({ "Merge_books": selections }),
             success: function success(booTitles) {
                 $('#merge_from').empty();
-                $.each(booTitles.from, function(i, item) {
+                $.each(booTitles.from, function (i, item) {
                     $("<span>- " + item + "</span><p></p>").appendTo("#merge_from");
                 });
                 $("#merge_to").text("- " + booTitles.to);
@@ -135,13 +138,13 @@ $(function() {
         });
     });
 
-    $("#table_xchange").click(function() {
+    $("#table_xchange").click(function () {
         $.ajax({
-            method:"post",
+            method: "post",
             contentType: "application/json; charset=utf-8",
             dataType: "json",
             url: window.location.pathname + "/../ajax/xchange",
-            data: JSON.stringify({"xchange":selections}),
+            data: JSON.stringify({ "xchange": selections }),
             success: function success() {
                 $("#books-table").bootstrapTable("refresh");
                 $("#books-table").bootstrapTable("uncheckAll");
@@ -150,7 +153,7 @@ $(function() {
     });
 
     var column = [];
-    $("#books-table > thead > tr > th").each(function() {
+    $("#books-table > thead > tr > th").each(function () {
         var element = {};
         if ($(this).attr("data-edit")) {
             element = {
@@ -159,7 +162,7 @@ $(function() {
                     emptytext: "<span class='glyphicon glyphicon-plus'></span>",
                     success: function (response, __) {
                         if (!response.success) return response.msg;
-                        return {newValue: response.newValue};
+                        return { newValue: response.newValue };
                     },
                     params: function (params) {
                         params.checkA = $('#autoupdate_authorsort').prop('checked');
@@ -196,7 +199,7 @@ $(function() {
         search: true,
         showColumns: true,
         searchAlign: "left",
-        showSearchButton : true,
+        showSearchButton: true,
         searchOnEnterKey: true,
         checkboxHeader: false,
         maintainMetaData: true,
@@ -207,10 +210,10 @@ $(function() {
         },
         // eslint-disable-next-line no-unused-vars
         onEditableSave: function (field, row, oldvalue, $el) {
-            if ($.inArray(field, [ "title", "sort" ]) !== -1 && $('#autoupdate_titlesort').prop('checked')
-                || $.inArray(field, [ "authors", "author_sort" ]) !== -1 && $('#autoupdate_authorsort').prop('checked')) {
+            if ($.inArray(field, ["title", "sort"]) !== -1 && $('#autoupdate_titlesort').prop('checked')
+                || $.inArray(field, ["authors", "author_sort"]) !== -1 && $('#autoupdate_authorsort').prop('checked')) {
                 $.ajax({
-                    method:"get",
+                    method: "get",
                     dataType: "json",
                     url: window.location.pathname + "/../ajax/sort_value/" + field + "/" + row.id,
                     success: function success(data) {
@@ -227,17 +230,17 @@ $(function() {
         // eslint-disable-next-line no-unused-vars
         onColumnSwitch: function (field, checked) {
             var visible = $("#books-table").bootstrapTable("getVisibleColumns");
-            var hidden  = $("#books-table").bootstrapTable("getHiddenColumns");
+            var hidden = $("#books-table").bootstrapTable("getHiddenColumns");
             var st = "";
-            visible.forEach(function(item) {
+            visible.forEach(function (item) {
                 st += "\"" + item.field + "\":\"" + "true" + "\",";
             });
-            hidden.forEach(function(item) {
+            hidden.forEach(function (item) {
                 st += "\"" + item.field + "\":\"" + "false" + "\",";
             });
             st = st.slice(0, -1);
             $.ajax({
-                method:"post",
+                method: "post",
                 contentType: "application/json; charset=utf-8",
                 dataType: "json",
                 url: window.location.pathname + "/../ajax/table_settings",
@@ -246,16 +249,16 @@ $(function() {
         },
     });
 
-    $("#domain_allow_submit").click(function(event) {
+    $("#domain_allow_submit").click(function (event) {
         event.preventDefault();
         $("#domain_add_allow").ajaxForm();
         $(this).closest("form").submit();
-        $.ajax ({
-            method:"get",
+        $.ajax({
+            method: "get",
             url: window.location.pathname + "/../../ajax/domainlist/1",
             async: true,
             timeout: 900,
-            success:function(data) {
+            success: function (data) {
                 $("#domain-allow-table").bootstrapTable("load", data);
             }
         });
@@ -267,16 +270,16 @@ $(function() {
         },
         striped: false
     });
-    $("#domain_deny_submit").click(function(event) {
+    $("#domain_deny_submit").click(function (event) {
         event.preventDefault();
         $("#domain_add_deny").ajaxForm();
         $(this).closest("form").submit();
-        $.ajax ({
-            method:"get",
+        $.ajax({
+            method: "get",
             url: window.location.pathname + "/../../ajax/domainlist/0",
             async: true,
             timeout: 900,
-            success:function(data) {
+            success: function (data) {
                 $("#domain-deny-table").bootstrapTable("load", data);
             }
         });
@@ -290,25 +293,25 @@ $(function() {
 
     function domainHandle(domainId) {
         $.ajax({
-            method:"post",
+            method: "post",
             url: window.location.pathname + "/../../ajax/deletedomain",
-            data: {"domainid":domainId}
+            data: { "domainid": domainId }
         });
         $.ajax({
-            method:"get",
+            method: "get",
             url: window.location.pathname + "/../../ajax/domainlist/1",
             async: true,
             timeout: 900,
-            success:function(data) {
+            success: function (data) {
                 $("#domain-allow-table").bootstrapTable("load", data);
             }
         });
         $.ajax({
-            method:"get",
+            method: "get",
             url: window.location.pathname + "/../../ajax/domainlist/0",
             async: true,
             timeout: 900,
-            success:function(data) {
+            success: function (data) {
                 $("#domain-deny-table").bootstrapTable("load", data);
             }
         });
@@ -338,7 +341,7 @@ $(function() {
 
     function startTable(target, userId) {
         var type = 0;
-        switch(target) {
+        switch (target) {
             case "get_column_values":
                 type = 1;
                 $("#h2").removeClass("hidden");
@@ -386,11 +389,11 @@ $(function() {
                 return "";
             },
             url: getPath() + "/ajax/listrestriction/" + type + "/" + userId,
-            rowStyle: function(row) {
+            rowStyle: function (row) {
                 if (row.id.charAt(0) === "a") {
-                    return {classes: "bg-primary"};
+                    return { classes: "bg-primary" };
                 } else {
-                    return {classes: "bg-dark-danger"};
+                    return { classes: "bg-dark-danger" };
                 }
             },
             onLoadSuccess: function () {
@@ -399,19 +402,19 @@ $(function() {
             },
             onClickCell: function (field, value, row) {
                 if (field === 3) {
-                    $.ajax ({
+                    $.ajax({
                         type: "Post",
                         data: "id=" + row.id + "&type=" + row.type + "&Element=" + encodeURIComponent(row.Element),
                         url: getPath() + "/ajax/deleterestriction/" + type + "/" + userId,
                         async: true,
                         timeout: 900,
-                        success:function() {
+                        success: function () {
                             $.ajax({
-                                method:"get",
+                                method: "get",
                                 url: getPath() + "/ajax/listrestriction/" + type + "/" + userId,
                                 async: true,
                                 timeout: 900,
-                                success:function(data) {
+                                success: function (data) {
                                     $("#restrict-elements-table").bootstrapTable("load", data);
                                 }
                             });
@@ -429,19 +432,19 @@ $(function() {
                 data: row
             });
         });
-        $("[id^=submit_]").click(function() {
+        $("[id^=submit_]").click(function () {
             $(this)[0].blur();
             $.ajax({
                 url: getPath() + "/ajax/addrestriction/" + type + "/" + userId,
                 type: "Post",
                 data: $(this).closest("form").serialize() + "&" + $(this)[0].name + "=",
                 success: function () {
-                    $.ajax ({
-                        method:"get",
+                    $.ajax({
+                        method: "get",
                         url: getPath() + "/ajax/listrestriction/" + type + "/" + userId,
                         async: true,
                         timeout: 900,
-                        success:function(data) {
+                        success: function (data) {
                             $("#restrict-elements-table").bootstrapTable("load", data);
                         }
                     });
@@ -451,28 +454,28 @@ $(function() {
         });
     }
 
-    $("#restrictModal").on("show.bs.modal", function(e) {
-         var target = $(e.relatedTarget).attr('id');
-         var dataId;
-         $(e.relatedTarget).one('focus', function(e){$(this).blur();});
-         if ($(e.relatedTarget).hasClass("button_head")) {
-             dataId = $('#user-table').bootstrapTable('getSelections').map(a => a.id);
-         } else {
-             dataId = $(e.relatedTarget).data("id");
-         }
-         startTable(target, dataId);
+    $("#restrictModal").on("show.bs.modal", function (e) {
+        var target = $(e.relatedTarget).attr('id');
+        var dataId;
+        $(e.relatedTarget).one('focus', function (e) { $(this).blur(); });
+        if ($(e.relatedTarget).hasClass("button_head")) {
+            dataId = $('#user-table').bootstrapTable('getSelections').map(a => a.id);
+        } else {
+            dataId = $(e.relatedTarget).data("id");
+        }
+        startTable(target, dataId);
     });
 
     // User table handling
     var user_column = [];
-    $("#user-table > thead > tr > th").each(function() {
+    $("#user-table > thead > tr > th").each(function () {
         var element = {};
         if ($(this).attr("data-edit")) {
             element = {
                 editable: {
                     mode: "inline",
                     emptytext: "<span class='glyphicon glyphicon-plus'></span>",
-                    error: function(response) {
+                    error: function (response) {
                         return response.responseText;
                     }
                 }
@@ -499,7 +502,7 @@ $(function() {
         search: true,
         showColumns: true,
         searchAlign: "left",
-        showSearchButton : true,
+        showSearchButton: true,
         searchOnEnterKey: true,
         checkboxHeader: true,
         maintainMetaData: true,
@@ -508,19 +511,19 @@ $(function() {
         formatNoMatches: function () {
             return "";
         },
-        onPostBody () {
+        onPostBody() {
             // Remove all checkboxes from Headers for showing the texts in the column selector
-            $('.columns [data-field]').each(function(){
+            $('.columns [data-field]').each(function () {
                 var elText = $(this).next().text();
                 $(this).next().empty();
                 var index = elText.lastIndexOf('\n', elText.length - 2);
-                if ( index > -1) {
+                if (index > -1) {
                     elText = elText.substr(index);
                 }
                 $(this).next().text(elText);
             });
         },
-        onPostHeader () {
+        onPostHeader() {
             move_header_elements();
         },
         onLoadSuccess: function () {
@@ -528,17 +531,17 @@ $(function() {
         },
         onColumnSwitch: function () {
             var visible = $("#user-table").bootstrapTable("getVisibleColumns");
-            var hidden  = $("#user-table").bootstrapTable("getHiddenColumns");
+            var hidden = $("#user-table").bootstrapTable("getHiddenColumns");
             var st = "";
-            visible.forEach(function(item) {
+            visible.forEach(function (item) {
                 st += "\"" + item.name + "\":\"" + "true" + "\",";
             });
-            hidden.forEach(function(item) {
+            hidden.forEach(function (item) {
                 st += "\"" + item.name + "\":\"" + "false" + "\",";
             });
             st = st.slice(0, -1);
             $.ajax({
-                method:"post",
+                method: "post",
                 contentType: "application/json; charset=utf-8",
                 dataType: "json",
                 url: window.location.pathname + "/../../ajax/user_table_settings",
@@ -549,23 +552,23 @@ $(function() {
     });
 
     $("#user-table").on("check.bs.table check-all.bs.table uncheck.bs.table uncheck-all.bs.table",
-    function (e, rowsAfter, rowsBefore) {
-        var rows = rowsAfter;
+        function (e, rowsAfter, rowsBefore) {
+            var rows = rowsAfter;
 
-        if (e.type === "uncheck-all") {
-            selections = [];
-        } else {
-	        var ids = $.map(!$.isArray(rows) ? [rows] : rows, function (row) {
-	            return row.id;
-	        });
-	        var func = $.inArray(e.type, ["check", "check-all"]) > -1 ? "union" : "difference";
-            selections = window._[func](selections, ids);
-        }
-        handle_header_buttons();
-    });
+            if (e.type === "uncheck-all") {
+                selections = [];
+            } else {
+                var ids = $.map(!$.isArray(rows) ? [rows] : rows, function (row) {
+                    return row.id;
+                });
+                var func = $.inArray(e.type, ["check", "check-all"]) > -1 ? "union" : "difference";
+                selections = window._[func](selections, ids);
+            }
+            handle_header_buttons();
+        });
 });
 
-function handle_header_buttons () {
+function handle_header_buttons() {
     if (selections.length < 1) {
         $("#user_delete_selection").addClass("disabled");
         $("#user_delete_selection").attr("aria-disabled", true);
@@ -596,7 +599,7 @@ function handle_header_buttons () {
 }
 
 /* Function for deleting domain restrictions */
-function TableActions (value, row) {
+function TableActions(value, row) {
     return [
         "<a class=\"danger remove\"  data-value=\"" + row.id
         + "\" title=\"Remove\">",
@@ -606,7 +609,7 @@ function TableActions (value, row) {
 }
 
 /* Function for deleting domain restrictions */
-function RestrictionActions (value, row) {
+function RestrictionActions(value, row) {
     return [
         "<div class=\"danger remove\" data-restriction-id=\"" + row.id + "\" title=\"Remove\">",
         "<i class=\"glyphicon glyphicon-trash\"></i>",
@@ -615,7 +618,7 @@ function RestrictionActions (value, row) {
 }
 
 /* Function for deleting books */
-function EbookActions (value, row) {
+function EbookActions(value, row) {
     return [
         "<div class=\"book-remove\" data-toggle=\"modal\" data-target=\"#deleteModal\" data-ajax=\"1\" data-delete-id=\"" + row.id + "\" title=\"Remove\">",
         "<i class=\"glyphicon glyphicon-trash\"></i>",
@@ -624,7 +627,7 @@ function EbookActions (value, row) {
 }
 
 /* Function for deleting Users */
-function UserActions (value, row) {
+function UserActions(value, row) {
     return [
         "<div class=\"user-remove\" data-value=\"delete\" onclick=\"deleteUser(this, '" + row.id + "')\" data-pk=\"" + row.id + "\" title=\"Remove\">",
         "<i class=\"glyphicon glyphicon-trash\"></i>",
@@ -633,7 +636,7 @@ function UserActions (value, row) {
 }
 
 /* Function for cancelling tasks */
-function TaskActions (value, row) {
+function TaskActions(value, row) {
     var cancellableStats = [0, 2];
     if (row.task_id && row.is_cancellable && cancellableStats.includes(row.stat)) {
         return [
@@ -657,13 +660,13 @@ function singleUserFormatter(value, row) {
     return '<a class="btn btn-default" onclick="storeLocation()" href="' + window.location.pathname + '/../../admin/user/' + row.id + '">' + this.buttontext + '</a>'
 }
 
-function checkboxFormatter(value, row){
+function checkboxFormatter(value, row) {
     if (value & this.column)
         return '<input type="checkbox" class="chk" data-pk="' + row.id + '" data-name="' + this.field + '" checked onchange="checkboxChange(this, ' + row.id + ', \'' + this.name + '\', ' + this.column + ')">';
     else
         return '<input type="checkbox" class="chk" data-pk="' + row.id + '" data-name="' + this.field + '" onchange="checkboxChange(this, ' + row.id + ', \'' + this.name + '\', ' + this.column + ')">';
 }
-function bookCheckboxFormatter(value, row){
+function bookCheckboxFormatter(value, row) {
     if (value)
         return '<input type="checkbox" class="chk" data-pk="' + row.id + '" data-name="' + this.field + '" checked onchange="BookCheckboxChange(this, ' + row.id + ', \'' + this.name + '\')">';
     else
@@ -671,7 +674,7 @@ function bookCheckboxFormatter(value, row){
 }
 
 
-function singlecheckboxFormatter(value, row){
+function singlecheckboxFormatter(value, row) {
     if (value)
         return '<input type="checkbox" class="chk" data-pk="' + row.id + '" data-name="' + this.field + '" checked onchange="checkboxChange(this, ' + row.id + ', \'' + this.name + '\', 0)">';
     else
@@ -682,7 +685,7 @@ function ratingFormatter(value, row) {
     if (value == 0) {
         return "";
     }
-    return (value/2);
+    return (value / 2);
 }
 
 
@@ -690,24 +693,24 @@ function ratingFormatter(value, row) {
 function loadSuccess() {
     var guest = $(".editable[data-name='name'][data-value='Guest']");
     guest.editable("disable");
-    $("input:radio.check_head:checked").each(function() {
+    $("input:radio.check_head:checked").each(function () {
         $(this).prop('checked', false);
     });
-    $(".header_select").each(function() {
+    $(".header_select").each(function () {
         $(this).prop("selectedIndex", 0);
     });
-    $(".header_select").each(function() {
+    $(".header_select").each(function () {
         $(this).prop("selectedIndex", 0);
     });
     $('.multi_selector').selectpicker('deselectAll');
     $('.multi_selector').selectpicker('refresh');
-    $(".editable[data-name='locale'][data-pk='"+guest.data("pk")+"']").editable("disable");
-    $(".editable[data-name='locale'][data-pk='"+guest.data("pk")+"']").hide();
-    $("input[data-name='admin_role'][data-pk='"+guest.data("pk")+"']").prop("disabled", true);
-    $("input[data-name='passwd_role'][data-pk='"+guest.data("pk")+"']").prop("disabled", true);
-    $("input[data-name='edit_shelf_role'][data-pk='"+guest.data("pk")+"']").prop("disabled", true);
-    $("input[data-name='sidebar_read_and_unread'][data-pk='"+guest.data("pk")+"']").prop("disabled", true);
-    $(".user-remove[data-pk='"+guest.data("pk")+"']").hide();
+    $(".editable[data-name='locale'][data-pk='" + guest.data("pk") + "']").editable("disable");
+    $(".editable[data-name='locale'][data-pk='" + guest.data("pk") + "']").hide();
+    $("input[data-name='admin_role'][data-pk='" + guest.data("pk") + "']").prop("disabled", true);
+    $("input[data-name='passwd_role'][data-pk='" + guest.data("pk") + "']").prop("disabled", true);
+    $("input[data-name='edit_shelf_role'][data-pk='" + guest.data("pk") + "']").prop("disabled", true);
+    $("input[data-name='sidebar_read_and_unread'][data-pk='" + guest.data("pk") + "']").prop("disabled", true);
+    $(".user-remove[data-pk='" + guest.data("pk") + "']").hide();
 }
 
 function move_header_elements() {
@@ -750,12 +753,12 @@ function move_header_elements() {
                         $.ajax({
                             method: "post",
                             url: window.location.pathname + "/../../ajax/editlistusers/" + field,
-                            data: {"pk": result, "value": values, "action": val},
+                            data: { "pk": result, "value": values, "action": val },
                             success: function (data) {
                                 handleListServerResponse(data);
                             },
                             error: function (data) {
-                                handleListServerResponse([{type: "danger", message: data.responseText}])
+                                handleListServerResponse([{ type: "danger", message: data.responseText }])
                             },
                         });
                     }
@@ -795,13 +798,13 @@ function move_header_elements() {
                         $.ajax({
                             method: "post",
                             url: window.location.pathname + "/../../ajax/deleteuser",
-                            data: {"userid": result},
+                            data: { "userid": result },
                             success: function (data) {
                                 selections = selections.filter((el) => !result.includes(el));
                                 handleListServerResponse(data);
                             },
                             error: function (data) {
-                                handleListServerResponse([{type: "danger", message: data.responseText}])
+                                handleListServerResponse([{ type: "danger", message: data.responseText }])
                             },
                         });
                     }
@@ -811,11 +814,11 @@ function move_header_elements() {
     }
 }
 
-function handleListServerResponse (data) {
+function handleListServerResponse(data) {
     $("#flash_success").remove();
     $("#flash_danger").remove();
     if (!jQuery.isEmptyObject(data)) {
-        data.forEach(function(item) {
+        data.forEach(function (item) {
             $(".navbar").after('<div class="row-fluid text-center">' +
                 '<div id="flash_' + item.type + '" class="alert alert-' + item.type + '">' + item.message + '</div>' +
                 '</div>');
@@ -828,9 +831,9 @@ function checkboxChange(checkbox, userId, field, field_index) {
     $.ajax({
         method: "post",
         url: getPath() + "/ajax/editlistusers/" + field,
-        data: {"pk": userId, "field_index": field_index, "value": checkbox.checked},
-        error: function(data) {
-            handleListServerResponse([{type:"danger", message:data.responseText}])
+        data: { "pk": userId, "field_index": field_index, "value": checkbox.checked },
+        error: function (data) {
+            handleListServerResponse([{ type: "danger", message: data.responseText }])
         },
         success: handleListServerResponse
     });
@@ -842,10 +845,10 @@ function BookCheckboxChange(checkbox, userId, field) {
     $.ajax({
         method: "post",
         url: getPath() + "/ajax/editbooks/" + field,
-        data: {"pk": userId, "value": value},
-        error: function(data) {
+        data: { "pk": userId, "value": value },
+        error: function (data) {
             element.checked = !element.checked;
-            handleListServerResponse([{type:"danger", message:data.responseText}])
+            handleListServerResponse([{ type: "danger", message: data.responseText }])
         },
         success: handleListServerResponse
     });
@@ -859,64 +862,63 @@ function selectHeader(element, field) {
             $.ajax({
                 method: "post",
                 url: window.location.pathname + "/../../ajax/editlistusers/" + field,
-                data: {"pk": result, "value": element.value},
+                data: { "pk": result, "value": element.value },
                 error: function (data) {
-                    handleListServerResponse([{type:"danger", message:data.responseText}])
+                    handleListServerResponse([{ type: "danger", message: data.responseText }])
                 },
                 success: handleListServerResponse,
             });
-        },function() {
+        }, function () {
             $(element).prop("selectedIndex", 0);
         });
     }
 }
 
 function checkboxHeader(CheckboxState, field, field_index) {
-    confirmDialog(field, "GeneralChangeModal", 0, function() {
+    confirmDialog(field, "GeneralChangeModal", 0, function () {
         var result = $('#user-table').bootstrapTable('getSelections').map(a => a.id);
         $.ajax({
             method: "post",
             url: window.location.pathname + "/../../ajax/editlistusers/" + field,
-            data: {"pk": result, "field_index": field_index, "value": CheckboxState},
+            data: { "pk": result, "field_index": field_index, "value": CheckboxState },
             error: function (data) {
-                handleListServerResponse([{type:"danger", message:data.responseText}])
+                handleListServerResponse([{ type: "danger", message: data.responseText }])
             },
             success: function (data) {
-                handleListServerResponse (data, true)
+                handleListServerResponse(data, true)
             },
         });
-    },function() {
-        $("input:radio.check_head:checked").each(function() {
+    }, function () {
+        $("input:radio.check_head:checked").each(function () {
             $(this).prop('checked', false);
         });
     });
 }
 
-function deleteUser(a,id){
+function deleteUser(a, id) {
     confirmDialog(
-    "btndeluser",
+        "btndeluser",
         "GeneralDeleteModal",
         0,
-        function() {
+        function () {
             $.ajax({
-                method:"post",
+                method: "post",
                 url: window.location.pathname + "/../../ajax/deleteuser",
-                data: {"userid":id},
+                data: { "userid": id },
                 success: function (data) {
                     userId = parseInt(id, 10);
                     selections = selections.filter(item => item !== userId);
                     handleListServerResponse(data);
                 },
                 error: function (data) {
-                    handleListServerResponse([{type:"danger", message:data.responseText}])
+                    handleListServerResponse([{ type: "danger", message: data.responseText }])
                 },
             });
         }
     );
 }
 
-function queryParams(params)
-{
+function queryParams(params) {
     params.state = JSON.stringify(selections);
     return params;
 }
@@ -925,17 +927,17 @@ function storeLocation() {
     window.sessionStorage.setItem("back", window.location.pathname);
 }
 
-function user_handle (userId) {
+function user_handle(userId) {
     $.ajax({
-        method:"post",
+        method: "post",
         url: window.location.pathname + "/../../ajax/deleteuser",
-        data: {"userid":userId}
+        data: { "userid": userId }
     });
     $("#user-table").bootstrapTable("refresh");
 }
 
 function shorten_html(value, response) {
-    if(value) {
+    if (value) {
         $(this).html("[...]");
         // value.split('\n').slice(0, 2).join("") +
     }

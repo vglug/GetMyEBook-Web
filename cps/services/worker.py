@@ -150,7 +150,8 @@ class WorkerThread(threading.Thread):
 
             # remove self_cleanup tasks and hidden "System Tasks" from list
             if item.task.self_cleanup or item.hidden:
-                self.dequeued.remove(item)
+                with self.doLock:
+                    self.dequeued.remove(item)
 
             self.queue.task_done()
 
