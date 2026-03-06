@@ -914,6 +914,7 @@ class CalibreDB:
                          .order_by(func.random())
                          .limit(self.config.config_random_books).all())
             except Exception as e:
+                self.session.rollback()
                 log.error(f"Error fetching random books: {e}")
                 randm = []
         else:
@@ -956,6 +957,7 @@ class CalibreDB:
                     query = self.session.query(database)
                 entries = query.order_by(*order).offset(off).limit(pagesize).all()
             except Exception as e:
+                self.session.rollback()
                 log.error(f"Error fetching books list: {e}")
                 entries = []
         except Exception as ex:

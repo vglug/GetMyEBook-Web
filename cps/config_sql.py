@@ -479,6 +479,9 @@ class ConfigSQL(object):
             if self.config_calibre_uuid != calibre_uuid.uuid:
                 self.config_calibre_uuid = calibre_uuid.uuid
                 self.save()
+        except Exception as e:
+            log.warning(f"Error fetching calibre UUID: {e}")
+            calibre_db.session.rollback()
         except AttributeError:
             pass
 
@@ -575,6 +578,8 @@ def _migrate_table(session, orm_class, secret_key=None):
                 session.query(column).first()
             except (OperationalError,InternalError) as err:
                 log.debug("OperationalError for column %s: %s", column_name, err.args[0])
+                # Rolling back the transaction to clear aborted state in PostgreSQL
+                session.rollback()
                 # This means the column doesn't exist, so we need to add it
                 if column.default is None:
                     column_default = ""
@@ -614,6 +619,8 @@ def _migrate_table(session, orm_class, secret_key=None):
                 except Exception as sqlite_error:
                     log.debug("SQLite syntax failed, trying PostgreSQL syntax: %s", sqlite_error)
                     try:
+                        # Rollback again if the previous attempt failed and aborted the transaction
+                        session.rollback()
                         # Try PostgreSQL syntax
                         alter_table = text('ALTER TABLE "{}" ADD COLUMN "{}" {} {}'.format(
                             orm_class.__tablename__,
@@ -631,6 +638,8 @@ def _migrate_table(session, orm_class, secret_key=None):
             except ProgrammingError as pe:
                 # Handle PostgreSQL programming errors (like undefined column)
                 log.debug("ProgrammingError for column %s: %s", column_name, pe)
+                # Rolling back the transaction to clear aborted state in PostgreSQL
+                session.rollback()
                 if 'UndefinedColumn' in str(pe) or 'column' in str(pe).lower() and 'does not exist' in str(pe).lower():
                     if column.default is None:
                         column_default = ""
@@ -690,6 +699,8 @@ def _migrate_table(session, orm_class, secret_key=None):
                 session.query(col).first()
         except (OperationalError, ProgrammingError , InternalError) as e:
             log.info("Adding PostgreSQL metadata column %s to table %s", column_name, orm_class.__tablename__)
+            # Rolling back the transaction to clear aborted state in PostgreSQL
+            session.rollback()
             
             if default_value is None:
                 column_default = ""
