@@ -326,18 +326,20 @@ def create_app():
     # Add teardown handler for database sessions
     @app.teardown_request
     def shutdown_session(exception=None):
-        if exception:
-            # Rollback aborted transactions to prevent InFailedSqlTransaction errors
-            if db_session:
-                try:
-                    db_session.rollback()
-                except Exception:
-                    pass
-            if db.CalibreDB.session_factory:
-                try:
-                    db.CalibreDB.session_factory.rollback()
-                except Exception:
-                    pass
+        # Always rollback aborted transactions to prevent InFailedSqlTransaction errors
+        # This is safe to call even if no transaction is active
+        if db_session:
+            try:
+                db_session.rollback()
+            except Exception:
+                pass
+        if db.CalibreDB.session_factory:
+            try:
+                db.CalibreDB.session_factory.rollback()
+            except Exception:
+                pass
+        
+        # Finally remove the sessions
         if db_session:
             db_session.remove()
         if db.CalibreDB.session_factory:

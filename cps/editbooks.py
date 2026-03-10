@@ -264,10 +264,12 @@ def upload():
                 modify_date = False
                 # create the function for sorting...
                 calibre_db.update_title_sort(config)
-                try:
-                    calibre_db.session.connection().connection.connection.create_function('uuid4', 0, lambda: str(uuid4()))
-                except AttributeError:
-                    pass
+                # Only try to create function if on SQLite
+                if calibre_db.engine.driver == 'sqlite':
+                    try:
+                        calibre_db.session.connection().connection.connection.create_function('uuid4', 0, lambda: str(uuid4()))
+                    except (AttributeError, Exception):
+                        pass
 
                 meta, error = file_handling_on_upload(requested_file)
                 if error:
