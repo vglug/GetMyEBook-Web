@@ -43,7 +43,7 @@
               <input type="checkbox" id="remember" name="remember_me" checked>
               <label for="remember" class="checkbox-label">{{_('Remember Me')}}</label>
             </div> -->
-            <a href="#" class="forgot-link">{{_('Forgot password')}}</a>
+            <a href="{{ url_for('web.forgot_password') }}" class="forgot-link">{{_('Forgot password')}}</a>
           </div>
 
           <button type="submit" name="submit" class="btn-primary">{{_('Login')}}</button>

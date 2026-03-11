@@ -1,5 +1,11 @@
 from cps.forum.database.models.category import Category
-from flask_seeder import Seeder
+try:
+    from flask_seeder import Seeder
+except ImportError:
+    class Seeder:
+        def run(self):
+            pass
+
 from slugify import slugify
 import logging
 

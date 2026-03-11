@@ -1616,6 +1616,99 @@ def verify_otp(email):
         return render_title_template('verify_otp.html', title="Verify OTP",email=email)
 
 
+@web.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    if current_user.is_authenticated:
+        return redirect(url_for('web.index'))
+    
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip().lower()
+        user = ub.session.query(ub.User).filter(func.lower(ub.User.email) == email).first()
+        
+        if user:
+            # Generate 6-digit OTP
+            otp = str(random.randint(100000, 999999))
+            flask_session['reset_user'] = {
+                'email': email,
+                'otp': otp,
+                'user_id': user.id
+            }
+            
+            # Use existing mail helper (if applicable) or send_registration_mail
+            try:
+                # Reusing send_registration_mail as it points to sendMailui.html which has OTP support
+                send_registration_mail(email, user.name, "N/A", otp, resend=True)
+                flash(_("Verification code sent to your email."), "info")
+                return redirect(url_for('web.reset_password_otp', email=quote(email)))
+            except Exception as e:
+                log.error(f"Failed to send reset email: {e}")
+                flash(_("Failed to send code. Please check your email configuration."), "error")
+        else:
+            flash(_("No account found with that email address."), "error")
+            
+    return render_title_template('forgot_password.html', title="Forgot Password")
+
+
+@web.route('/reset-password-otp/<email>', methods=['GET', 'POST'])
+def reset_password_otp(email):
+    email = unquote(email)
+    reset_data = flask_session.get('reset_user')
+    
+    if not reset_data or reset_data['email'] != email:
+        flash(_("Session expired. Please start again."), "error")
+        return redirect(url_for('web.forgot_password'))
+        
+    if request.method == 'POST':
+        user_otp = ''.join([(request.form.get(f'otp{i}') or '') for i in range(1, 7)]).strip()
+        
+        if user_otp == reset_data['otp']:
+            reset_data['otp_verified'] = True
+            flask_session['reset_user'] = reset_data
+            return redirect(url_for('web.new_password'))
+        else:
+            flash(_("Invalid code. Please try again."), "error")
+            
+    return render_title_template('reset_password_otp.html', title="Reset Password", email=email)
+
+
+@web.route('/new-password', methods=['GET', 'POST'])
+def new_password():
+    reset_data = flask_session.get('reset_user')
+    
+    if not reset_data or not reset_data.get('otp_verified'):
+        flash(_("Unauthorized access. Please verify your email first."), "error")
+        return redirect(url_for('web.forgot_password'))
+        
+    if request.method == 'POST':
+        password = request.form.get('password')
+        confirm = request.form.get('confirm_password')
+        
+        if password != confirm:
+            flash(_("Passwords do not match."), "error")
+            return render_title_template('new_password.html', title="Set New Password")
+            
+        try:
+            user = ub.session.query(ub.User).get(reset_data['user_id'])
+            if user:
+                # Use valid_password helper to check policy
+                try:
+                    user.password = generate_password_hash(valid_password(password))
+                    ub.session.commit()
+                    flask_session.pop('reset_user', None)
+                    flash(_("Password successfully updated. You can now login."), "success")
+                    return redirect(url_for('web.login'))
+                except Exception as e:
+                    flash(str(e), "error")
+            else:
+                flash(_("User not found."), "error")
+        except Exception as e:
+            ub.session.rollback()
+            log.error(f"Error resetting password: {e}")
+            flash(_("An error occurred. Please try again later."), "error")
+            
+    return render_title_template('new_password.html', title="Set New Password")
+
+
 
 @web.route('/login', methods=['GET'])
 def login():

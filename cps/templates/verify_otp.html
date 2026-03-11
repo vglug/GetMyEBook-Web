@@ -30,7 +30,7 @@
           <div class="otp-container" role="group" aria-label="One-time password input">
             {% for i in range(1,7) %}
             <input type="text" class="otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" autocomplete="off"
-              id="otp1" name="otp{{i}}" aria-label="Digit 1 of 6">
+              id="otp{{i}}" name="otp{{i}}" aria-label="Digit {{i}} of 6">
             {% endfor %}
           </div>
       </div>
@@ -48,7 +48,7 @@
 
       <!-- Verify Button -->
       <div id="verifyBtnSection">
-        <button class="btn-gradient" id="verifyBtn" disabled aria-label="Verify OTP code">
+        <button type="submit" class="btn-gradient" id="verifyBtn" disabled aria-label="Verify OTP code">
           <span id="btnText">Verify OTP</span>
           <i class="bi bi-arrow-right-circle-fill ms-2"></i></span>
         </button>
@@ -235,39 +235,18 @@
   }
 
   // Verify OTP
-  verifyBtn.addEventListener('click', () => {
+  verifyBtn.addEventListener('click', (e) => {
     const otp = Array.from(otpInputs).map(input => input.value).join('');
 
     if (otp.length === 6) {
       // Show loading state
       btnText.innerHTML = '<span class="spinner-custom"></span> Verifying...';
-      verifyBtn.disabled = true;
       verifyBtn.setAttribute('aria-busy', 'true');
       announceToScreenReader('Verifying code, please wait');
-
-      // Simulate API call
-      setTimeout(() => {
-        btnText.textContent = 'Verify OTP';
-        verifyBtn.setAttribute('aria-busy', 'false');
-
-        // Show success alert
-        successAlert.classList.remove('d-none');
-
-        // Hide other sections
-        headerSection.classList.add('d-none');
-        otpSection.classList.add('d-none');
-        timerSection.classList.add('d-none');
-        verifyBtnSection.classList.add('d-none');
-        actionLinks.classList.add('d-none');
-
-        // Stop timer
-        clearInterval(timerInterval);
-
-        // Announce success
-        announceToScreenReader('Verification successful! Redirecting to dashboard.');
-
-      }, 1500);
+      
+      // Let the form submit naturally
     } else {
+      e.preventDefault(); // Stop submission if OTP is incomplete
       // Show error state
       otpInputs.forEach(input => {
         if (!input.value) {
