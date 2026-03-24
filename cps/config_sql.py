@@ -474,14 +474,18 @@ class ConfigSQL(object):
         return self.config_calibre_split_dir if self.config_calibre_split_dir else self.config_calibre_dir
 
     def store_calibre_uuid(self, calibre_db, Library_table):
+        if calibre_db is None or calibre_db.session is None:
+            log.warning("Calibre database session not initialized, skipping UUID storage")
+            return
         try:
             calibre_uuid = calibre_db.session.query(Library_table).one_or_none()
-            if self.config_calibre_uuid != calibre_uuid.uuid:
+            if calibre_uuid and self.config_calibre_uuid != calibre_uuid.uuid:
                 self.config_calibre_uuid = calibre_uuid.uuid
                 self.save()
         except Exception as e:
             log.warning(f"Error fetching calibre UUID: {e}")
-            calibre_db.session.rollback()
+            if calibre_db.session:
+                calibre_db.session.rollback()
         except AttributeError:
             pass
 

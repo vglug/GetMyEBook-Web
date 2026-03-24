@@ -93,7 +93,7 @@
 <div class="discussion-container" style="position: relative;">
     <!-- left Side: Book Reader (40%) -->
     <div class="book-reader-panel">
-        <div class="book-reader-header">
+        <div class="book-reader-header" style="display: none;">
             <h2>
                 <i class="fas fa-book-open"></i>
                 {% if book %}{{ book.title }}{% else %}Book Reader{% endif %}
@@ -101,9 +101,14 @@
         </div>
         <div class="book-reader-content">
             {% if book and book_format %}
+            {% if book_format == 'pdf' %}
+            <iframe src="{{url_for('web.read_book_pdf', book_id=book.id)}}" class="book-reader-iframe"
+                title="{{ book.title }}"></iframe>
+            {% else %}
             <iframe src="{{ url_for('web.read_book', book_id=book.id, book_format=book_format) }}"
                 class="book-reader-iframe" title="{{ book.title }}">
             </iframe>
+            {% endif %}
             {% else %}
             <div class="no-book-message">
                 <i class="fas fa-book"></i>

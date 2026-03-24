@@ -35,6 +35,12 @@ from .utils import (
     validate_hostname
 )
 import secrets
+import urllib.parse
+from sqlalchemy import create_engine, text
+import psycopg2
+from sqlalchemy.orm import scoped_session, sessionmaker
+        
+
 
 def generate_secret_key(length=32):
     """Generates a random text string in hexadecimal format."""
@@ -136,9 +142,6 @@ def validate_database_connection(host, port, username, password, database):
         tuple: (success: bool, error_message: str or None)
     """
     try:
-        import urllib.parse
-        from sqlalchemy import create_engine, text
-        import psycopg2
         # Encode password for URL
         encoded_password = urllib.parse.quote_plus(password)
         database_url = f"postgresql+psycopg2://{username}:{encoded_password}@{host}:{port}/{database}"
@@ -216,7 +219,7 @@ DATABASENAME_APP={config['db_name_app']}
 # Optional: Full Database URL
 # -------------------------
 # Uncomment and modify if you prefer to use a single DATABASE_URL
-DATABASE_URL=postgresql+psycopg2://{config['db_username']}:{config['db_password']}@{config['db_host']}:{config['db_port']}/{config['db_name_app']}
+DATABASE_URL=postgresql+psycopg2://{config['db_username']}:{urllib.parse.quote(config['db_password'])}@{config['db_host']}:{config['db_port']}/{config['db_name_app']}
 # books and book page covers loaction path 
 BOOK_FILEPATH={config['book_location_path']}
 """
@@ -250,10 +253,6 @@ def initialize_databases(config):
         tuple: (success: bool, error_message: str or None)
     """
     try:
-        import urllib.parse
-        from sqlalchemy import create_engine
-        from sqlalchemy.orm import scoped_session, sessionmaker
-        
         # Encode password for URL
         encoded_password = urllib.parse.quote_plus(config['db_password'])
         database_url = f"postgresql+psycopg2://{config['db_username']}:{encoded_password}@{config['db_host']}:{config['db_port']}/{config['db_name_app']}"
