@@ -96,7 +96,7 @@
                 </div>
                 <!-- Reply button with message icon -->
                     <button class="btn btn-link btn-sm p-0 reply-btn" @click="toggleReply" style="text-decoration: none; font-size: 0.9rem;">
-                        <i class="far fa-comment-dots message-icon"></i>
+                        <i class="fa-solid fa-reply"></i>
                         <span class="reply-text">Reply</span>
                     </button>
                     
