@@ -1,12 +1,23 @@
+import sys
 import os
+
+# Add project root to sys.path and remove the current directory (cps/) from it
+# to avoid name collisions (e.g., cps/babel.py shadowing the system babel package)
+script_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(script_dir)
+if script_dir in sys.path:
+    sys.path.remove(script_dir)
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
 import subprocess
 import urllib.parse
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import ProgrammingError
 from dotenv import load_dotenv
-from .utils import get_env_path, get_project_root
 
-from . import logger , auto_create_threads
+from cps.utils import get_env_path, get_project_root
+from cps import logger, auto_create_threads
 
 log = logger.create()
 
@@ -35,74 +46,24 @@ def ensure_pgloader_installed():
         subprocess.run(["sudo", "apt-get", "install", "-y", "pgloader"])
         log.info("✔ pgloader installed successfully.")
 
-
-# -------------------------------------
-# Helper: Create DB
-# -------------------------------------
-def create_database_if_not_exists():
-    # Re-read env vars at call time to pick up values from .env (which may not have existed at import time)
-    from dotenv import load_dotenv
-    load_dotenv(get_env_path(), override=True)
-    _db_user = os.getenv("DB_USERNAME") or DB_USER
-    _db_password = os.getenv("DB_PASSWORD") or DB_PASSWORD
-    _db_host = os.getenv("DB_HOST") or DB_HOST
-    _db_port = os.getenv("DB_PORT") or DB_PORT
-    _db_name = os.getenv("DATABASENAME_APP") or DB_NAME
-
-    # Encode password safely
-    encoded_pw = urllib.parse.quote_plus(_db_password or "")
-
-    # Admin DB connection for creating DB
-    POSTGRES_ADMIN_URL = (
-        f"postgresql+psycopg2://{_db_user}:{encoded_pw}@{_db_host}:{_db_port}/postgres"
-    )
-    
-    engine = create_engine(POSTGRES_ADMIN_URL, isolation_level="AUTOCOMMIT")
-
-    try:
-        with engine.connect() as conn:
-            conn.execute(text(f"CREATE DATABASE {_db_name};"))
-            log.info(f"✔ Database '{_db_name}' created.")
-    except ProgrammingError as e:
-        if "already exists" in str(e):
-            log.info(f"✔ Database '{_db_name}' already exists.")
-        else:
-            log.error(f"⚠ Error creating database: {e}")
-            raise
-
-
 # ---------------------------
 # Migration workflow
 # ---------------------------
 def migrate_sqlite_to_postgres(SQLITE_PATH):
     if not SQLITE_PATH.endswith('.db'):
         SQLITE_PATH = os.path.join(SQLITE_PATH, 'metadata.db')
-    # log.info(f"SQLite DB Path: {SQLITE_PATH}")
+
     # Encode password safely
     encoded_pw = urllib.parse.quote_plus(DB_PASSWORD)
-
-    # Admin DB connection for creating DB
-    # (We still define this for logging purposes, though creation is handled by helper)
-    POSTGRES_ADMIN_URL = (
-        f"postgresql+psycopg2://{DB_USER}:{encoded_pw}@{DB_HOST}:{DB_PORT}/postgres"
-    )
-
-    # Pgloader target URL (MUST be plain postgresql://)
+    
     TARGET_PGLOADER_URL = (
         f"postgresql://{DB_USER}:{encoded_pw}@{DB_HOST}:{DB_PORT}/{DB_NAME.lower()}"
     )
-
-    # log.info(f"PostgreSQL Admin URL = {POSTGRES_ADMIN_URL}")
-    # log.info(f"pgloader Target URL  = {TARGET_PGLOADER_URL}")
+    log.info(f"pgloader Target URL  = {TARGET_PGLOADER_URL.replace(encoded_pw, '********')}")
 
     # Ensure pgloader installed
     ensure_pgloader_installed()
-
-    # -------------------------------------
-    # Create database if not exists
-    # -------------------------------------
-    create_database_if_not_exists()
-
+    
     # -------------------------------------
     # Run pgloader migration
     # -------------------------------------
@@ -113,7 +74,7 @@ def migrate_sqlite_to_postgres(SQLITE_PATH):
         f"sqlite:///{SQLITE_PATH}",
         TARGET_PGLOADER_URL
     ]
-
+    log.info(f"Running command: {' '.join(command)}")
     result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
     log.info("=========== PGLOADER OUTPUT ===========")

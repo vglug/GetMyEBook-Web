@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium PDF Reader - E-Book Style</title>
+    <meta name="description" content="A premium, book-style PDF reader with elegant navigation and clean aesthetics.">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@600;700&display=swap"
+        rel="stylesheet">
+    <!-- PDF.js via CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <style>
+        :root {
+            --brand-color: #6366f1;
+            --bg-page: #f3f4f6;
+            --bg-reader: #ffffff;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --border: #e5e7eb;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, sans-serif;
+        }
+
+        body {
+            /* background-color: var(--bg-page); */
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- Headers --- */
+        .primary-header {
+            height: 48px;
+            background: var(--brand-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 1.1rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+        }
+
+        .primary-header svg {
+            margin-right: 12px;
+        }
+
+        .secondary-header {
+            height: 50px;
+            background: white;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1.5rem;
+            z-index: 90;
+        }
+
+        .header-section {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .doc-title {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            letter-spacing: 0.02em;
+        }
+
+        .icon-btn {
+            background: none;
+            border: none;
+            color: black;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 6px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .icon-btn:hover {
+            background: #f3f4f6;
+            color: var(--text-main);
+        }
+
+        /* --- Layout --- */
+        main {
+            flex: 1;
+            display: flex;
+            position: relative;
+            overflow: hidden;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .nav-arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 80px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #d1d5db;
+            cursor: pointer;
+            transition: color 0.2s;
+            z-index: 10;
+            user-select: none;
+        }
+
+        .nav-arrow:hover {
+            color: var(--brand-color);
+        }
+
+        .nav-arrow.left {
+            left: 20px;
+        }
+
+        .nav-arrow.right {
+            right: 20px;
+        }
+
+        .pdf-viewport {
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            display: flex;
+            justify-content: center;
+            /* padding: 2rem; */
+            scrollbar-width: thin;
+            scrollbar-color: #d1d5db transparent;
+        }
+
+        .canvas-wrapper {
+            position: relative;
+            background: white;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            margin: auto;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        .textLayer {
+            position: absolute;
+            left: 0;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+            opacity: 0.2;
+            line-height: 1.0;
+            z-index: 2;
+        }
+
+        .textLayer>span {
+            color: transparent;
+            position: absolute;
+            white-space: pre;
+            cursor: text;
+            transform-origin: 0% 0%;
+        }
+
+        /* --- Footer --- */
+        .page-status {
+            position: absolute;
+            bottom: 24px;
+            right: 24px;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .book-name {
+            font-size: 1.5rem;
+            margin-left: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .doc-title {
+                display: none;
+            }
+
+            .nav-arrow {
+                width: 40px;
+                height: 40px;
+            }
+
+            .nav-arrow.left {
+                left: 5px;
+            }
+
+            .nav-arrow.right {
+                right: 5px;
+            }
+
+            .secondary-header {
+                padding: 0 0.5rem;
+                gap: 0.5rem;
+            }
+
+            .modal {
+                width: 90%;
+                padding: 1.5rem;
+            }
+
+            .zoom-level {
+                display: none;
+            }
+        }
+
+        @media print {
+
+            .primary-header,
+            .secondary-header,
+            .nav-arrow,
+            .page-status {
+                display: none;
+            }
+
+            body {
+                background: white;
+            }
+
+            main {
+                height: auto;
+                overflow: visible;
+            }
+
+            .pdf-viewport {
+                padding: 0;
+                overflow: visible;
+            }
+
+            .canvas-wrapper {
+                box-shadow: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Top Brand Bar -->
+    <!-- <div class="primary-header">
+        <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+            <path
+                d="M21 4H3c-1.1 0-2 .9-2 2v13c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zM3 19V6h8v13H3zm18 0h-8V6h8v13zm-7-9.5h6V11h-6V9.5zm0 2.5h6v1.5h-6V12zm0 2.5h6V16h-6v-1.5z">
+            </path>
+        </svg>
+        <span id="top-bar-title">Premium PDF Reader</span>
+    </div> -->
+
+    <!-- Secondary Toolbar -->
+    <div class="secondary-header">
+        <h3 class="book-name" style="font-family:monospace">Find happiness in every pages</h3>
+        <div class="header-section">
+            <span class="doc-title" id="breadcrumb-title">No Document Loaded</span>
+        </div>
+        <div class="header-section">
+            <button class="icon-btn" title="Zoom Out" id="zoom-out-btn">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M20 12H4"></path>
+                </svg>
+            </button>
+            <span class="zoom-level" id="zoom-level-display"
+                style="font-size: 0.85rem; color: var(--text-muted); min-width: 40px; text-align: center;">100%</span>
+            <button class="icon-btn" title="Zoom In" id="zoom-in-btn">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M12 4v16m8-8H4"></path>
+                </svg>
+            </button>
+            <button class="icon-btn" title="Fit to width" id="zoom-fit-btn">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M4 8V4h4M20 8V4h-4M4 16v4h4M20 16v4h-4"></path>
+                </svg>
+            </button>
+            <div style="width: 1px; height: 20px; background: var(--border); margin: 0 0.5rem;"></div>
+            <!-- <button class="icon-btn" title="Bookmark" id="bookmark-btn">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path>
+                </svg>
+            </button> -->
+
+            <button class="icon-btn" title="Full Screen" onclick="document.documentElement.requestFullscreen()">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path
+                        d="M15 3h6m0 0v6m0-6L14 10M9 21H3m0 0v-6m0 6l7-7M3 3h6m-6 0v6m0-6l7 7M21 21h-6m6 0v-6m0 6l-7-7">
+                    </path>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <main id="main-content">
+        <div class="nav-arrow left" id="prev-page">
+            <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path d="M15 19l-7-7 7-7"></path>
+            </svg>
+        </div>
+
+        <div class="pdf-viewport" id="viewport">
+            <div class="canvas-wrapper" id="pdf-wrapper">
+                <canvas id="pdf-canvas"></canvas>
+                <div id="text-layer" class="textLayer"></div>
+            </div>
+        </div>
+
+        <div class="nav-arrow right" id="next-page">
+            <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path d="M9 5l7 7-7 7"></path>
+            </svg>
+        </div>
+
+        <div class="page-status" id="page-num-display">0%</div>
+    </main>
+
+
+
+    <script>
+        // Use window.pdfjsLib which is standard for current PDF.js CDN versions
+        const pdfjsLib = window.pdfjsLib || window['pdfjs-dist/build/pdf'];
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+
+        let pdfDoc = null,
+            pageNum = 1,
+            pageRendering = false,
+            pageNumPending = null,
+            scale = 1.0,
+            isAutoFit = true;
+
+        const canvas = document.getElementById('pdf-canvas');
+        const ctx = canvas.getContext('2d');
+        const textLayer = document.getElementById('text-layer');
+
+        function renderPage(num) {
+            pageRendering = true;
+            pdfDoc.getPage(num).then(page => {
+                // Auto-fit to width on first load, otherwise use current scale
+                if (isAutoFit) {
+                    const viewport_base = page.getViewport({ scale: 1 });
+                    const containerWidth = document.getElementById('viewport').clientWidth - 60; // adjust padding
+                    scale = containerWidth / viewport_base.width;
+                    if (scale > 2.0) scale = 2.0; // Cap it
+                }
+
+                document.getElementById('zoom-level-display').textContent = Math.round(scale * 100) + '%';
+
+                const viewport = page.getViewport({ scale: scale });
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+
+                const renderContext = {
+                    canvasContext: ctx,
+                    viewport: viewport
+                };
+
+                textLayer.innerHTML = '';
+                textLayer.style.width = canvas.width + 'px';
+                textLayer.style.height = canvas.height + 'px';
+
+                const renderTask = page.render(renderContext);
+                return renderTask.promise.then(() => page.getTextContent()).then(textContent => {
+                    return pdfjsLib.renderTextLayer({
+                        textContent: textContent,
+                        container: textLayer,
+                        viewport: viewport,
+                        textDivs: []
+                    }).promise;
+                });
+            }).then(() => {
+                pageRendering = false;
+                if (pageNumPending !== null) {
+                    renderPage(pageNumPending);
+                    pageNumPending = null;
+                }
+                updatePageStatus();
+            }).catch(err => {
+                console.error("Render error:", err);
+                pageRendering = false;
+            });
+        }
+
+        function queueRenderPage(num) {
+            if (pageRendering) pageNumPending = num;
+            else renderPage(num);
+        }
+
+        function updatePageStatus() {
+            const pct = Math.round((pageNum / pdfDoc.numPages) * 100);
+            document.getElementById('page-num-display').textContent = pct + '%';
+        }
+
+        function loadPDF(source, docTitle) {
+
+            const loadingTask = pdfjsLib.getDocument(source);
+            loadingTask.promise.then(doc => {
+                pdfDoc = doc;
+                pageNum = 1;
+                renderPage(pageNum);
+
+                // Update title
+                const title = docTitle || (typeof source === 'string' ? source : 'Uploaded Document');
+                const breadcrumbTitle = document.getElementById('breadcrumb-title');
+                const topBarTitle = document.getElementById('top-bar-title');
+                if (breadcrumbTitle) breadcrumbTitle.textContent = title + ' — PDF';
+                if (topBarTitle) topBarTitle.textContent = title;
+            }).catch(err => {
+                console.error("PDF Load error:", err);
+                alert("Error loading PDF from library: " + err.message);
+            });
+        }
+
+
+
+        // Resize handler
+        window.addEventListener('resize', () => {
+            if (pdfDoc && isAutoFit) {
+                queueRenderPage(pageNum);
+            }
+        });
+
+        // Zoom Controls
+        document.getElementById('zoom-in-btn').addEventListener('click', () => {
+            if (!pdfDoc) return;
+            scale += 0.1;
+            isAutoFit = false;
+            queueRenderPage(pageNum);
+        });
+
+        document.getElementById('zoom-out-btn').addEventListener('click', () => {
+            if (!pdfDoc) return;
+            if (scale > 0.5) scale -= 0.25;
+            isAutoFit = false;
+            queueRenderPage(pageNum);
+        });
+
+        document.getElementById('zoom-fit-btn').addEventListener('click', () => {
+            if (!pdfDoc) return;
+            isAutoFit = true;
+            queueRenderPage(pageNum);
+        });
+
+        // document.getElementById('bookmark-btn').addEventListener('click', () => {
+        //     alert('Added to bookmarks!');
+        // });
+
+        // Touch events for swipe
+        let touchstartX = 0;
+        let touchendX = 0;
+
+        document.getElementById('viewport').addEventListener('touchstart', e => {
+            touchstartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+
+        document.getElementById('viewport').addEventListener('touchend', e => {
+            touchendX = e.changedTouches[0].screenX;
+            handleSwipe();
+        }, { passive: true });
+
+        function handleSwipe() {
+            if (!pdfDoc) return;
+            const threshold = 50;
+            if (touchendX < touchstartX - threshold) {
+                if (pageNum < pdfDoc.numPages) { pageNum++; queueRenderPage(pageNum); }
+            }
+            if (touchendX > touchstartX + threshold) {
+                if (pageNum > 1) { pageNum--; queueRenderPage(pageNum); }
+            }
+        }
+
+        document.getElementById('prev-page').addEventListener('click', () => {
+            if (pageNum <= 1) return;
+            pageNum--;
+            queueRenderPage(pageNum);
+        });
+
+        document.getElementById('next-page').addEventListener('click', () => {
+            if (pageNum >= pdfDoc.numPages) return;
+            pageNum++;
+            queueRenderPage(pageNum);
+        });
+
+        // Resize handler
+        window.addEventListener('resize', () => {
+            if (pdfDoc && isAutoFit) {
+                queueRenderPage(pageNum);
+            }
+        });
+
+        // Zoom Controls
+        document.getElementById('zoom-in-btn').addEventListener('click', () => {
+            if (!pdfDoc) return;
+            scale += 0.25;
+            isAutoFit = false;
+            queueRenderPage(pageNum);
+        });
+
+        document.getElementById('zoom-out-btn').addEventListener('click', () => {
+            if (!pdfDoc) return;
+            if (scale > 0.5) scale -= 0.25;
+            isAutoFit = false;
+            queueRenderPage(pageNum);
+        });
+
+        document.getElementById('zoom-fit-btn').addEventListener('click', () => {
+            if (!pdfDoc) return;
+            isAutoFit = true;
+            queueRenderPage(pageNum);
+        });
+
+        // document.getElementById('bookmark-btn').addEventListener('click', () => {
+        //     alert('Added to bookmarks!');
+        // });
+
+        // Navigation keys
+        window.addEventListener('keydown', e => {
+            if (!pdfDoc) return;
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                if (pageNum < pdfDoc.numPages) { pageNum++; queueRenderPage(pageNum); }
+            }
+            if (e.key === 'ArrowLeft') {
+                if (pageNum > 1) { pageNum--; queueRenderPage(pageNum); }
+            }
+        });
+
+        {% if pdffile %}
+        document.addEventListener('DOMContentLoaded', () => {
+            const pdfUrl = {{ url_for('web.serve_book', book_id = pdffile, book_format = 'pdf') | tojson | safe
+        }};
+        const bookTitle = {{ title | tojson | safe }};
+        loadPDF(pdfUrl, bookTitle);
+        });
+        {% endif %}
+    </script>
+</body>
+
+</html>

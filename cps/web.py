@@ -92,12 +92,14 @@ except ImportError:
 @app.after_request
 def add_security_headers(resp):
     default_src = ([host.strip() for host in config.config_trustedhosts.split(',') if host] +
-                   ["'self'", "'unsafe-inline'", "'unsafe-eval'"])
+                   ["'self'", "'unsafe-inline'", "'unsafe-eval'", "blob:", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net"])
     csp = "default-src " + ' '.join(default_src)
-    if request.endpoint == "web.read_book" and config.config_use_google_drive:
+    if (request.endpoint == "web.read_book" or request.endpoint == "web.read_book_pdf") and config.config_use_google_drive:
         csp +=" blob: "
-    csp += "; font-src 'self' data: https://fonts.gstatic.com"
-    if request.endpoint == "web.read_book":
+    if (request.endpoint == "web.read_book" or request.endpoint == "web.read_book_pdf") and config.config_use_google_drive:
+        csp +=" blob: "
+    csp += "; font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net"
+    if request.endpoint == "web.read_book" or request.endpoint == "web.read_book_pdf":
         csp += " blob: "
     csp += "; img-src 'self'"
     if request.path.startswith("/author/") and config.config_use_goodreads:
@@ -105,10 +107,10 @@ def add_security_headers(resp):
     csp += " data:"
     if request.endpoint == "edit-book.show_edit_book" or config.config_use_google_drive:
         csp += " *"
-    if request.endpoint == "web.read_book":
-        csp += " blob: ; style-src-elem 'self' blob: 'unsafe-inline' https://fonts.googleapis.com"
+    if request.endpoint == "web.read_book" or request.endpoint == "web.read_book_pdf":
+        csp += " blob: ; style-src-elem 'self' blob: 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net"
     else:
-        csp += "; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com"
+        csp += "; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net"
         
     csp += "; object-src 'none';"
     resp.headers['Content-Security-Policy'] = csp
@@ -1974,6 +1976,17 @@ def read_book(book_id, book_format):
               category="error")
         return redirect(url_for("web.index"))
 
+
+@web.route("/readpdf/<int:book_id>")
+@login_required_if_no_ano
+def read_book_pdf(book_id):
+    book = calibre_db.get_filtered_book(book_id)
+    if not book:
+        log.error("Book %d not found for PDF reader", book_id)
+        abort(404)
+
+    log.debug("Start pdf reader for %d", book_id)
+    return render_title_template('pdfreader.html', pdffile=book_id, title=book.title, book=book)
 
 @web.route("/book/<int:book_id>")
 @login_required_if_no_ano
