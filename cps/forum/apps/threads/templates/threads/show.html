@@ -4,6 +4,7 @@
 
 {% block main %}
 <link rel="stylesheet" href="{{ url_for('static', filename='forum/css/discussion.css') }}">
+<script src="{{ url_for('static', filename='forum/js/mobile-sidebar.js') }}" defer></script>
 <!-- Mobile Sidebar Menu -->
 <div class="mobile-sidebar" id="mobileSidebar">
     <div class="mobile-sidebar-header">
@@ -126,6 +127,9 @@
             <!-- Thread Header -->
             <div class="discussion-header">
                 <div class="home-icon">
+                    <button class="menu" id="menuBtn">
+                        <span class="menu__inner"></span>
+                    </button>
                     <a href="/" class="back-home-btn" role="button" title="Back to Home">
                         <i class="fas fa-home"></i>
                     </a>
@@ -155,9 +159,9 @@
                             </form>
                         </div>
                         {% endif %}
-                        <span class="meta-item">
+                        <!-- <span class="meta-item">
                             <i class="fas fa-eye"></i> {{ thread.views_count }} views
-                        </span>
+                        </span> -->
                     </div>
                 </div>
             </div>
