@@ -249,8 +249,8 @@ change_confirm_modal %}
       <div class="right-side-container">
         {% block body %}{% endblock %}
         {% if pagination and (pagination.has_next or pagination.has_prev) %}
-        <div class="pagination-wrapper">
-          <ul class="pagination-list">
+        <nav aria-label="Page navigation example" class="d-flex justify-content-center mt-4 mb-5">
+          <ul class="pagination">
             {% if pagination.has_prev %}
             <li class="page-item page-previous">
               <a class="page-link" aria-label="previous page" href="{{ (pagination.page - 1)|url_for_other_page }}">
@@ -261,15 +261,9 @@ change_confirm_modal %}
 
             {% for page in pagination.iter_pages() %}
             {% if page %}
-            {% if page != pagination.page %}
-            <li class="page-item">
+            <li class="page-item {% if page == pagination.page %}active{% endif %}">
               <a class="page-link" aria-label="to page {{ page }}" href="{{ (page)|url_for_other_page }}">{{ page }}</a>
             </li>
-            {% else %}
-            <li class="page-item active">
-              <span class="page-link">{{ page }}</span>
-            </li>
-            {% endif %}
             {% else %}
             <li class="page-item disabled">
               <span class="page-link">...</span>
@@ -279,13 +273,13 @@ change_confirm_modal %}
 
             {% if pagination.has_next %}
             <li class="page-item page-next">
-              <a class="page-link next" aria-label="next page" href="{{ (pagination.page + 1)|url_for_other_page}}">
+              <a class="page-link" aria-label="next page" href="{{ (pagination.page + 1)|url_for_other_page}}">
                 <i class="fas fa-chevron-right"></i>
               </a>
             </li>
             {% endif %}
           </ul>
-        </div>
+        </nav>
         {% endif %}
       </div>
     </div>
