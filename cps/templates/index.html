@@ -7,9 +7,18 @@
   {% if random%}
   <div class="book-carousel-wrapper">
     <div class="book-carousel" id="heroCarousel">
-      {% for entry in random %}
+      {% for entry in random[:5] %}
       <div class="book-carousel-item">
         <div class="book-content">
+
+          <div class="book-cover-container">
+            <a href="{{ url_for('web.show_book', book_id=entry.Books.id) }}">
+              <div class="book-cover">
+                {{ image.book_cover(entry.Books) }}
+                {% if entry[2] == True %}<span class="badge read glyphicon glyphicon-ok"></span>{% endif %}
+              </div>
+            </a>
+          </div>
           <div class="book-info">
             <h2 class="book-title">{{entry.Books.title}}</h2>
 
@@ -56,77 +65,15 @@
             </div>
           </div>
 
-          <div class="book-cover-container">
-            <a href="{{ url_for('web.show_book', book_id=entry.Books.id) }}">
-              <div class="book-cover">
-                {{ image.book_cover(entry.Books) }}
-                {% if entry[2] == True %}<span class="badge read glyphicon glyphicon-ok"></span>{% endif %}
-              </div>
-            </a>
-          </div>
         </div>
       </div>
       {% endfor %}
-      {# Duplicate books for infinite scroll effect #}
-      {% for entry in random %}
-      <div class="book-carousel-item">
-        <div class="book-content">
-          <div class="book-info">
-            <h2 class="book-title">{{entry.Books.title}}</h2>
+    </div>
 
-            {% if entry.Books.tags.__len__() > 0 %}
-            <p class="book-category">
-              {% for tag in entry.Books.tags[:3] %}
-              {{tag.name}}{% if not loop.last %}, {% endif %}
-              {% endfor %}
-            </p>
-            {% else %}
-            <p class="book-category">
-              {% for author in entry.Books.authors[:1] %}
-              {{author.name.replace('|',',')}}
-              {% endfor %}
-            </p>
-            {% endif %}
-
-            {% if entry.Books.ratings.__len__() > 0 %}
-            <div class="book-rating">
-              {% for number in range((entry.Books.ratings[0].rating/2)|int(2)) %}
-              <span class="glyphicon glyphicon-star"></span>
-              {% endfor %}
-              {% if (entry.Books.ratings[0].rating/2)|int(2) < 5 %} {% for number in range(5 -
-                (entry.Books.ratings[0].rating/2)|int(2)) %} <span class="glyphicon glyphicon-star-empty"></span>
-                {% endfor %}
-                {% endif %}
-            </div>
-            {% endif %}
-
-            <div class="hero-buttons">
-              <a href="{{ url_for('web.show_book', book_id=entry.Books.id) }}" {% if simple==false %}data-toggle="modal"
-                data-target="#bookDetailsModal" data-remote="false" {% endif %} class="view-details-btn">View
-                Details</a>
-
-              {# Discussion Forum Button #}
-              {% if current_user.is_authenticated %}
-              <div class="discussion-btn-container">
-                <a href="{{ url_for('threads.book_thread', book_id=entry.Books.id) }}" class="discussion-btn"
-                  role="button">
-                  <i class="fas fa-comments"></i> {{ _('Discussion') }}
-                </a>
-              </div>
-              {% endif %}
-            </div>
-          </div>
-
-          <div class="book-cover-container">
-            <a href="{{ url_for('web.show_book', book_id=entry.Books.id) }}">
-              <div class="book-cover">
-                {{ image.book_cover(entry.Books) }}
-                {% if entry[2] == True %}<span class="badge read glyphicon glyphicon-ok"></span>{% endif %}
-              </div>
-            </a>
-          </div>
-        </div>
-      </div>
+    {# Carousel Navigation Dots - NOW OUTSIDE heroCarousel so they don't slide away #}
+    <div class="carousel-nav" id="carouselNav">
+      {% for entry in random[:5] %}
+      <span class="nav-dot" data-index="{{ loop.index0 }}"></span>
       {% endfor %}
     </div>
   </div>
