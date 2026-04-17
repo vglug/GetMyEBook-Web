@@ -120,26 +120,25 @@
 
         {% if threads.pages > 1 %}
         <div class="my-2">
-            <nav aria-label="Page navigation example" class="d-flex justify-content-end">
+            <nav aria-label="Page navigation example" class="d-flex justify-content-center">
                 <ul class="pagination">
-                    <li class="page-item
-                            {% if not threads.has_prev %}
-                                disabled
-                            {% endif %}
-                        ">
-                        <a class="page-link" href="{{ url_for('main.index', page=threads.prev_num) }}">&larr;</a>
+                    <li class="page-item page-previous {% if not threads.has_prev %}disabled{% endif %}">
+                        <a class="page-link"
+                            href="{{ url_for('main.index', page=threads.prev_num) if threads.has_prev else '#' }}">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
                     </li>
 
                     {% for page in threads.iter_pages() %}
                     {% if page %}
                     <li class="page-item
-                                    {{ " disabled" if page==threads.page else "" }} ">
+                                    {{ " active" if page==threads.page else "" }} ">
                                     <a class=" page-link" href="{{ url_for('main.index', page=page) }}">
                         {{ page }}
                         </a>
                     </li>
                     {% else %}
-                    <li class="page-item disabled">
+                    <li class="page-item active">
                         <a class="page-link" href="#">
                             ...
                         </a>
@@ -147,11 +146,11 @@
                     {% endif %}
                     {% endfor %}
 
-                    <li class="page-item
-                            {% if not threads.has_next %}
-                                disabled
-                            {% endif %}
-                        "><a class="page-link" href="{{ url_for('main.index', page=threads.next_num) }}">&rarr;</a>
+                    <li class="page-item page-next {% if not threads.has_next %}disabled{% endif %}">
+                        <a class="page-link"
+                            href="{{ url_for('main.index', page=threads.next_num) if threads.has_next else '#' }}">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
                     </li>
                 </ul>
             </nav>

@@ -2879,23 +2879,24 @@ h2 {
   }
 }
 
-/* Pagination Styles - Now applies to all views */
-.pagination-wrapper {
+/* Pagination Styles - Now matches forum style */
+.pagination-wrapper,
+.pagination {
   display: flex;
-  justify-content: center;
-  margin-top: 30px;
-  margin-bottom: 40px;
+  justify-content: flex-end;
+  margin-top: 20px;
+  margin-bottom: 30px;
   width: 100%;
 }
 
-.pagination-list {
+.pagination-list,
+.pagination {
   display: flex;
   list-style: none;
   padding: 0;
   margin: 0;
-  gap: 8px;
-  flex-wrap: wrap;
-  justify-content: center;
+  /* gap: 8px; */
+  /* flex-wrap: wrap; */
 }
 
 .page-item {
