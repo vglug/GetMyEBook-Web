@@ -43,26 +43,30 @@ body {
 }
 
 /* Base Overrides for Theme support */
-.new-header-wrapper, .header-row-1, .header-row-2 {
+.new-header-wrapper,
+.header-row-1,
+.header-row-2 {
     background-color: var(--header-bg) !important;
     border-color: var(--border-color) !important;
     transition: background-color var(--transition-speed) ease, border-color var(--transition-speed) ease;
 }
 
-.search-form-styled {
+/* .search-form-styled {
     background-color: var(--input-bg) !important;
     border-color: var(--border-color) !important;
-}
+} */
 
 .search-input-styled {
     color: var(--text-primary) !important;
 }
 
-.main-menu li a, .mobile-menu-list li a {
+.main-menu li a,
+.mobile-menu-list li a {
     color: var(--text-secondary) !important;
 }
 
-.main-menu li a:hover, .mobile-menu-list li a:hover {
+.main-menu li a:hover,
+.mobile-menu-list li a:hover {
     background-color: var(--hover-bg) !important;
     color: var(--accent-color) !important;
 }
@@ -73,18 +77,29 @@ body {
 }
 
 /* Book Cards & Containers */
-.book-container, .card, .modal-content, .book-card-new {
+.book-container,
+.card,
+.modal-content,
+.book-card-new {
     background-color: var(--card-bg) !important;
     border-color: var(--border-color) !important;
     box-shadow: var(--card-shadow) !important;
     color: var(--text-primary) !important;
 }
 
-.book-card-title, .title, .sitename, .username, .product-title {
-    color: var(--text-primary) !important;
+.book-card-title,
+.title,
+.sitename,
+.username,
+.product-title {
+    color: var(--text-primary);
 }
 
-.book-card-author, .text-muted, .review-text, .product-author-section, .product-description {
+.book-card-author,
+.text-muted,
+.review-text,
+.product-author-section,
+.product-description {
     color: var(--text-secondary) !important;
 }
 
@@ -112,17 +127,24 @@ body {
 }
 
 /* Dropdowns & Modals */
-.user-dropdown-content, .sort-dropdown-menu, .theme-dropdown, .dropdown-menu {
+.user-dropdown-content,
+.sort-dropdown-menu,
+.theme-dropdown,
+.dropdown-menu {
     background-color: var(--dropdown-bg) !important;
     border: 1px solid var(--border-color) !important;
     box-shadow: var(--card-shadow) !important;
 }
 
-.user-dropdown-content a, .sort-dropdown-menu > li > a, .dropdown-menu > li > a {
+.user-dropdown-content a,
+.sort-dropdown-menu>li>a,
+.dropdown-menu>li>a {
     color: var(--text-primary) !important;
 }
 
-.user-dropdown-content a:hover, .sort-dropdown-menu > li > a:hover, .dropdown-menu > li > a:hover {
+.user-dropdown-content a:hover,
+.sort-dropdown-menu>li>a:hover,
+.dropdown-menu>li>a:hover {
     background-color: var(--hover-bg) !important;
 }
 
@@ -173,11 +195,15 @@ body {
 }
 
 /* Forms & Inputs */
-input[type="text"], input[type="password"], input[type="email"], textarea, select {
+/* input[type="text"],
+input[type="password"],
+input[type="email"],
+textarea,
+select {
     background-color: var(--input-bg) !important;
     color: var(--text-primary) !important;
     border-color: var(--border-color) !important;
-}
+} */
 
 /* Theme Selector Styles */
 .theme-selector {
@@ -188,7 +214,7 @@ input[type="text"], input[type="password"], input[type="email"], textarea, selec
     background: none;
     border: none;
     color: var(--text-secondary);
-    font-size: 1.1rem;
+    font-size: 2.1rem;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -232,8 +258,8 @@ input[type="text"], input[type="password"], input[type="email"], textarea, selec
     padding: 8px 12px;
     cursor: pointer;
     border-radius: 8px;
-    color: var(--text-primary);
-    font-size: 0.9rem;
+    /* color: var(--text-primary); */
+    font-size: 1.2rem;
     transition: all 0.2s ease;
 }
 
@@ -253,8 +279,15 @@ input[type="text"], input[type="password"], input[type="email"], textarea, selec
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Mobile Adjustments */
