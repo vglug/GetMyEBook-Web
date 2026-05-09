@@ -1,76 +1,91 @@
-// Book Carousel Fade-in/Fade-out Animation
+// Book Carousel Sliding Animation with Navigation
 document.addEventListener('DOMContentLoaded', function () {
-    console.log('Book carousel script loaded - DOM ready');
+    console.log('Book carousel script loaded - Sliding mode');
 
     const carousel = document.getElementById('heroCarousel');
-    if (!carousel) {
-        console.log('Carousel not found - may not be visible on this page');
-        return;
-    }
+    const navContainer = document.getElementById('carouselNav');
+    if (!carousel) return;
 
-    console.log('Carousel found!');
     const items = carousel.querySelectorAll('.book-carousel-item');
-    console.log('Total carousel items found:', items.length);
+    const dots = navContainer ? navContainer.querySelectorAll('.nav-dot') : [];
 
-    if (items.length === 0) {
-        console.log('No carousel items found');
-        return;
-    }
+    if (items.length === 0) return;
 
-    // Remove duplicates - we only need the first set
-    const totalBooks = items.length / 2;
-    console.log('Removing duplicates, keeping first', totalBooks, 'books');
-    for (let i = totalBooks; i < items.length; i++) {
+    // Standardize total books (handle duplicates if needed, but flex layout needs them all)
+    // We only remove duplicates if they exist and we're on desktop
+    const isMobile = window.innerWidth <= 560;
+
+    // For sliding carousel, we normally want the unique items
+    // But index.html provides duplicates. Let's keep only the first set to simplify indexing logic.
+    const totalUniqueBooks = dots.length > 0 ? dots.length : items.length / 2;
+
+    // Cleanup if multiple sets exist
+    for (let i = totalUniqueBooks; i < items.length; i++) {
         items[i].remove();
     }
 
     const actualItems = carousel.querySelectorAll('.book-carousel-item');
-    console.log('Actual items after removing duplicates:', actualItems.length);
-
     let currentIndex = 0;
-    const displayDuration = 10000; // 10 seconds per book (for testing)
-    const fadeDuration = 1000; // 1 second fade transition
+    const displayDuration = 5000; // 5 seconds per book as requested
+    let timer;
 
-    console.log('Setting up carousel items...');
-    // Set up all items
-    actualItems.forEach((item, index) => {
-        // Clear any inline styles that might interfere
-        item.style.position = '';
-        item.style.left = '';
-        item.style.top = '';
-        item.style.width = '';
-        item.style.display = ''; // Let CSS handle display
-        item.style.opacity = ''; // Let CSS handle opacity
-        item.style.transition = ''; // Let CSS handle transition
+    function updateCarousel(index) {
+        // Handle wrapping
+        if (index >= actualItems.length) index = 0;
+        if (index < 0) index = actualItems.length - 1;
 
-        if (index === 0) {
-            item.classList.add('active');
-            console.log('Book', index, 'set as active');
-        } else {
-            item.classList.remove('active');
-        }
-    });
+        currentIndex = index;
 
-    function showNextBook() {
-        const currentItem = actualItems[currentIndex];
-        console.log('=== Transitioning from book', currentIndex, '===');
+        // Sliding effect using transform
+        const offset = -currentIndex * 100;
+        carousel.style.transform = `translateX(${offset}%)`;
 
-        // Remove active class from current item
-        currentItem.classList.remove('active');
+        // Update active classes for items
+        actualItems.forEach((item, i) => {
+            if (i === currentIndex) {
+                item.classList.add('active');
+            } else {
+                item.classList.remove('active');
+            }
+        });
 
-        // Move to next item (loop back to start if at end)
-        currentIndex = (currentIndex + 1) % actualItems.length;
-        const nextItem = actualItems[currentIndex];
-
-        console.log('=== Showing book', currentIndex, '===');
-
-        // Add active class to next item
-        nextItem.classList.add('active');
+        // Update active classes for dots
+        dots.forEach((dot, i) => {
+            if (i === currentIndex) {
+                dot.classList.add('active');
+            } else {
+                dot.classList.remove('active');
+            }
+        });
     }
 
-    // Start the carousel
-    console.log('✅ Starting carousel with', actualItems.length, 'books');
-    console.log('Display duration:', displayDuration / 1000, 'seconds per book');
-    console.log('Fade duration:', fadeDuration / 1000, 'seconds');
-    setInterval(showNextBook, displayDuration);
+    function startTimer() {
+        stopTimer();
+        timer = setInterval(() => {
+            updateCarousel(currentIndex + 1);
+        }, displayDuration);
+    }
+
+    function stopTimer() {
+        if (timer) clearInterval(timer);
+    }
+
+    // Set up initial state
+    updateCarousel(0);
+    startTimer();
+
+    // Dot navigation
+    dots.forEach((dot, index) => {
+        dot.addEventListener('click', () => {
+            updateCarousel(index);
+            startTimer(); // Reset timer on manual click
+        });
+    });
+
+    // Pause on hover
+    carousel.addEventListener('mouseenter', stopTimer);
+    carousel.addEventListener('mouseleave', startTimer);
+
+    // Initial log
+    console.log(`✅ Carousel started: ${actualItems.length} books, ${displayDuration}ms interval`);
 });
