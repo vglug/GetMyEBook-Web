@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const actualItems = carousel.querySelectorAll('.book-carousel-item');
     let currentIndex = 0;
-    const displayDuration = 5000; // 5 seconds per book as requested
+    const displayDuration = 3000; // 3 seconds per book as requested
     let timer;
 
     function updateCarousel(index) {

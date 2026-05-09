@@ -40,6 +40,14 @@ change_confirm_modal %}
     rel="stylesheet">
   <link href="{{ url_for('static', filename='newStyles/css/flashmessage.css') }}" rel="stylesheet" media="screen">
   <link href="{{ url_for('static', filename='css/share_modal.css') }}" rel="stylesheet" media="screen">
+  <script>
+    /* Immediate theme application to prevent flash */
+    (function () {
+      const theme = localStorage.getItem('getmyebook-theme') || 'system';
+      const effectiveTheme = theme === 'system' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme;
+      document.documentElement.setAttribute('data-theme', effectiveTheme);
+    })();
+  </script>
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-89TPPH9Y7D"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
