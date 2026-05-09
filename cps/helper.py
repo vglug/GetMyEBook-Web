@@ -759,7 +759,6 @@ def get_book_cover_with_uuid(book_uuid, resolution=None):
 
 def get_book_cover_internal(book, resolution=None):
     if book and book.has_cover:
-
         # Send the book cover thumbnail if it exists in cache
         if resolution:
             thumbnail = get_book_cover_thumbnail(book, resolution)
@@ -788,8 +787,10 @@ def get_book_cover_internal(book, resolution=None):
             # log.info(f" book cover file path chacking !! {cover_file_path}")
 
             if os.path.isfile(os.path.join(cover_file_path, "cover.jpg")):
+                log.info(f" book cover file found chacking !! {os.path.join(cover_file_path, 'cover.jpg')}")
                 return send_from_directory(cover_file_path, "cover.jpg")
             else:
+                # log.info(f" book cover file not found chacking !! {os.path.join(cover_file_path, 'cover.jpg')}")
                 return get_cover_on_failure()
     else:
         return get_cover_on_failure()

@@ -979,7 +979,7 @@ class CalibreDB:
                 auth = auth.lstrip().strip()
                 # log.info(f"auth data: {auth}")
                 results = self.session.query(Authors).filter(Authors.sort.ilike(auth)).all()
-                # log.info(f"results data: {results}")
+                log.info(f"book results data: {results}")
                 if not len(results):
                     log.info(f"author data: {auth}")
                     log.info(f"results data: {results}")

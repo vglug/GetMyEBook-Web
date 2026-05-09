@@ -1353,6 +1353,7 @@ def get_cover(book_id, resolution=None):
         'lg': constants.COVER_THUMBNAIL_LARGE,
     }
     cover_resolution = resolutions.get(resolution, None)
+    # log.info(f" book id chacking !! {book_id}")
     return get_book_cover(book_id, cover_resolution)
 
 
@@ -1388,6 +1389,8 @@ def serve_book(book_id, book_format, anyname):
     book_format = book_format.split(".")[0]
     book = calibre_db.get_book(book_id)
     data = calibre_db.get_book_format(book_id, book_format.upper())
+    # log.info('book Data : %s', json.dumps(data, cls=db.AlchemyEncoder))
+    # log.info("Serving book file path : %s", os.path.join(config.get_book_path(), book.path, data.name + "." + book_format))
     if not data:
         return "File not in Database"
     range_header = request.headers.get('Range', None)

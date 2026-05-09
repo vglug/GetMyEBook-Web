@@ -40,7 +40,6 @@ change_confirm_modal %}
     rel="stylesheet">
   <link href="{{ url_for('static', filename='newStyles/css/flashmessage.css') }}" rel="stylesheet" media="screen">
   <link href="{{ url_for('static', filename='css/share_modal.css') }}" rel="stylesheet" media="screen">
-  <link href="{{ url_for('static', filename='css/theme-management.css') }}" rel="stylesheet" media="screen">
   <script>
     /* Immediate theme application to prevent flash */
     (function () {
@@ -123,23 +122,6 @@ change_confirm_modal %}
         </div>
 
         <div class="header-right-actions">
-          <div class="theme-selector">
-            <button class="theme-toggle-btn" onclick="themeManager.toggleThemeDropdown(event)"
-              title="{{_('Change Theme')}}">
-              <i class="fas fa-desktop"></i>
-            </button>
-            <div id="theme-dropdown" class="theme-dropdown">
-              <div class="theme-option" data-theme="light" onclick="themeManager.setTheme('light')">
-                <i class="fas fa-sun"></i> <span>{{_('Light')}}</span>
-              </div>
-              <div class="theme-option" data-theme="dark" onclick="themeManager.setTheme('dark')">
-                <i class="fas fa-moon"></i> <span>{{_('Dark')}}</span>
-              </div>
-              <div class="theme-option" data-theme="system" onclick="themeManager.setTheme('system')">
-                <i class="fas fa-desktop"></i> <span>{{_('System')}}</span>
-              </div>
-            </div>
-          </div>
           <div class="language-section">
             <div class="toggle_switch custom-lang-toggle">
               <label class="switch">
@@ -406,7 +388,6 @@ change_confirm_modal %}
   <script src="{{ url_for('static', filename='js/libs/jquery.form.min.js') }}"></script>
   <script src="{{ url_for('static', filename='js/uploadprogress.js') }}"> </script>
   <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/theme-management.js') }}"></script>
   <script src="{{ url_for('static', filename='js/book-carousel.js') }}"></script>
   {% if g.current_theme == 1 %}
   <script src="{{ url_for('static', filename='js/libs/jquery.visible.min.js') }}"></script>
