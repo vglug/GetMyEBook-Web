@@ -93,10 +93,10 @@ def init_forum_extensions(app):
 def get_forum_blueprints():
     """Get forum blueprints for registration (auth excluded - using GetMyEBook SSO)"""
     # Auth blueprint removed - forum uses GetMyEBook login via auth_bridge
-    from cps.forum.apps.main.routes import main_blueprint
-    from cps.forum.apps.threads.routes import thread_blueprint
-    from cps.forum.apps.comments.routes import comments_blueprint
-    from cps.forum.apps.settings.routes import settings_blueprint
+    from cps.forum.routes.main import main_blueprint
+    from cps.forum.routes.threads import thread_blueprint
+    from cps.forum.routes.comments import comments_blueprint
+    from cps.forum.routes.settings import settings_blueprint
     
     return {
         'main': main_blueprint,
@@ -107,7 +107,7 @@ def get_forum_blueprints():
 
 def init_forum_models():
     """Import forum models after db is initialized"""
-    from cps.forum.database.models import Thread, Comment, Category
+    from cps.models.forum import Thread, Comment, Category
     from cps.ub import User  # User comes from main app
     return {'User': User, 'Thread': Thread, 'Comment': Comment, 'Category': Category}
 

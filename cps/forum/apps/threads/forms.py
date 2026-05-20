@@ -1,7 +1,7 @@
 from flask_wtf import FlaskForm
 from wtforms import SelectField, StringField, SubmitField, TextAreaField
 from wtforms.validators import DataRequired, Length
-from cps.forum.database.models import Category
+from cps.models.forum import Category
 from cps.forum.src.utilities.helpers import cached_categories
 
 class ThreadCreationForm(FlaskForm):

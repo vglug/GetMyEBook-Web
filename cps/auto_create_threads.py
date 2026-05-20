@@ -29,7 +29,7 @@ def create_threads():
 
 def _create_threads_logic(calibre_db, ub, db):
     """Internal function containing the actual thread creation logic"""
-    from cps.forum.database.models import Thread, Category
+    from cps.models.forum import Thread, Category
     from .forum.database.seeds.category_seeder import categories_run
     
     # Auto-create default categories if they don't exist
