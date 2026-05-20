@@ -338,6 +338,14 @@ def create_app():
         if db.CalibreDB.session_factory:
             db.CalibreDB.session_factory.remove()
 
+    # ── AWS S3 Admin Blueprint ──────────────────────────────────────────────
+    try:
+        from .aws_s3_admin import aws_s3 as aws_s3_bp
+        app.register_blueprint(aws_s3_bp)
+        log.info("✅ AWS S3 admin blueprint registered (/admin/aws-s3)")
+    except Exception as _e:
+        log.error(f"❌ Failed to register AWS S3 blueprint: {_e}")
+
     return app
 
 
