@@ -124,8 +124,7 @@ def create_database_tables(engine):
     try:
         log.info("Creating database tables...")
         
-        # Import all models that need to be created
-        from . import ub
+        # Import all models that need to be created (ub already imported at module level)
         from . import config_sql
         
         # Create all tables

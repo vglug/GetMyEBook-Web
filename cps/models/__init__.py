@@ -13,6 +13,8 @@ from cps.models.forum import (   # noqa: F401
     CommentLike,
     Emoji,
 )
+from . import ub
+from . import db
 
 __all__ = [
     "Base",
@@ -21,4 +23,6 @@ __all__ = [
     "Comment",
     "CommentLike",
     "Emoji",
+    "ub",
+    "db",
 ]
