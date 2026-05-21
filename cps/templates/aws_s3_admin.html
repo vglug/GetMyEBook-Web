@@ -1,0 +1,261 @@
+{% extends "layout.html" %}
+
+{% block header %}
+<link href="{{ url_for('static', filename='css/aws_s3_admin.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block body %}
+<div class="col-sm-12 aws-s3-page">
+    <div class="section-heading">
+        <div class="heading-icon">
+            <span class="glyphicon glyphicon-cloud"></span>
+        </div>
+        <div style="flex-grow: 1;">
+            <h3>{{_('AWS S3 Integration')}}</h3>
+            <small>{{_('Securely connect and manage your Amazon S3 storage')}}</small>
+        </div>
+        <div class="aws-toggle-wrapper">
+            <label class="aws-switch">
+                <input type="checkbox" id="aws-service-toggle" checked onchange="awsToggleService(this.checked)">
+                <span class="aws-slider round"></span>
+            </label>
+            <span class="aws-toggle-label" id="aws-toggle-status">{{_('Active')}}</span>
+        </div>
+    </div>
+
+    <div class="aws-content-relative">
+        <!-- Glass Mirror Overlay (Disabled State) -->
+        <div id="aws-disabled-overlay" class="aws-glass-mirror">
+            <div class="glass-content">
+                <div class="glass-icon"><span class="glyphicon glyphicon-eye-close"></span></div>
+                <h2>{{_('AWS S3 Service Paused')}}</h2>
+                <p>{{_('Enable the service using the toggle above to access cloud storage.')}}</p>
+                <button class="btn btn-primary" onclick="document.getElementById('aws-service-toggle').click()">
+                    <span class="glyphicon glyphicon-flash"></span> {{_('Activate Now')}}
+                </button>
+            </div>
+        </div>
+
+        <div class="row" id="aws-main-content">
+        <!-- Left Column: Credentials -->
+        <div class="col-lg-6 col-md-12">
+            <!-- Stored Credentials Panel -->
+            {% if credential %}
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">
+                        <span class="glyphicon glyphicon-lock text-primary"></span> {{_('Active Configuration')}}
+                        <div class="pull-right">
+                            <span class="aws-badge aws-badge-success">
+                                <span class="glyphicon glyphicon-ok-sign"></span> {{_('Verified')}}
+                            </span>
+                        </div>
+                    </h3>
+                </div>
+                <div class="panel-body">
+                    <table class="cred-info-table">
+                        <tr>
+                            <td>{{_('Access Key ID')}}</td>
+                            <td><code>{{ credential.aws_access_key_id_masked }}</code></td>
+                        </tr>
+                        <tr>
+                            <td>{{_('Region')}}</td>
+                            <td><span class="label label-info">{{ credential.default_region }}</span></td>
+                        </tr>
+                        <tr>
+                            <td>{{_('Bucket Name')}}</td>
+                            <td><span class="text-primary" style="font-weight:600">{{ credential.bucket_name }}</span></td>
+                        </tr>
+                        <tr>
+                            <td>{{_('Output Format')}}</td>
+                            <td><code>{{ credential.default_output_format }}</code></td>
+                        </tr>
+                        <tr>
+                            <td>{{_('Sync Status')}}</td>
+                            <td><span class="text-muted" style="font-size:0.85rem">{{_('Updated:')}} {{ credential.updated_at }}</span></td>
+                        </tr>
+                    </table>
+
+                    <div class="btn-toolbar" style="margin-top: 10px;">
+                        <button class="btn btn-default" onclick="awsToggleEditForm()">
+                            <span class="glyphicon glyphicon-edit"></span> {{_('Modify')}}
+                        </button>
+                        <button class="btn btn-default" id="btn-aws-stored-test" onclick="awsTestStoredConnection()">
+                            <span class="glyphicon glyphicon-transfer"></span> {{_('Check Connectivity')}}
+                        </button>
+                        <button class="btn btn-danger pull-right" onclick="awsDeleteCredentials({{ credential.id }})">
+                            <span class="glyphicon glyphicon-trash"></span> {{_('Remove')}}
+                        </button>
+                    </div>
+                    <div id="aws-stored-status" class="aws-status-box"></div>
+                </div>
+            </div>
+            {% else %}
+            <div class="alert alert-warning" style="border-radius: 12px; border: 1px dashed #FF9900; background: rgba(255,153,0,0.05);">
+                <span class="glyphicon glyphicon-info-sign"></span> 
+                <strong>{{_('No S3 Storage Configured')}}</strong>. {{_('Please add your AWS credentials to enable cloud storage features.')}}
+            </div>
+            {% endif %}
+
+            <!-- Credential Form Panel -->
+            <div class="panel panel-default" id="aws-cred-form-card" {% if credential %}style="display:none"{% endif %}>
+                <div class="panel-heading">
+                    <h3 class="panel-title">
+                        <span class="glyphicon glyphicon-wrench text-primary"></span> 
+                        {% if credential %}{{_('Update Settings')}}{% else %}{{_('Initial Setup')}}{% endif %}
+                    </h3>
+                </div>
+                <div class="panel-body">
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="form-group required">
+                                <label class="control-label" for="aws_access_key_id">{{_('Access Key ID')}}</label>
+                                <input class="form-control" type="text" id="aws_access_key_id" placeholder="AKIA..." autocomplete="off">
+                                <p class="aws-form-hint">{{_('Your 20-character identifier')}}</p>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="form-group required">
+                                <label class="control-label" for="aws_secret_access_key">{{_('Secret Access Key')}}</label>
+                                <input class="form-control" type="password" id="aws_secret_access_key" placeholder="••••••••••••••••" autocomplete="new-password">
+                                <p class="aws-form-hint">{{_('Encrypted at rest')}}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="form-group required">
+                                <label class="control-label" for="aws_default_region">{{_('Region')}}</label>
+                                <select class="form-control" id="aws_default_region">
+                                    <option value="">{{_('Select AWS Region')}}</option>
+                                    {% for r in regions %}
+                                    <option value="{{ r }}" {% if credential and credential.default_region == r %}selected{% endif %}>{{ r }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <label class="control-label" for="aws_default_output_format">{{_('Format')}}</label>
+                                <select class="form-control" id="aws_default_output_format">
+                                    {% for f in output_formats %}
+                                    <option value="{{ f }}" {% if credential and credential.default_output_format == f %}selected{% elif f == 'json' and not credential %}selected{% endif %}>{{ f }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group required">
+                        <label class="control-label" for="aws_bucket_name">{{_('Bucket Name')}}</label>
+                        <input class="form-control" type="text" id="aws_bucket_name" placeholder="my-app-storage" {% if credential %}value="{{ credential.bucket_name }}"{% endif %}>
+                    </div>
+
+                    <hr style="margin: 15px 0;">
+
+                    <div class="btn-toolbar">
+                        <button class="btn btn-primary" id="btn-aws-save" onclick="awsSaveCredentials()">
+                            <span class="glyphicon glyphicon-save"></span> {% if credential %}{{_('Update Credentials')}}{% else %}{{_('Save & Activate')}}{% endif %}
+                        </button>
+                        <button class="btn btn-default" id="btn-aws-test" onclick="awsTestFormConnection()">
+                            <span class="glyphicon glyphicon-transfer"></span> {{_('Test Connection')}}
+                        </button>
+                        {% if credential %}
+                        <button class="btn btn-link" onclick="awsToggleEditForm()">{{_('Cancel')}}</button>
+                        {% endif %}
+                    </div>
+                    <div id="aws-form-status" class="aws-status-box"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Operations -->
+        <div class="col-lg-6 col-md-12">
+            {% if credential %}
+            <!-- File Upload Panel -->
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title"><span class="glyphicon glyphicon-cloud-upload text-primary"></span> {{_('Transfer Files')}}</h3>
+                </div>
+                <div class="panel-body">
+                    <div class="aws-drop-zone" id="aws-drop-zone" onclick="document.getElementById('aws-file-input').click()">
+                        <div class="drop-icon"><span class="glyphicon glyphicon-open-file"></span></div>
+                        <strong>{{_('Drop objects here')}}</strong>
+                        <p>{{_('or click to browse local files')}}</p>
+                    </div>
+                    <input type="file" id="aws-file-input" style="display:none">
+                    
+                    <div id="aws-selected-file" class="aws-selected-file"></div>
+                    
+                    <div class="aws-progress-wrap" id="aws-progress-wrap">
+                        <div class="aws-progress-bar" id="aws-progress-bar"></div>
+                    </div>
+
+                    <div style="margin-top: 15px;">
+                        <button class="btn btn-primary btn-block" id="btn-aws-upload" onclick="awsUploadFile()" style="display:none">
+                            <span class="glyphicon glyphicon-upload"></span> {{_('Upload to S3')}}
+                        </button>
+                    </div>
+                    <div id="aws-upload-status" class="aws-status-box"></div>
+                </div>
+            </div>
+
+            <!-- Browser Panel -->
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">
+                        <span class="glyphicon glyphicon-list text-primary"></span> {{_('Storage Explorer')}}
+                        <div class="pull-right">
+                            <button class="btn btn-default btn-xs" onclick="awsLoadFiles()" title="{{_('Refresh')}}">
+                                <span class="glyphicon glyphicon-refresh"></span>
+                            </button>
+                        </div>
+                    </h3>
+                </div>
+                <div class="panel-body" style="padding: 15px;">
+                    <div class="input-group" style="margin-bottom: 15px;">
+                        <span class="input-group-addon"><span class="glyphicon glyphicon-folder-open"></span></span>
+                        <input type="text" id="aws-prefix-filter" class="form-control" placeholder="{{_('Search prefix (e.g. docs/)')}}">
+                        <span class="input-group-btn">
+                            <button class="btn btn-default" type="button" onclick="awsLoadFiles()">
+                                {{_('Filter')}}
+                            </button>
+                        </span>
+                    </div>
+                    <div id="aws-file-browser" style="min-height: 250px;">
+                        <div class="text-center" style="padding-top: 50px; color: #bbb;">
+                            <span class="glyphicon glyphicon-search" style="font-size: 30px; display: block; margin-bottom: 10px;"></span>
+                            <p>{{_('Load files to explore bucket content')}}</p>
+                            <button class="btn btn-default btn-sm" onclick="awsLoadFiles()">{{_('Load Files')}}</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <!-- Placeholder for Operations when not configured -->
+            <div class="panel panel-default" style="opacity: 0.5;">
+                <div class="panel-heading">
+                    <h3 class="panel-title"><span class="glyphicon glyphicon-lock"></span> {{_('Storage Explorer')}}</h3>
+                </div>
+                <div class="panel-body text-center" style="padding: 60px 20px;">
+                    <span class="glyphicon glyphicon-cloud-download" style="font-size: 48px; color: #ddd;"></span>
+                    <p style="margin-top: 15px; color: #999;">{{_('File management will be available after AWS configuration.')}}</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+</div>
+
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+{% endblock %}
+
+{% block js %}
+<script>
+    window.AWS_CRED_ID = {{ credential.id if credential else 'null' }};
+</script>
+<script src="{{ url_for('static', filename='js/aws_s3_admin.js') }}"></script>
+{% endblock %}

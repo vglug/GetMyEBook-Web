@@ -8,6 +8,10 @@ h2 {
   margin: 0;
 }
 
+a:focus{
+    outline: none;
+}
+
 .form-upload-class:hover .btn-file,
 .form-upload-class:hover .btn-file i {
   color: #c08486 !important;
@@ -718,6 +722,8 @@ h2 {
   height: 3px;
   background: linear-gradient(90deg, #ff7174, #ff5b5e);
   border-radius: 2px;
+  border: none;
+  box-sizing:unset;
 }
 
 .main-menu li a {

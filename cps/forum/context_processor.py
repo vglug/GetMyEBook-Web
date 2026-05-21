@@ -4,7 +4,7 @@ Injects forum-specific variables into all forum templates
 """
 from flask import request
 from flask_login import current_user
-from cps.forum.database.models.category import Category
+from cps.models.forum.category import Category
 from cps.forum.auth_bridge import get_forum_user
 import logging
 

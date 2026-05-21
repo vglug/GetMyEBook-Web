@@ -2,7 +2,7 @@
 
 from cps import logger, calibre_db, db, ub
 from cps.services.worker import CalibreTask
-from cps.forum.database.models import Thread, Category
+from cps.models.forum import Thread, Category
 from slugify import slugify
 from flask_babel import lazy_gettext as N_
 

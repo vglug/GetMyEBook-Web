@@ -40,6 +40,7 @@ from .babel import babel, get_locale
 from . import config_sql
 from . import cache_buster
 from . import ub, db
+from .extensions import db as flask_db, migrate as flask_migrate
 
 # PostgreSQL/SQLAlchemy imports
 from sqlalchemy import create_engine
@@ -124,8 +125,7 @@ def create_database_tables(engine):
     try:
         log.info("Creating database tables...")
         
-        # Import all models that need to be created
-        from . import ub
+        # Import all models that need to be created (ub already imported at module level)
         from . import config_sql
         
         # Create all tables
@@ -183,6 +183,17 @@ def create_app():
 
     config_sql.load_configuration(ub.session, encrypt_key)
     config.init_config(ub.session, encrypt_key, cli_param)
+
+    # Initialize Flask-SQLAlchemy and Flask-Migrate to enable `flask db` CLI
+    try:
+        # Use existing declarative Base metadata so we don't need to change models
+        flask_db.Model = ub.Base
+        flask_db.metadata = ub.Base.metadata
+    except Exception:
+        pass
+
+    flask_db.init_app(app)
+    flask_migrate.init_app(app, flask_db)
 
     if error:
         log.error(error)
@@ -337,6 +348,14 @@ def create_app():
             db_session.remove()
         if db.CalibreDB.session_factory:
             db.CalibreDB.session_factory.remove()
+
+    # ── AWS S3 Admin Blueprint ──────────────────────────────────────────────
+    try:
+        from .aws_s3_admin import aws_s3 as aws_s3_bp
+        app.register_blueprint(aws_s3_bp)
+        log.info("✅ AWS S3 admin blueprint registered (/admin/aws-s3)")
+    except Exception as _e:
+        log.error(f"❌ Failed to register AWS S3 blueprint: {_e}")
 
     return app
 

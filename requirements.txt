@@ -3,6 +3,10 @@ alembic==1.18.4
 anyio==4.12.1
 apscheduler==3.10.4
 arrow==1.4.0
+boto3==1.43.6
+botocore==1.43.6
+jmespath==1.1.0
+s3transfer==0.17.0
 attrs==25.4.0
 authlib==1.6.5
 babel==2.18.0

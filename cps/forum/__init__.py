@@ -2,11 +2,9 @@
 Flask Forum Module 
 Integrated with GetMyEBook-Web (Calibre-Web)
 """
-from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from flask_mail import Mail
 from flask_marshmallow import Marshmallow
-from flask_migrate import Migrate
 
 # Flask-Modus is optional (has compatibility issues with newer Werkzeug)
 try:
@@ -24,9 +22,9 @@ except ImportError:
     seeder_available = False
     FlaskSeeder = None
 
-# Initialize extensions (will be bound to app in cps/__init__.py)
-db = SQLAlchemy()
-migrate = Migrate()
+# Use shared db/migrate instances from the main app extensions to avoid
+# multiple SQLAlchemy instances being registered on the same Flask app.
+from cps.extensions import db, migrate
 bcrypt = Bcrypt()
 mail = Mail()
 ma = Marshmallow()
@@ -38,8 +36,8 @@ seeder = FlaskSeeder() if seeder_available and FlaskSeeder else None
 
 def init_forum_extensions(app):
     """Initialize forum extensions with Flask app"""
-    db.init_app(app)
-    migrate.init_app(app, db)
+    # `db` and `migrate` are initialized in the main app factory; do not
+    # re-initialize them here to avoid duplicate registration errors.
     bcrypt.init_app(app)
     mail.init_app(app)
     ma.init_app(app)
@@ -93,10 +91,10 @@ def init_forum_extensions(app):
 def get_forum_blueprints():
     """Get forum blueprints for registration (auth excluded - using GetMyEBook SSO)"""
     # Auth blueprint removed - forum uses GetMyEBook login via auth_bridge
-    from cps.forum.apps.main.routes import main_blueprint
-    from cps.forum.apps.threads.routes import thread_blueprint
-    from cps.forum.apps.comments.routes import comments_blueprint
-    from cps.forum.apps.settings.routes import settings_blueprint
+    from cps.forum.routes.main import main_blueprint
+    from cps.forum.routes.threads import thread_blueprint
+    from cps.forum.routes.comments import comments_blueprint
+    from cps.forum.routes.settings import settings_blueprint
     
     return {
         'main': main_blueprint,
@@ -107,7 +105,7 @@ def get_forum_blueprints():
 
 def init_forum_models():
     """Import forum models after db is initialized"""
-    from cps.forum.database.models import Thread, Comment, Category
+    from cps.models.forum import Thread, Comment, Category
     from cps.ub import User  # User comes from main app
     return {'User': User, 'Thread': Thread, 'Comment': Comment, 'Category': Category}
 

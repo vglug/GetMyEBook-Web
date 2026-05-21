@@ -1,5 +1,5 @@
 from cps.forum import ma
-from cps.forum.database.models import Thread
+from cps.models.forum import Thread
 
 
 class ThreadSchema(ma.SQLAlchemySchema):

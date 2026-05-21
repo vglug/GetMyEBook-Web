@@ -48,7 +48,7 @@ from .redirect import get_redirect_location
 from .file_helper import validate_mime_type
 from .usermanagement import user_login_required, login_required_if_no_ano
 from cps.forum.apps.threads.forms import ThreadCreationForm
-from cps.forum.database.models import Thread, Category
+from cps.models.forum import Thread, Category
 from slugify import slugify
 
 editbook = Blueprint('edit-book', __name__)

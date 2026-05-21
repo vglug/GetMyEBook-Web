@@ -3,7 +3,7 @@ from marshmallow import Schema, fields
 from marshmallow.validate import Length
 from .thread_schema import ThreadSchema
 from .user_schema import UserSchema
-from cps.forum.database.models.comment import Comment
+from cps.models.forum.comment import Comment
 
 
 class CommentSchema(ma.SQLAlchemyAutoSchema):

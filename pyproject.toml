@@ -43,4 +43,5 @@ dependencies = [
     "marshmallow>=4.1.0",
     "cachelib>=0.13.0,<0.14.0",
     "alabaster>=1.0.0",
+    "boto3>=1.43.6",
 ]

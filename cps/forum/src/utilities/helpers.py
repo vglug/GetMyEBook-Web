@@ -1,5 +1,5 @@
 from datetime import datetime
-from cps.forum.database.models.category import Category
+from cps.models.forum.category import Category
 from cps.forum.src.cache import Cache
 
 def now():
@@ -17,7 +17,7 @@ def cached_categories():
         # If DB is empty, run seeder to load 4 default categories
         if not db_categories:
             try:
-                from cps.forum.database.seeds.category_seeder import categories_run
+                from cps.forum.seeds.category_seeder import categories_run
                 categories_run()
                 db_categories = Category.query.all()
             except ImportError:

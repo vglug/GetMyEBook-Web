@@ -216,7 +216,7 @@ def admin():
 @user_login_required
 @admin_required
 def delete_comment_admin():
-    from cps.forum.database.models import Comment
+    from cps.models.forum import Comment
     from cps.forum import db as forum_db
     
     try:
@@ -239,7 +239,7 @@ def delete_comment_admin():
 @user_login_required
 @admin_required
 def edit_comment_admin():
-    from cps.forum.database.models import Comment
+    from cps.models.forum import Comment
     from cps.forum import db as forum_db
 
     try:
@@ -271,7 +271,7 @@ def edit_comment_admin():
 @user_login_required
 @admin_required
 def delete_forum_admin():
-    from cps.forum.database.models import Thread
+    from cps.models.forum import Thread
     from cps.forum import db as forum_db
     
     try:
@@ -282,7 +282,7 @@ def delete_forum_admin():
         thread = forum_db.session.query(Thread).filter(Thread.id == thread_id).first()
         if thread:
             # Also delete related comments to maintain integrity
-            from cps.forum.database.models import Comment
+            from cps.models.forum import Comment
             forum_db.session.query(Comment).filter(Comment.thread_id == thread.id).delete()
             
             forum_db.session.delete(thread)
@@ -299,7 +299,7 @@ def delete_forum_admin():
 @user_login_required
 @admin_required
 def edit_forum_admin():
-    from cps.forum.database.models import Thread
+    from cps.models.forum import Thread
     from cps.forum import db as forum_db
 
     try:
@@ -328,7 +328,7 @@ def edit_forum_admin():
 @user_login_required
 @admin_required
 def comments_panel():
-    from cps.forum.database.models import Comment, Thread
+    from cps.models.forum import Comment, Thread
     from cps.forum import db as forum_db
 
     all_comments = forum_db.session.query(Comment).all()
@@ -356,7 +356,7 @@ def comments_panel():
 @user_login_required
 @admin_required
 def forum_panel():
-    from cps.forum.database.models import Thread
+    from cps.models.forum import Thread
     from cps.forum import db as forum_db
 
     try:
