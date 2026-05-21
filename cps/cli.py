@@ -80,7 +80,10 @@ class CliParameter(object):
                                                             'in advance and exits Calibre-Web')
         parser.add_argument('-r', action='store_true', help='Enable public database reconnect '
                                                             'route under /reconnect')
-        args = parser.parse_args()
+        # Use parse_known_args to avoid failing when Flask CLI injects
+        # subcommands (e.g. "flask db init") into sys.argv. Unknown
+        # arguments will be ignored so the Flask CLI can handle them.
+        args, unknown = parser.parse_known_args()
 
         self.logpath = args.o or ""
         

@@ -40,6 +40,7 @@ from .babel import babel, get_locale
 from . import config_sql
 from . import cache_buster
 from . import ub, db
+from .extensions import db as flask_db, migrate as flask_migrate
 
 # PostgreSQL/SQLAlchemy imports
 from sqlalchemy import create_engine
@@ -182,6 +183,17 @@ def create_app():
 
     config_sql.load_configuration(ub.session, encrypt_key)
     config.init_config(ub.session, encrypt_key, cli_param)
+
+    # Initialize Flask-SQLAlchemy and Flask-Migrate to enable `flask db` CLI
+    try:
+        # Use existing declarative Base metadata so we don't need to change models
+        flask_db.Model = ub.Base
+        flask_db.metadata = ub.Base.metadata
+    except Exception:
+        pass
+
+    flask_db.init_app(app)
+    flask_migrate.init_app(app, flask_db)
 
     if error:
         log.error(error)

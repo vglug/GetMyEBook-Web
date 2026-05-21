@@ -37,16 +37,16 @@ def get_scheduled_tasks(reconnect=True):
     tasks.append([lambda: TaskClean(), 'delete temp', True])
 
     # Generate metadata.opf file for each changed book
-    if config.schedule_metadata_backup:
+    if getattr(config, 'schedule_metadata_backup', False):
         tasks.append([lambda: TaskBackupMetadata("en"), 'backup metadata', False])
 
     # Generate all missing book cover thumbnails
-    if config.schedule_generate_book_covers:
+    if getattr(config, 'schedule_generate_book_covers', False):
         tasks.append([lambda: TaskClearCoverThumbnailCache(0), 'delete superfluous book covers', True])
         tasks.append([lambda: TaskGenerateCoverThumbnails(), 'generate book covers', False])
 
     # Generate all missing series thumbnails
-    if config.schedule_generate_series_covers:
+    if getattr(config, 'schedule_generate_series_covers', False):
         tasks.append([lambda: TaskGenerateSeriesThumbnails(), 'generate book covers', False])
 
     return tasks
@@ -66,8 +66,8 @@ def register_scheduled_tasks(reconnect=True):
         # Remove all existing jobs
         scheduler.remove_all_jobs()
 
-        start = config.schedule_start_time
-        duration = config.schedule_duration
+        start = getattr(config, 'schedule_start_time', 0)
+        duration = getattr(config, 'schedule_duration', 0)
 
         # Register scheduled tasks
         timezone_info = datetime.datetime.now(datetime.timezone.utc).astimezone().tzinfo
@@ -92,8 +92,8 @@ def register_startup_tasks():
     scheduler = BackgroundScheduler()
 
     if scheduler:
-        start = config.schedule_start_time
-        duration = config.schedule_duration
+        start = getattr(config, 'schedule_start_time', 0)
+        duration = getattr(config, 'schedule_duration', 0)
 
         # Run scheduled tasks immediately for development and testing
         # Ignore tasks that should currently be running, as these will be added when registering scheduled tasks
@@ -105,12 +105,28 @@ def register_startup_tasks():
 
 def should_task_be_running(start, duration):
     now = datetime.datetime.now()
-    start_time = datetime.datetime.now().replace(hour=start, minute=0, second=0, microsecond=0)
-    end_time = start_time + datetime.timedelta(hours=duration // 60, minutes=duration % 60)
+    try:
+        start_hour = int(start)
+    except Exception:
+        start_hour = 0
+    try:
+        dur = int(duration)
+    except Exception:
+        dur = 0
+    start_time = datetime.datetime.now().replace(hour=start_hour, minute=0, second=0, microsecond=0)
+    end_time = start_time + datetime.timedelta(hours=dur // 60, minutes=dur % 60)
     return start_time < now < end_time
 
 
 def calclulate_end_time(start, duration):
-    start_time = datetime.datetime.now().replace(hour=start, minute=0)
-    return start_time + datetime.timedelta(hours=duration // 60, minutes=duration % 60)
+    try:
+        start_hour = int(start)
+    except Exception:
+        start_hour = 0
+    try:
+        dur = int(duration)
+    except Exception:
+        dur = 0
+    start_time = datetime.datetime.now().replace(hour=start_hour, minute=0)
+    return start_time + datetime.timedelta(hours=dur // 60, minutes=dur % 60)
 

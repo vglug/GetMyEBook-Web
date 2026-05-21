@@ -67,7 +67,7 @@ except ImportError as err:
         gdrive_support = False
 
 from . import logger, cli_param, config, db
-from .constants import CONFIG_DIR as _CONFIG_DIR
+from .constants import CONFIG_DIR as _CONFIG_DIR, DEFAULT_GDRIVE_FILE
 
 
 SETTINGS_YAML  = os.path.join(_CONFIG_DIR, 'settings.yaml')
@@ -145,7 +145,9 @@ def is_gdrive_ready():
     return os.path.exists(SETTINGS_YAML) and os.path.exists(CREDENTIALS)
 
 
-engine = create_engine('sqlite:///{0}'.format(cli_param.gd_path), echo=False)
+# Ensure gd_path has a usable fallback if CLI parsing hasn't set it yet
+gd_path = cli_param.gd_path or os.path.join(_CONFIG_DIR, DEFAULT_GDRIVE_FILE)
+engine = create_engine('sqlite:///{0}'.format(gd_path), echo=False)
 Base = declarative_base()
 
 # Open session for database connection
@@ -176,7 +178,7 @@ class PermissionAdded(Base):
         return str(self.gdrive_id)
 
 
-if not os.path.exists(cli_param.gd_path):
+if not os.path.exists(gd_path):
     try:
         Base.metadata.create_all(engine)
     except Exception as ex:
