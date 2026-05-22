@@ -72,7 +72,8 @@ def upgrade():
     op.drop_table('identifiers')
     op.drop_table('oauth')
     op.drop_table('annotations_fts_stemmed_config')
-    op.drop_table('kobo_reading_state')
+    # Cascade drop to remove dependent objects (kobo_bookmark, kobo_statistics)
+    op.execute("DROP TABLE IF EXISTS kobo_reading_state CASCADE")
     with op.batch_alter_table('comments', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('idx_17174_comments_idx'))
         batch_op.drop_index(batch_op.f('idx_17174_sqlite_autoindex_comments_1'))
@@ -99,7 +100,8 @@ def upgrade():
         batch_op.drop_index(batch_op.f('idx_17226_sqlite_autoindex_preferences_1'))
 
     op.drop_table('preferences')
-    op.drop_table('users')
+    # Use CASCADE to ensure dependent objects (FKs) are removed in Postgres
+    op.execute("DROP TABLE IF EXISTS users CASCADE")
     with op.batch_alter_table('annotations', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('idx_17261_annot_idx'))
         batch_op.drop_index(batch_op.f('idx_17261_sqlite_autoindex_annotations_1'))
@@ -208,8 +210,22 @@ def upgrade():
         batch_op.create_foreign_key(None, 'forum_threads', ['thread_id'], ['id'], ondelete='CASCADE')
         batch_op.create_foreign_key(None, 'forum_comments', ['parent_id'], ['id'], ondelete='CASCADE')
 
-    with op.batch_alter_table('forum_threads', schema=None) as batch_op:
-        batch_op.alter_column('user_id',
+        # Ensure `slug` values are unique before adding a UNIQUE constraint.
+        # For duplicated slugs, append the record `id` to make them unique.
+        op.execute("""
+        WITH duplicates AS (
+            SELECT id, slug, ROW_NUMBER() OVER (PARTITION BY slug ORDER BY id) AS rn
+            FROM forum_threads
+            WHERE slug IS NOT NULL
+        )
+        UPDATE forum_threads
+        SET slug = forum_threads.slug || '-' || duplicates.id::text
+        FROM duplicates
+        WHERE forum_threads.id = duplicates.id AND duplicates.rn > 1;
+        """)
+
+        with op.batch_alter_table('forum_threads', schema=None) as batch_op:
+            batch_op.alter_column('user_id',
                existing_type=sa.INTEGER(),
                nullable=False)
         batch_op.alter_column('comments_count',

@@ -180,7 +180,10 @@ class PermissionAdded(Base):
 
 if not os.path.exists(gd_path):
     try:
-        Base.metadata.create_all(engine)
+        import sys
+        migration_running = any(arg == 'db' for arg in sys.argv)
+        if not migration_running:
+            Base.metadata.create_all(engine)
     except Exception as ex:
         log.error("Error connect to database: {} - {}".format(cli_param.gd_path, ex))
         raise

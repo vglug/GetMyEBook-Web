@@ -650,7 +650,10 @@ def autodetect_kepubify_binary():
 
 def _migrate_database(session, secret_key):
     # make sure the table is created, if it does not exist
-    _Base.metadata.create_all(session.bind)
+    import sys
+    migration_running = any(arg == 'db' for arg in sys.argv)
+    if not migration_running:
+        _Base.metadata.create_all(session.bind)
     _migrate_table(session, _Settings, secret_key)
     _migrate_table(session, _Flask_Settings)
 

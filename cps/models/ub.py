@@ -797,8 +797,11 @@ def init_db(app_db_path=None):
     session = Session()
 
     # For PostgreSQL, we assume tables are already created via migrations
-    # Just create missing tables if they don't exist
-    Base.metadata.create_all(engine)
+    # Just create missing tables if they don't exist — skip during migrations
+    import sys
+    migration_running = any(arg == 'db' for arg in sys.argv)
+    if not migration_running:
+        Base.metadata.create_all(engine)
     migrate_Database(session)
     clean_database(session)
 
