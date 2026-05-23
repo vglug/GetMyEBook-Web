@@ -209,6 +209,16 @@ def create_app():
     except Exception:
         pass
 
+    # Ensure all model modules are imported when running Flask-Migrate
+    # so Alembic autogenerate can detect every model/table definition.
+    if migration_running:
+        try:
+            # Import package that aggregates model modules
+            import cps.models  # noqa: F401
+            log.info('Imported cps.models for migration autogenerate')
+        except Exception as e:
+            log.warning(f'Could not import cps.models during migration: {e}')
+
     # Initialize Flask-SQLAlchemy and Flask-Migrate to enable `flask db` CLI
     flask_db.init_app(app)
     flask_migrate.init_app(app, flask_db)
