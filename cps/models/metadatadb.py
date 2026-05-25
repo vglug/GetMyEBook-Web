@@ -1,13 +1,11 @@
 # metadata.db file convert ORM model
 
 from sqlalchemy import Boolean, CheckConstraint, Column, Float, ForeignKey, Index, Integer, LargeBinary, TIMESTAMP, Table, Text, UniqueConstraint, text
-from sqlalchemy.orm import Mapped, declarative_base, mapped_column
 from sqlalchemy.orm.base import Mapped
-from sqlalchemy.sql.sqltypes import NullType
 
-from cps.models.db import Books
+from cps.models.db import Base, Books
 
-Base = declarative_base()
+from .ub import Base
 metadata = Base.metadata
 
 
@@ -17,8 +15,8 @@ class TimestampMixin:
     Uses server-side CURRENT_TIMESTAMP so the DB populates and updates them
     automatically. Alembic/Flask-Migrate autogenerate will pick these up.
     """
-    created_at = mapped_column(TIMESTAMP, nullable=False, server_default=text('CURRENT_TIMESTAMP'))
-    updated_at = mapped_column(
+    created_at = Column(TIMESTAMP, nullable=False, server_default=text('CURRENT_TIMESTAMP'))
+    updated_at = Column(
         TIMESTAMP,
         nullable=False,
         server_default=text('CURRENT_TIMESTAMP'),
@@ -33,93 +31,93 @@ class Annotations(Base):
         Index('annot_idx', 'book')
     )
 
-    book = mapped_column(Integer, nullable=False)
-    format = mapped_column(Text, nullable=False)
-    user_type = mapped_column(Text, nullable=False)
-    user = mapped_column(Text, nullable=False)
-    timestamp = mapped_column(Float, nullable=False)
-    annot_id = mapped_column(Text, nullable=False)
-    annot_type = mapped_column(Text, nullable=False)
-    annot_data = mapped_column(Text, nullable=False)
-    searchable_text = mapped_column(Text, nullable=False, server_default=text("''"))
-    id = mapped_column(Integer, primary_key=True)
+    book = Column(Integer, nullable=False)
+    format = Column(Text, nullable=False)
+    user_type = Column(Text, nullable=False)
+    user = Column(Text, nullable=False)
+    timestamp = Column(Float, nullable=False)
+    annot_id = Column(Text, nullable=False)
+    annot_type = Column(Text, nullable=False)
+    annot_data = Column(Text, nullable=False)
+    searchable_text = Column(Text, nullable=False, server_default=text("''"))
+    id = Column(Integer, primary_key=True)
 
 
 class AnnotationsDirtied(Base):
     __tablename__ = 'annotations_dirtied'
 
-    book = mapped_column(Integer, nullable=False, unique=True)
-    id = mapped_column(Integer, primary_key=True)
+    book = Column(Integer, nullable=False, unique=True)
+    id = Column(Integer, primary_key=True)
 
 
 t_annotations_fts = Table(
     'annotations_fts', metadata,
-    Column('searchable_text', NullType)
+    Column('searchable_text', Text)
 )
 
 
 class AnnotationsFtsConfig(Base):
     __tablename__ = 'annotations_fts_config'
 
-    k = mapped_column(NullType, primary_key=True)
-    v = mapped_column(NullType)
+    k = Column(Text, primary_key=True)
+    v = Column(Text)
 
 
 class AnnotationsFtsData(Base):
     __tablename__ = 'annotations_fts_data'
 
-    id = mapped_column(Integer, primary_key=True)
-    block = mapped_column(LargeBinary)
+    id = Column(Integer, primary_key=True)
+    block = Column(LargeBinary)
 
 
 class AnnotationsFtsDocsize(Base):
     __tablename__ = 'annotations_fts_docsize'
 
-    id = mapped_column(Integer, primary_key=True)
-    sz = mapped_column(LargeBinary)
+    id = Column(Integer, primary_key=True)
+    sz = Column(LargeBinary)
 
 
 class AnnotationsFtsIdx(Base):
     __tablename__ = 'annotations_fts_idx'
 
-    segid = mapped_column(NullType, primary_key=True, nullable=False)
-    term = mapped_column(NullType, primary_key=True, nullable=False)
-    pgno = mapped_column(NullType)
+    segid = Column(Text, primary_key=True, nullable=False)
+    term = Column(Text, primary_key=True, nullable=False)
+    pgno = Column(Text)
 
 
 t_annotations_fts_stemmed = Table(
     'annotations_fts_stemmed', metadata,
-    Column('searchable_text', NullType)
+    Column('searchable_text', Text)
 )
 
 
 class AnnotationsFtsStemmedConfig(Base):
     __tablename__ = 'annotations_fts_stemmed_config'
 
-    k = mapped_column(NullType, primary_key=True)
-    v = mapped_column(NullType)
+    k = Column(Text, primary_key=True)
+    v = Column(Text)
 
 
 class AnnotationsFtsStemmedData(Base):
     __tablename__ = 'annotations_fts_stemmed_data'
 
-    id = mapped_column(Integer, primary_key=True)
-    block = mapped_column(LargeBinary)
+    id = Column(Integer, primary_key=True)
+    block = Column(LargeBinary)
 
 
 class AnnotationsFtsStemmedDocsize(Base):
     __tablename__ = 'annotations_fts_stemmed_docsize'
 
-    id = mapped_column(Integer, primary_key=True)
-    sz = mapped_column(LargeBinary)
+    id = Column(Integer, primary_key=True)
+    sz = Column(LargeBinary)
 
 
 class AnnotationsFtsStemmedIdx(Base):
     __tablename__ = 'annotations_fts_stemmed_idx'
 
-    segid = mapped_column(NullType, primary_key=True, nullable=False)
-    term = mapped_column(NullType, primary_key=True, nullable=False)
-    pgno = mapped_column(NullType)
+    segid = Column(Text, primary_key=True, nullable=False)
+    term = Column(Text, primary_key=True, nullable=False)
+    pgno = Column(Text)
 
 class BooksAuthorsLink(Base):
     __tablename__ = 'books_authors_link'
@@ -129,9 +127,9 @@ class BooksAuthorsLink(Base):
         Index('books_authors_link_bidx', 'book')
     )
 
-    book = mapped_column(Integer, nullable=False)
-    author = mapped_column(Integer, nullable=False)
-    id = mapped_column(Integer, primary_key=True)
+    book = Column(Integer, nullable=False)
+    author = Column(Integer, nullable=False)
+    id = Column(Integer, primary_key=True)
 
 
 class BooksLanguagesLink(Base):
@@ -142,10 +140,10 @@ class BooksLanguagesLink(Base):
         Index('books_languages_link_bidx', 'book')
     )
 
-    book = mapped_column(Integer, nullable=False)
-    lang_code = mapped_column(Integer, nullable=False)
-    item_order = mapped_column(Integer, nullable=False, server_default=text('0'))
-    id = mapped_column(Integer, primary_key=True)
+    book = Column(Integer, nullable=False)
+    lang_code = Column(Integer, nullable=False)
+    item_order = Column(Integer, nullable=False, server_default=text('0'))
+    id = Column(Integer, primary_key=True)
 
 
 class BooksPluginData(Base):
@@ -154,10 +152,10 @@ class BooksPluginData(Base):
         UniqueConstraint('book', 'name'),
     )
 
-    book = mapped_column(Integer, nullable=False)
-    name = mapped_column(Text, nullable=False)
-    val = mapped_column(Text, nullable=False)
-    id = mapped_column(Integer, primary_key=True)
+    book = Column(Integer, nullable=False)
+    name = Column(Text, nullable=False)
+    val = Column(Text, nullable=False)
+    id = Column(Integer, primary_key=True)
 
 
 class BooksPublishersLink(Base):
@@ -167,9 +165,9 @@ class BooksPublishersLink(Base):
         Index('books_publishers_link_bidx', 'book')
     )
 
-    book = mapped_column(Integer, nullable=False, unique=True)
-    publisher = mapped_column(Integer, nullable=False)
-    id = mapped_column(Integer, primary_key=True)
+    book = Column(Integer, nullable=False, unique=True)
+    publisher = Column(Integer, nullable=False)
+    id = Column(Integer, primary_key=True)
 
 
 class BooksRatingsLink(Base):
@@ -180,9 +178,9 @@ class BooksRatingsLink(Base):
         Index('books_ratings_link_bidx', 'book')
     )
 
-    book = mapped_column(Integer, nullable=False)
-    rating = mapped_column(Integer, nullable=False)
-    id = mapped_column(Integer, primary_key=True)
+    book = Column(Integer, nullable=False)
+    rating = Column(Integer, nullable=False)
+    id = Column(Integer, primary_key=True)
 
 
 class BooksSeriesLink(Base):
@@ -192,9 +190,9 @@ class BooksSeriesLink(Base):
         Index('books_series_link_bidx', 'book')
     )
 
-    book = mapped_column(Integer, nullable=False, unique=True)
-    series = mapped_column(Integer, nullable=False)
-    id = mapped_column(Integer, primary_key=True)
+    book = Column(Integer, nullable=False, unique=True)
+    series = Column(Integer, nullable=False)
+    id = Column(Integer, primary_key=True)
 
 
 class BooksTagsLink(Base):
@@ -205,9 +203,9 @@ class BooksTagsLink(Base):
         Index('books_tags_link_bidx', 'book')
     )
 
-    book = mapped_column(Integer, nullable=False)
-    tag = mapped_column(Integer, nullable=False)
-    id = mapped_column(Integer, primary_key=True)
+    book = Column(Integer, nullable=False)
+    tag = Column(Integer, nullable=False)
+    id = Column(Integer, primary_key=True)
 
 class ConversionOptions(TimestampMixin, Base):
     __tablename__ = 'conversion_options'
@@ -217,17 +215,17 @@ class ConversionOptions(TimestampMixin, Base):
         Index('conversion_options_idx_b', 'book')
     )
 
-    format = mapped_column(Text, nullable=False)
-    data = mapped_column(LargeBinary, nullable=False)
-    id = mapped_column(Integer, primary_key=True)
-    book = mapped_column(Integer)
+    format = Column(Text, nullable=False)
+    data = Column(LargeBinary, nullable=False)
+    id = Column(Integer, primary_key=True)
+    book = Column(Integer)
 
 class Feeds(Base):
     __tablename__ = 'feeds'
 
-    title = mapped_column(Text, nullable=False, unique=True)
-    script = mapped_column(Text, nullable=False)
-    id = mapped_column(Integer, primary_key=True)
+    title = Column(Text, nullable=False, unique=True)
+    script = Column(Text, nullable=False)
+    id = Column(Integer, primary_key=True)
 
 
 class LastReadPositions(Base):
@@ -237,21 +235,21 @@ class LastReadPositions(Base):
         Index('lrp_idx', 'book')
     )
 
-    book = mapped_column(Integer, nullable=False)
-    format = mapped_column(Text, nullable=False)
-    user = mapped_column(Text, nullable=False)
-    device = mapped_column(Text, nullable=False)
-    cfi = mapped_column(Text, nullable=False)
-    epoch = mapped_column(Float, nullable=False)
-    pos_frac = mapped_column(Float, nullable=False, server_default=text('0'))
-    id = mapped_column(Integer, primary_key=True)
+    book = Column(Integer, nullable=False)
+    format = Column(Text, nullable=False)
+    user = Column(Text, nullable=False)
+    device = Column(Text, nullable=False)
+    cfi = Column(Text, nullable=False)
+    epoch = Column(Float, nullable=False)
+    pos_frac = Column(Float, nullable=False, server_default=text('0'))
+    id = Column(Integer, primary_key=True)
 
 class Preferences(TimestampMixin, Base):
     __tablename__ = 'preferences'
 
-    key = mapped_column(Text, nullable=False, unique=True)
-    val = mapped_column(Text, nullable=False)
-    id = mapped_column(Integer, primary_key=True)
+    key = Column(Text, nullable=False, unique=True)
+    val = Column(Text, nullable=False)
+    id = Column(Integer, primary_key=True)
 
 class BooksPagesLink(Books):
     __tablename__ = 'books_pages_link'
@@ -259,10 +257,10 @@ class BooksPagesLink(Books):
         Index('books_pages_link_pidx', 'needs_scan'),
     )
 
-    pages = mapped_column(Integer, nullable=False, server_default=text('0'))
-    algorithm = mapped_column(Integer, nullable=False, server_default=text('0'))
-    format = mapped_column(Text, nullable=False, server_default=text("''"))
-    format_size = mapped_column(Integer, nullable=False, server_default=text('0'))
-    needs_scan = mapped_column(Boolean, nullable=False, server_default=text('0'))
-    book = mapped_column(ForeignKey('books.id', ondelete='CASCADE'), primary_key=True)
-    timestamp = mapped_column(TIMESTAMP, server_default=text('CURRENT_TIMESTAMP'))
+    pages = Column(Integer, nullable=False, server_default=text('0'))
+    algorithm = Column(Integer, nullable=False, server_default=text('0'))
+    format = Column(Text, nullable=False, server_default=text("''"))
+    format_size = Column(Integer, nullable=False, server_default=text('0'))
+    needs_scan = Column(Boolean, nullable=False, server_default=text('0'))
+    book = Column(ForeignKey('books.id', ondelete='CASCADE'), primary_key=True)
+    timestamp = Column(TIMESTAMP, server_default=text('CURRENT_TIMESTAMP'))
