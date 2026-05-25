@@ -26,7 +26,7 @@ import unidecode
 from weakref import WeakSet
 
 from sqlalchemy import create_engine , inspect
-from sqlalchemy import Table, Column, ForeignKey, CheckConstraint
+from sqlalchemy import Table, Column, ForeignKey
 from sqlalchemy import String, Integer, Boolean, TIMESTAMP, Float, Sequence
 from sqlalchemy.orm import relationship, sessionmaker, scoped_session
 from sqlalchemy.orm.collections import InstrumentedList
@@ -44,6 +44,7 @@ from ..cw_login import current_user
 from flask_babel import gettext as _
 from flask_babel import get_locale
 from flask import flash
+from .ratings import Ratings
 
 from .. import logger, isoLanguages, create_metadata_psql
 from . import ub
@@ -55,7 +56,7 @@ log = logger.create()
 cc_exceptions = ['composite', 'series']
 cc_classes = {}
 
-Base = declarative_base()
+from .base import calibre_Base as Base
 
 books_authors_link = Table('books_authors_link', Base.metadata,
                            Column('book', Integer, ForeignKey('books.id'), primary_key=True),
@@ -263,27 +264,6 @@ class Series(Base):
 
     def __repr__(self):
         return "<Series('{0},{1}')>".format(self.name, self.sort)
-
-
-class Ratings(Base):
-    __tablename__ = 'ratings'
-
-    id = Column(Integer, primary_key=True)
-    rating = Column(Integer, CheckConstraint('rating>-1 AND rating<11'), unique=True)
-
-    def __init__(self, rating):
-        super().__init__()
-        self.rating = rating
-
-    def get(self):
-        return self.rating
-
-    def __eq__(self, other):
-        return self.rating == other
-
-    def __repr__(self):
-        return "<Ratings('{0}')>".format(self.rating)
-
 
 class Languages(Base):
     __tablename__ = 'languages'

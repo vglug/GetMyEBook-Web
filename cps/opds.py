@@ -37,7 +37,7 @@ from .usermanagement import requires_basic_auth_if_no_ano, auth
 from .helper import get_download_link, get_book_cover
 from .pagination import Pagination
 from .web import render_read_books
-
+from cps.models.ratings import Ratings
 
 opds = Blueprint('opds', __name__)
 
@@ -122,7 +122,7 @@ def feed_best_rated():
         abort(404)
     off = request.args.get("offset") or 0
     entries, __, pagination = calibre_db.fill_indexpage((int(off) / (int(config.config_books_per_page)) + 1), 0,
-                                                        db.Books, db.Books.ratings.any(db.Ratings.rating > 9),
+                                                        db.Books, db.Books.ratings.any(Ratings.rating > 9),
                                                         [db.Books.timestamp.desc()],
                                                         True, config.config_read_column)
     return render_xml_template('feed.xml', entries=entries, pagination=pagination)
@@ -284,13 +284,13 @@ def feed_ratingindex():
     if not auth.current_user().check_visibility(constants.SIDEBAR_RATING):
         abort(404)
     off = request.args.get("offset") or 0
-    entries = calibre_db.session.query(db.Ratings, func.count('books_ratings_link.book').label('count'),
-                                       (db.Ratings.rating / 2).label('name')) \
+    entries = calibre_db.session.query(Ratings, func.count('books_ratings_link.book').label('count'),
+                                       (Ratings.rating / 2).label('name')) \
         .join(db.books_ratings_link)\
         .join(db.Books)\
         .filter(calibre_db.common_filters()) \
-        .group_by(db.Ratings.id)\
-        .order_by(db.Ratings.rating).all()
+        .group_by(Ratings.id)\
+        .order_by(Ratings.rating).all()
 
     pagination = Pagination((int(off) / (int(config.config_books_per_page)) + 1), config.config_books_per_page,
                             len(entries))
@@ -303,7 +303,7 @@ def feed_ratingindex():
 @opds.route("/opds/ratings/<book_id>")
 @requires_basic_auth_if_no_ano
 def feed_ratings(book_id):
-    return render_xml_dataset(db.Ratings, book_id)
+    return render_xml_dataset(Ratings, book_id)
 
 
 @opds.route("/opds/formats")

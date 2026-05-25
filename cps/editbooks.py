@@ -50,6 +50,7 @@ from .usermanagement import user_login_required, login_required_if_no_ano
 from cps.forum.apps.threads.forms import ThreadCreationForm
 from cps.models.forum import Thread, Category
 from slugify import slugify
+from cps.models.ratings import Ratings
 
 editbook = Blueprint('edit-book', __name__)
 log = logger.create()
@@ -1031,11 +1032,11 @@ def edit_book_ratings(to_save, book):
         rating_x2 = int(float(to_save.get("rating", "")) * 2)
         if rating_x2 != old_rating:
             changed = True
-            is_rating = calibre_db.session.query(db.Ratings).filter(db.Ratings.rating == rating_x2).first()
+            is_rating = calibre_db.session.query(Ratings).filter(Ratings.rating == rating_x2).first()
             if is_rating:
                 book.ratings.append(is_rating)
             else:
-                new_rating = db.Ratings(rating=rating_x2)
+                new_rating = Ratings(rating=rating_x2)
                 book.ratings.append(new_rating)
             if old_rating:
                 book.ratings.remove(book.ratings[0])

@@ -62,6 +62,7 @@ from .tasks_status import render_task_status
 from .usermanagement import user_login_required
 from .string_helper import strip_whitespaces
 from urllib.parse import quote , unquote
+from cps.models.ratings import Ratings
 
 
 feature_support = {
@@ -436,7 +437,7 @@ def render_rated_books(page, book_id, order):
     if current_user.check_visibility(constants.SIDEBAR_BEST_RATED):
         entries, random, pagination = calibre_db.fill_indexpage(page, 0,
                                                                 db.Books,
-                                                                db.Books.ratings.any(db.Ratings.rating > 9),
+                                                                db.Books.ratings.any(Ratings.rating > 9),
                                                                 order[0],
                                                                 True, config.config_read_column,
                                                                 db.books_series_link,
@@ -449,7 +450,7 @@ def render_rated_books(page, book_id, order):
         abort(404)
 
 def get_rated_books(page, order):
-    entries, random, pagination = calibre_db.fill_indexpage(page, 0,db.Books,db.Books.ratings.any(db.Ratings.rating > 9),order[0],True, config.config_read_column,db.books_series_link,db.Books.id == db.books_series_link.c.book,db.Series)
+    entries, random, pagination = calibre_db.fill_indexpage(page, 0,db.Books,db.Books.ratings.any(Ratings.rating > 9),order[0],True, config.config_read_column,db.books_series_link,db.Books.id == db.books_series_link.c.book,db.Series)
     return entries
 
 
@@ -652,7 +653,7 @@ def render_ratings_books(page, book_id, order):
             abort(404)
 
     if book_id == -1:
-        db_filter = coalesce(db.Ratings.rating, 0) < 1
+        db_filter = coalesce(Ratings.rating, 0) < 1
         entries, random, pagination = calibre_db.fill_indexpage(page, 0,
                                                                 db.Books,
                                                                 db_filter,
@@ -660,14 +661,14 @@ def render_ratings_books(page, book_id, order):
                                                                 True, config.config_read_column,
                                                                 db.books_ratings_link,
                                                                 db.Books.id == db.books_ratings_link.c.book,
-                                                                db.Ratings)
+                                                                Ratings)
         title = _("Rating: None")
     else:
-        name = calibre_db.session.query(db.Ratings).filter(db.Ratings.id == book_id).first()
+        name = calibre_db.session.query(Ratings).filter(Ratings.id == book_id).first()
         if name:
             entries, random, pagination = calibre_db.fill_indexpage(page, 0,
                                                                     db.Books,
-                                                                    db.Books.ratings.any(db.Ratings.id == book_id),
+                                                                    db.Books.ratings.any(Ratings.id == book_id),
                                                                     [order[0][0]],
                                                                     True, config.config_read_column)
             title = _("Rating: %(rating)s stars", rating=int(name.rating / 2))
@@ -1237,19 +1238,19 @@ def series_list():
 def ratings_list():
     if current_user.check_visibility(constants.SIDEBAR_RATING):
         if current_user.get_view_property('ratings', 'dir') == 'desc':
-            order = db.Ratings.rating.desc()
+            order = Ratings.rating.desc()
             order_no = 0
         else:
-            order = db.Ratings.rating.asc()
+            order = Ratings.rating.asc()
             order_no = 1
         subquery = calibre_db.session.query(db.books_ratings_link.c.rating, func.count(db.books_ratings_link.c.book).label('count')) \
             .join(db.Books, db.Books.id == db.books_ratings_link.c.book).filter(calibre_db.common_filters()) \
             .group_by(db.books_ratings_link.c.rating).subquery()
-        entries = calibre_db.session.query(db.Ratings, subquery.c.count, (db.Ratings.rating / 2).label('name')) \
-            .join(subquery, db.Ratings.id == subquery.c.rating).filter(db.Ratings.rating > 0).order_by(order).all()
+        entries = calibre_db.session.query(Ratings, subquery.c.count, (Ratings.rating / 2).label('name')) \
+            .join(subquery, Ratings.id == subquery.c.rating).filter(Ratings.rating > 0).order_by(order).all()
         no_rating_count = (calibre_db.session.query(db.Books)
-                           .outerjoin(db.books_ratings_link).outerjoin(db.Ratings)
-                           .filter(or_(db.Ratings.rating == None, db.Ratings.rating == 0))
+                           .outerjoin(db.books_ratings_link).outerjoin(Ratings)
+                           .filter(or_(Ratings.rating == None, Ratings.rating == 0))
                            .filter(calibre_db.common_filters())
                            .count())
         if no_rating_count:

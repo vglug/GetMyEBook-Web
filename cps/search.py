@@ -30,7 +30,7 @@ from . import logger, db, calibre_db, config, ub
 from .usermanagement import login_required_if_no_ano
 from .render_template import render_title_template
 from .pagination import Pagination
-
+from cps.models.ratings import Ratings
 
 search = Blueprint('search', __name__)
 
@@ -125,10 +125,10 @@ def adv_search_language(q, include_languages_inputs, exclude_languages_inputs):
 def adv_search_ratings(q, rating_high, rating_low):
     if rating_high:
         rating_high = int(rating_high) * 2
-        q = q.filter(db.Books.ratings.any(db.Ratings.rating <= rating_high))
+        q = q.filter(db.Books.ratings.any(Ratings.rating <= rating_high))
     if rating_low:
         rating_low = int(rating_low) * 2
-        q = q.filter(db.Books.ratings.any(db.Ratings.rating >= rating_low))
+        q = q.filter(db.Books.ratings.any(Ratings.rating >= rating_low))
     return q
 
 

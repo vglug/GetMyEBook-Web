@@ -6,3 +6,4 @@ except ImportError:
     
 
 Base = declarative_base()
+calibre_Base = declarative_base()
