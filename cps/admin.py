@@ -58,6 +58,8 @@ from . import debug_info
 from .utils import get_env_path 
 import urllib
 from cps.models.libraryId import Library_Id
+from cps.models.tags import Tags
+
 
 log = logger.create()
 
@@ -471,12 +473,12 @@ def edit_user_table():
     languages = calibre_db.speaking_language()
     translations = get_available_locale()
     all_user = ub.session.query(ub.User)
-    tags = calibre_db.session.query(db.Tags) \
+    tags = calibre_db.session.query(Tags) \
         .join(db.books_tags_link) \
         .join(db.Books) \
         .filter(calibre_db.common_filters()) \
-        .group_by(db.Tags.id) \
-        .order_by(db.Tags.name).all()
+        .group_by(Tags.id) \
+        .order_by(Tags.name).all()
     if config.config_restricted_column:
         custom_values = calibre_db.session.query(db.cc_classes[config.config_restricted_column]).all()
     else:
@@ -1118,7 +1120,7 @@ def restriction_deletion(element, list_func):
 
 def prepare_tags(user, action, tags_name, id_list):
     if "tags" in tags_name:
-        tags = calibre_db.session.query(db.Tags).filter(db.Tags.id.in_(id_list)).all()
+        tags = calibre_db.session.query(Tags).filter(Tags.id.in_(id_list)).all()
         if not tags:
             raise Exception(_("Tag not found"))
         new_tags_list = [x.name for x in tags]

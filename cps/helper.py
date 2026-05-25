@@ -42,6 +42,7 @@ from werkzeug.security import generate_password_hash
 from markupsafe import escape
 from urllib.parse import quote
 from flask import render_template
+from cps.models.tags import Tags
 
 try:
     import advocate
@@ -411,7 +412,7 @@ def rename_author_path(first_author, old_author_dir, renamed_author, calibre_pat
     # Create new_author_dir from parameter or from database
     # Create new title_dir from database and add id
     new_authordir = get_valid_filename(first_author, chars=96)
-    # new_author = calibre_db.session.query(db.Authors).filter(db.Authors.name == renamed_author).first()
+    # new_author = calibre_db.session.query(Authors).filter(Authors.name == renamed_author).first()
     # old_author_dir = get_valid_filename(old_author_name, chars=96)
     new_author_rename_dir = get_valid_filename(renamed_author, chars=96)
     # Only local filesystem operations are supported now
@@ -946,8 +947,8 @@ def json_serial(obj):
 def tags_filters():
     negtags_list = current_user.list_denied_tags()
     postags_list = current_user.list_allowed_tags()
-    neg_content_tags_filter = false() if negtags_list == [''] else db.Tags.name.in_(negtags_list)
-    pos_content_tags_filter = true() if postags_list == [''] else db.Tags.name.in_(postags_list)
+    neg_content_tags_filter = false() if negtags_list == [''] else Tags.name.in_(negtags_list)
+    pos_content_tags_filter = true() if postags_list == [''] else Tags.name.in_(postags_list)
     return and_(pos_content_tags_filter, ~neg_content_tags_filter)
 
 

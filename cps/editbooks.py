@@ -52,6 +52,10 @@ from cps.models.forum import Thread, Category
 from slugify import slugify
 from cps.models.ratings import Ratings
 from cps.models.identifiers import Identifiers
+from cps.models.comments import Comments
+from cps.models.tags import Tags
+from cps.models.authors import Authors
+
 
 editbook = Blueprint('edit-book', __name__)
 log = logger.create()
@@ -636,7 +640,7 @@ def prepare_authors(authr, calibre_path):
         input_authors = [_('Unknown')]  # prevent empty Author
 
     for in_aut in input_authors:
-        renamed_author = calibre_db.session.query(db.Authors).filter(func.lower(db.Authors.name).ilike(in_aut)).first()
+        renamed_author = calibre_db.session.query(Authors).filter(func.lower(Authors.name).ilike(in_aut)).first()
         if renamed_author and in_aut != renamed_author.name:
             old_author_name = renamed_author.name
             # rename author in Database
@@ -644,7 +648,7 @@ def prepare_authors(authr, calibre_path):
             # rename all Books with this author as first author:
             # rename all book author_sort strings with the new author name
             all_books = calibre_db.session.query(db.Books) \
-                .filter(db.Books.authors.any(db.Authors.name == renamed_author.name)).all()
+                .filter(db.Books.authors.any(Authors.name == renamed_author.name)).all()
             for one_book in all_books:
                 # ToDo: check
                 sorted_old_author = helper.get_sorted_author(old_author_name)
@@ -688,11 +692,11 @@ def prepare_authors_on_upload(title, authr):
     sort_authors_list = list()
     db_author = None
     for inp in input_authors:
-        # stored_author = calibre_db.session.query(db.Authors).filter(db.Authors.name == inp).first()
-        stored_author = calibre_db.session.query(db.Authors).filter(func.lower(db.Authors.name).ilike(inp)).first()
+        # stored_author = calibre_db.session.query(Authors).filter(Authors.name == inp).first()
+        stored_author = calibre_db.session.query(Authors).filter(func.lower(Authors.name).ilike(inp)).first()
         if not stored_author:
             if not db_author:
-                db_author = db.Authors(inp, helper.get_sorted_author(inp), "")
+                db_author = Authors(inp, helper.get_sorted_author(inp), "")
                 calibre_db.session.add(db_author)
                 calibre_db.session.commit()
             sort_author = helper.get_sorted_author(inp)
@@ -725,7 +729,7 @@ def create_book_on_upload(modify_date, meta):
     db_book = db.Books(title, "", sort_authors, datetime.utcnow(), pubdate,
                        '1', datetime.utcnow(), path, meta.cover, db_author, [], "")
 
-    modify_date |= modify_database_object(input_authors, db_book.authors, db.Authors, calibre_db.session,
+    modify_date |= modify_database_object(input_authors, db_book.authors, Authors, calibre_db.session,
                                           'author')
 
     # Add series_index to book
@@ -826,8 +830,8 @@ def delete_whole_book(book_id, book):
 
     # check if only this book links to:
     # author, language, series, tags, custom columns
-    modify_database_object([''], book.authors, db.Authors, calibre_db.session, 'author')
-    modify_database_object([u''], book.tags, db.Tags, calibre_db.session, 'tags')
+    modify_database_object([''], book.authors, Authors, calibre_db.session, 'author')
+    modify_database_object([u''], book.tags, Tags, calibre_db.session, 'tags')
     modify_database_object([u''], book.series, db.Series, calibre_db.session, 'series')
     modify_database_object([u''], book.languages, db.Languages, calibre_db.session, 'languages')
     modify_database_object([u''], book.publishers, db.Publishers, calibre_db.session, 'publishers')
@@ -1053,7 +1057,7 @@ def edit_book_tags(tags, book):
     input_tags = list(map(lambda it: it.strip(), input_tags))
     # Remove duplicates
     input_tags = helper.uniq(input_tags)
-    return modify_database_object(input_tags, book.tags, db.Tags, calibre_db.session, 'tags')
+    return modify_database_object(input_tags, book.tags, Tags, calibre_db.session, 'tags')
 
 
 def edit_book_series(series, book):
@@ -1086,7 +1090,7 @@ def edit_book_comments(comments, book):
             modify_date = True
     else:
         if comments:
-            book.comments.append(db.Comments(comment=comments, book=book.id))
+            book.comments.append(Comments(comment=comments, book=book.id))
             modify_date = True
     return modify_date
 
@@ -1349,7 +1353,7 @@ def handle_author_on_edit(book, author_name, update_stored=True):
     # everything then is assembled for sorted author field in database
     sort_authors_list = list()
     for inp in input_authors:
-        stored_author = calibre_db.session.query(db.Authors).filter(db.Authors.name == inp).first()
+        stored_author = calibre_db.session.query(Authors).filter(Authors.name == inp).first()
         if not stored_author:
             stored_author = helper.get_sorted_author(inp.replace('|', ','))
         else:
@@ -1360,7 +1364,7 @@ def handle_author_on_edit(book, author_name, update_stored=True):
         book.author_sort = sort_authors
         change = True
 
-    change |= modify_database_object(input_authors, book.authors, db.Authors, calibre_db.session, 'author')
+    change |= modify_database_object(input_authors, book.authors, Authors, calibre_db.session, 'author')
 
     return input_authors, change
 

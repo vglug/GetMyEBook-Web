@@ -45,6 +45,9 @@ from flask_babel import get_locale
 from flask import flash
 from .ratings import Ratings
 from .identifiers import Identifiers
+from .comments import Comments
+from .tags import Tags
+from .authors import Authors
 
 from .. import logger, isoLanguages, create_metadata_psql
 from . import ub
@@ -88,71 +91,6 @@ books_publishers_link = Table('books_publishers_link', Base.metadata,
                               Column('publisher', Integer, ForeignKey('publishers.id'), primary_key=True)
                               )
 
-
-
-class Comments(Base):
-    __tablename__ = 'comments'
-
-    id = Column(Integer, primary_key=True)
-    book = Column(Integer, ForeignKey('books.id'), nullable=False, unique=True)
-    text = Column(String, nullable=False)
-
-    def __init__(self, comment, book):
-        super().__init__()
-        self.text = comment
-        self.book = book
-
-    def get(self):
-        return self.text
-
-    def __repr__(self):
-        return "<Comments({0})>".format(self.text)
-
-
-class Tags(Base):
-    __tablename__ = 'tags'
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String, unique=True, nullable=False)
-
-    def __init__(self, name):
-        super().__init__()
-        self.name = name
-
-    def get(self):
-        return self.name
-
-    def __eq__(self, other):
-        return self.name == other
-
-    def __repr__(self):
-        return "<Tags('{0})>".format(self.name)
-
-
-class Authors(Base):
-    __tablename__ = 'authors'
-
-    id = Column(Integer, primary_key=True)
-    name = Column(String, unique=True, nullable=False)
-    sort = Column(String)
-    link = Column(String, nullable=False, default="")
-    image = Column(String, nullable=False, default="")
-
-    def __init__(self, name, sort, link="", image=""):
-        super().__init__()
-        self.name = name
-        self.sort = sort
-        self.link = link
-        self.image = image
-
-    def get(self):
-        return self.name
-
-    def __eq__(self, other):
-        return self.name == other
-
-    def __repr__(self):
-        return "<Authors('{0},{1}{2}{3}')>".format(self.name, self.sort, self.link, self.image)
 
 
 class Series(Base):

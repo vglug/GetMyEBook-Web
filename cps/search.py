@@ -31,6 +31,9 @@ from .usermanagement import login_required_if_no_ano
 from .render_template import render_title_template
 from .pagination import Pagination
 from cps.models.ratings import Ratings
+from cps.models.comments import Comments
+from cps.models.tags import Tags
+from cps.models.authors import Authors
 
 search = Blueprint('search', __name__)
 
@@ -164,9 +167,9 @@ def adv_search_extension(q, include_extension_inputs, exclude_extension_inputs):
 
 def adv_search_tag(q, include_tag_inputs, exclude_tag_inputs):
     for tag in include_tag_inputs:
-        q = q.filter(db.Books.tags.any(db.Tags.id == tag))
+        q = q.filter(db.Books.tags.any(Tags.id == tag))
     for tag in exclude_tag_inputs:
-        q = q.filter(not_(db.Books.tags.any(db.Tags.id == tag)))
+        q = q.filter(not_(db.Books.tags.any(Tags.id == tag)))
     return q
 
 
@@ -212,7 +215,7 @@ def extend_search_term(searchterm,
                                            format='medium')])
         except ValueError:
             pub_end = ""
-    elements = {'tag': db.Tags, 'serie':db.Series, 'shelf':ub.Shelf}
+    elements = {'tag': Tags, 'serie':db.Series, 'shelf':ub.Shelf}
     for key, db_element in elements.items():
         tag_names = calibre_db.session.query(db_element).filter(db_element.id.in_(tags['include_' + key])).all()
         searchterm.extend(tag.name for tag in tag_names)
@@ -328,7 +331,7 @@ def render_adv_search_results(term, offset=None, order=None, limit=None):
                                                              rating_low,
                                                              read_status)
         if author_name:
-            q = q.filter(db.Books.authors.any(func.lower(db.Authors.name).ilike("%" + author_name + "%")))
+            q = q.filter(db.Books.authors.any(func.lower(Authors.name).ilike("%" + author_name + "%")))
         if book_title:
             q = q.filter(func.lower(db.Books.title).ilike("%" + book_title + "%"))
         if pub_start:
@@ -347,7 +350,7 @@ def render_adv_search_results(term, offset=None, order=None, limit=None):
         q = adv_search_ratings(q, rating_high, rating_low)
 
         if description:
-            q = q.filter(db.Books.comments.any(func.lower(db.Comments.text).ilike("%" + description + "%")))
+            q = q.filter(db.Books.comments.any(func.lower(Comments.text).ilike("%" + description + "%")))
 
         # search custom columns
         try:
@@ -379,12 +382,12 @@ def render_adv_search_results(term, offset=None, order=None, limit=None):
 
 def render_prepare_search_form(cc):
     # prepare data for search-form
-    tags = calibre_db.session.query(db.Tags)\
+    tags = calibre_db.session.query(Tags)\
         .join(db.books_tags_link)\
         .join(db.Books)\
         .filter(calibre_db.common_filters()) \
-        .group_by(db.Tags.id)\
-        .order_by(db.Tags.name).all()
+        .group_by(Tags.id)\
+        .order_by(Tags.name).all()
     series = calibre_db.session.query(db.Series)\
         .join(db.books_series_link)\
         .join(db.Books)\

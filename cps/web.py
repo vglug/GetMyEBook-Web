@@ -63,6 +63,9 @@ from .usermanagement import user_login_required
 from .string_helper import strip_whitespaces
 from urllib.parse import quote , unquote
 from cps.models.ratings import Ratings
+from cps.models.tags import Tags
+from cps.models.authors import Authors
+
 
 
 feature_support = {
@@ -266,7 +269,7 @@ def get_comic_book(book_id, book_format, page):
 @web.route("/get_authors_json", methods=['GET'])
 @login_required_if_no_ano
 def get_authors_json():
-    return calibre_db.get_typeahead(db.Authors, request.args.get('q'), ('|', ','))
+    return calibre_db.get_typeahead(Authors, request.args.get('q'), ('|', ','))
 
 
 @web.route("/get_publishers_json", methods=['GET'])
@@ -278,7 +281,7 @@ def get_publishers_json():
 @web.route("/get_tags_json", methods=['GET'])
 @login_required_if_no_ano
 def get_tags_json():
-    return calibre_db.get_typeahead(db.Tags, request.args.get('q'), tag_filter=tags_filters())
+    return calibre_db.get_typeahead(Tags, request.args.get('q'), tag_filter=tags_filters())
 
 
 @web.route("/get_series_json", methods=['GET'])
@@ -316,14 +319,14 @@ def get_matching_tags():
     title_input = request.args.get('book_title') or ''
     include_tag_inputs = request.args.getlist('include_tag') or ''
     exclude_tag_inputs = request.args.getlist('exclude_tag') or ''
-    q = q.filter(db.Books.authors.any(func.lower(db.Authors.name).ilike("%" + author_input + "%")),
+    q = q.filter(db.Books.authors.any(func.lower(Authors.name).ilike("%" + author_input + "%")),
                  func.lower(db.Books.title).ilike("%" + title_input + "%"))
     if len(include_tag_inputs) > 0:
         for tag in include_tag_inputs:
-            q = q.filter(db.Books.tags.any(db.Tags.id == tag))
+            q = q.filter(db.Books.tags.any(Tags.id == tag))
     if len(exclude_tag_inputs) > 0:
         for tag in exclude_tag_inputs:
-            q = q.filter(not_(db.Books.tags.any(db.Tags.id == tag)))
+            q = q.filter(not_(db.Books.tags.any(Tags.id == tag)))
     for book in q:
         for tag in book.tags:
             if tag.id not in tag_dict['tags']:
@@ -542,7 +545,7 @@ def render_author_books(page, author_id, order):
         abort(404)
     entries, __, pagination = calibre_db.fill_indexpage(page, 0,
                                                         db.Books,
-                                                        db.Books.authors.any(db.Authors.id == author_id),
+                                                        db.Books.authors.any(Authors.id == author_id),
                                                         [order[0][0], db.Series.name, db.Books.series_index],
                                                         True, config.config_read_column,
                                                         db.books_series_link,
@@ -553,9 +556,9 @@ def render_author_books(page, author_id, order):
               category="error")
         return redirect(url_for("web.index"))
     if constants.sqlalchemy_version2:
-        author = calibre_db.session.get(db.Authors, author_id)
+        author = calibre_db.session.get(Authors, author_id)
     else:
-        author = calibre_db.session.query(db.Authors).get(author_id)
+        author = calibre_db.session.query(Authors).get(author_id)
     author_name = author.name.replace('|', ',')
 
     author_info = None
@@ -717,22 +720,22 @@ def render_category_books(page, book_id, order):
     if book_id == -1:
         entries, random, pagination = calibre_db.fill_indexpage(page, 0,
                                                                 db.Books,
-                                                                db.Tags.name == None,
+                                                                Tags.name == None,
                                                                 [order[0][0], db.Series.name, db.Books.series_index],
                                                                 True, config.config_read_column,
                                                                 db.books_tags_link,
                                                                 db.Books.id == db.books_tags_link.c.book,
-                                                                db.Tags,
+                                                                Tags,
                                                                 db.books_series_link,
                                                                 db.Books.id == db.books_series_link.c.book,
                                                                 db.Series)
         tagsname = _("None")
     else:
-        tagsname = calibre_db.session.query(db.Tags).filter(db.Tags.id == book_id).first()
+        tagsname = calibre_db.session.query(Tags).filter(Tags.id == book_id).first()
         if tagsname:
             entries, random, pagination = calibre_db.fill_indexpage(page, 0,
                                                                     db.Books,
-                                                                    db.Books.tags.any(db.Tags.id == book_id),
+                                                                    db.Books.tags.any(Tags.id == book_id),
                                                                     [order[0][0], db.Series.name,
                                                                      db.Books.series_index],
                                                                     True, config.config_read_column,
@@ -888,8 +891,8 @@ def list_books():
     if sort_param == "state":
         state = json.loads(request.args.get("state", "[]"))
     elif sort_param == "tags":
-        order = [db.Tags.name.asc()] if order == "asc" else [db.Tags.name.desc()]
-        join = db.books_tags_link, db.Books.id == db.books_tags_link.c.book, db.Tags
+        order = [Tags.name.asc()] if order == "asc" else [Tags.name.desc()]
+        join = db.books_tags_link, db.Books.id == db.books_tags_link.c.book, Tags
     elif sort_param == "series":
         order = [db.Series.name.asc()] if order == "asc" else [db.Series.name.desc()]
         join = db.books_series_link, db.Books.id == db.books_series_link.c.book, db.Series
@@ -897,9 +900,9 @@ def list_books():
         order = [db.Publishers.name.asc()] if order == "asc" else [db.Publishers.name.desc()]
         join = db.books_publishers_link, db.Books.id == db.books_publishers_link.c.book, db.Publishers
     elif sort_param == "authors":
-        order = [db.Authors.name.asc(), db.Series.name, db.Books.series_index] if order == "asc" \
-            else [db.Authors.name.desc(), db.Series.name.desc(), db.Books.series_index.desc()]
-        join = db.books_authors_link, db.Books.id == db.books_authors_link.c.book, db.Authors, db.books_series_link, \
+        order = [Authors.name.asc(), db.Series.name, db.Books.series_index] if order == "asc" \
+            else [Authors.name.desc(), db.Series.name.desc(), db.Books.series_index.desc()]
+        join = db.books_authors_link, db.Books.id == db.books_authors_link.c.book, Authors, db.books_series_link, \
             db.Books.id == db.books_series_link.c.book, db.Series
     elif sort_param == "languages":
         order = [db.Languages.lang_code.asc()] if order == "asc" else [db.Languages.lang_code.desc()]
@@ -976,17 +979,17 @@ def update_table_settings():
 def author_list():
     if current_user.check_visibility(constants.SIDEBAR_AUTHOR):
         if current_user.get_view_property('author', 'dir') == 'desc':
-            order = db.Authors.sort.desc()
+            order = Authors.sort.desc()
             order_no = 0
         else:
-            order = db.Authors.sort.asc()
+            order = Authors.sort.asc()
             order_no = 1
         subquery = calibre_db.session.query(db.books_authors_link.c.author, func.count(db.books_authors_link.c.book).label('count')) \
             .join(db.Books, db.Books.id == db.books_authors_link.c.book).filter(calibre_db.common_filters()) \
             .group_by(db.books_authors_link.c.author).subquery()
-        entries = calibre_db.session.query(db.Authors, subquery.c.count) \
-            .join(subquery, db.Authors.id == subquery.c.author).order_by(order).all()
-        char_list = query_char_list(db.Authors.sort, db.books_authors_link)
+        entries = calibre_db.session.query(Authors, subquery.c.count) \
+            .join(subquery, Authors.id == subquery.c.author).order_by(order).all()
+        char_list = query_char_list(Authors.sort, db.books_authors_link)
         author_copy = copy.deepcopy(entries)
         for entry in author_copy:
             entry.Authors.name = entry.Authors.name.replace('|', ',')
@@ -1036,9 +1039,9 @@ def upload_author_image():
         log.info(f"File saved to: {filepath}")
         
         if constants.sqlalchemy_version2:
-            author = calibre_db.session.get(db.Authors, int(author_id))
+            author = calibre_db.session.get(Authors, int(author_id))
         else:
-            author = calibre_db.session.query(db.Authors).get(int(author_id))
+            author = calibre_db.session.query(Authors).get(int(author_id))
         
         if author:
             log.info(f"Author found: {author.name}")
@@ -1094,9 +1097,9 @@ def delete_author_image():
     
     try:
         if constants.sqlalchemy_version2:
-            author = calibre_db.session.get(db.Authors, int(author_id))
+            author = calibre_db.session.get(Authors, int(author_id))
         else:
-            author = calibre_db.session.query(db.Authors).get(int(author_id))
+            author = calibre_db.session.query(Authors).get(int(author_id))
         
         if not author:
             log.error(f"Author not found: {author_id}")
@@ -1311,19 +1314,19 @@ def language_overview():
 def category_list():
     if current_user.check_visibility(constants.SIDEBAR_CATEGORY):
         if current_user.get_view_property('category', 'dir') == 'desc':
-            order = db.Tags.name.desc()
+            order = Tags.name.desc()
             order_no = 0
         else:
-            order = db.Tags.name.asc()
+            order = Tags.name.asc()
             order_no = 1
         subquery = calibre_db.session.query(db.books_tags_link.c.tag, func.count(db.books_tags_link.c.book).label('count')) \
             .join(db.Books, db.Books.id == db.books_tags_link.c.book).filter(calibre_db.common_filters()) \
             .group_by(db.books_tags_link.c.tag).subquery()
-        entries = calibre_db.session.query(db.Tags, subquery.c.count) \
-            .join(subquery, db.Tags.id == subquery.c.tag).order_by(order).all()
+        entries = calibre_db.session.query(Tags, subquery.c.count) \
+            .join(subquery, Tags.id == subquery.c.tag).order_by(order).all()
         no_tag_count = (calibre_db.session.query(db.Books)
-                         .outerjoin(db.books_tags_link).outerjoin(db.Tags)
-                        .filter(db.Tags.name == None)
+                         .outerjoin(db.books_tags_link).outerjoin(Tags)
+                        .filter(Tags.name == None)
                          .filter(calibre_db.common_filters())
                          .count())
         if no_tag_count:
@@ -2037,8 +2040,8 @@ def mobile_get_all_books():
     if sort_param == "state":
         state = json.loads(request.args.get("state", "[]"))
     elif sort_param == "tags":
-        order = [db.Tags.name.asc()] if order == "asc" else [db.Tags.name.desc()]
-        join = db.books_tags_link, db.Books.id == db.books_tags_link.c.book, db.Tags
+        order = [Tags.name.asc()] if order == "asc" else [Tags.name.desc()]
+        join = db.books_tags_link, db.Books.id == db.books_tags_link.c.book, Tags
     elif sort_param == "series":
         order = [db.Series.name.asc()] if order == "asc" else [db.Series.name.desc()]
         join = db.books_series_link, db.Books.id == db.books_series_link.c.book, db.Series
@@ -2046,9 +2049,9 @@ def mobile_get_all_books():
         order = [db.Publishers.name.asc()] if order == "asc" else [db.Publishers.name.desc()]
         join = db.books_publishers_link, db.Books.id == db.books_publishers_link.c.book, db.Publishers
     elif sort_param == "authors":
-        order = [db.Authors.name.asc(), db.Series.name, db.Books.series_index] if order == "asc" \
-            else [db.Authors.name.desc(), db.Series.name.desc(), db.Books.series_index.desc()]
-        join = db.books_authors_link, db.Books.id == db.books_authors_link.c.book, db.Authors, db.books_series_link, \
+        order = [Authors.name.asc(), db.Series.name, db.Books.series_index] if order == "asc" \
+            else [Authors.name.desc(), db.Series.name.desc(), db.Books.series_index.desc()]
+        join = db.books_authors_link, db.Books.id == db.books_authors_link.c.book, Authors, db.books_series_link, \
             db.Books.id == db.books_series_link.c.book, db.Series
     elif sort_param == "languages":
         order = [db.Languages.lang_code.asc()] if order == "asc" else [db.Languages.lang_code.desc()]
