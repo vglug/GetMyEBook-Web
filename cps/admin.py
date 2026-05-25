@@ -44,12 +44,12 @@ from sqlalchemy.exc import IntegrityError, OperationalError, InvalidRequestError
 from sqlalchemy.sql.expression import func, or_, text
 
 from . import constants, logger, helper, services, cli_param
-from . import db, calibre_db, ub, web_server, config, updater_thread, gdriveutils, \
+from . import db, calibre_db, ub, web_server, config, updater_thread, \
     kobo_sync_status, schedule
 from .helper import check_valid_domain, send_test_mail, reset_password, generate_password_hash, check_email, \
     valid_email, check_username
 from .embed_helper import get_calibre_binarypath
-from .gdriveutils import is_gdrive_ready, gdrive_support
+# Google Drive integration removed (gdriveutils)
 from .render_template import render_title_template, get_sidebar_config
 from .services.worker import WorkerThread
 from .usermanagement import user_login_required
@@ -57,6 +57,7 @@ from .babel import get_available_translations, get_available_locale, get_user_lo
 from . import debug_info
 from .utils import get_env_path 
 import urllib
+from cps.models.libraryId import Library_Id
 
 log = logger.create()
 
@@ -67,7 +68,6 @@ feature_support = {
     'updater': constants.UPDATER_AVAILABLE,
     'gmail': bool(services.gmail),
     'scheduler': schedule.use_APScheduler,
-    'gdrive': gdrive_support,
     'oauth': True  # Always True since we're using Authlib
 }
 
@@ -414,7 +414,6 @@ def forum_panel():
 @admin_required
 def db_configuration():
     if request.method == "POST":
-        # log.info(f"/admin/dbconfig post method ==> working !!!  and request data :{request.form.to_dict()}")
         return _db_configuration_update_helper()
     return _db_configuration_result()
 
@@ -1253,35 +1252,7 @@ def _config_checkbox_int(to_save, x):
 def _config_string(to_save, x):
     return config.set_from_dictionary(to_save, x, lambda y: y.strip().strip(u'\u200B\u200C\u200D\ufeff') if y else y)
 
-def _configuration_gdrive_helper(to_save):
-    gdrive_error = None
-    if to_save.get("config_use_google_drive"):
-        gdrive_secrets = {}
-
-        if not os.path.isfile(gdriveutils.SETTINGS_YAML):
-            config.config_use_google_drive = False
-
-        if gdrive_support:
-            gdrive_error = gdriveutils.get_error_text(gdrive_secrets)
-        if "config_use_google_drive" in to_save and not config.config_use_google_drive and not gdrive_error:
-            with open(gdriveutils.CLIENT_SECRETS, 'r') as settings:
-                gdrive_secrets = json.load(settings)['web']
-            if not gdrive_secrets:
-                return _configuration_result(_('client_secrets.json Is Not Configured For Web Application'))
-            gdriveutils.update_settings(
-                gdrive_secrets['client_id'],
-                gdrive_secrets['client_secret'],
-                gdrive_secrets['redirect_uris'][0]
-            )
-
-    # always show Google Drive settings, but in case of error deny support
-    new_gdrive_value = (not gdrive_error) and ("config_use_google_drive" in to_save)
-    if config.config_use_google_drive and not new_gdrive_value:
-        config.config_google_drive_watch_changes_response = {}
-    config.config_use_google_drive = new_gdrive_value
-    if _config_string(to_save, "config_google_drive_folder"):
-        gdriveutils.deleteDatabaseOnChange()
-    return gdrive_error
+# Google Drive configuration helper removed
 
 # Update the OAuth configuration helper
 def _configuration_oauth_helper(to_save):
@@ -1841,59 +1812,6 @@ def _db_simulate_change():
     
     return db_change, db_valid
 
-# def _db_configuration_update_helper():
-#     db_change = False
-#     to_save = request.form.to_dict()
-#     gdrive_error = None
-#     log.info(f"Database configuration update request: {to_save}")
-
-#     # For PostgreSQL, database configuration is handled via environment variables
-#     # The config_calibre_dir parameter is kept for compatibility
-#     to_save['config_calibre_dir'] = to_save.get('config_calibre_dir', '').strip()
-    
-#     db_valid = False
-#     try:
-#         # For PostgreSQL, database validation is connection-based
-#         db_change, db_valid = _db_simulate_change()
-
-#         # Google Drive setup
-#         gdrive_error = _configuration_gdrive_helper(to_save)
-#     except (OperationalError, InvalidRequestError) as e:
-#         ub.session.rollback()
-#         log.error_or_exception("Settings Database error: {}".format(e))
-#         _db_configuration_result(_("Oops! Database Error: %(error)s.", error=e.orig), gdrive_error)
-    
-#     # For PostgreSQL, we always attempt to setup the database connection
-#     # since we're using environment variables for configuration
-#     if not db_valid or not config.db_configured:
-#         log.info("Setting up PostgreSQL database connection")
-#         calibre_db.setup_db(to_save['config_calibre_dir'], ub.app_DB_path)
-        
-#     config.store_calibre_uuid(calibre_db, db.Library_Id)
-    
-#     # If database changed -> delete shelfs, delete download books, delete read books, kobo sync...
-#     if db_change:
-#         log.info("Calibre Database changed, all Calibre-Web info related to old Database gets deleted")
-#         ub.session.query(ub.Downloads).delete()
-#         ub.session.query(ub.ArchivedBook).delete()
-#         ub.session.query(ub.ReadBook).delete()
-#         ub.session.query(ub.BookShelf).delete()
-#         ub.session.query(ub.Bookmark).delete()
-#         ub.session.query(ub.KoboReadingState).delete()
-#         ub.session.query(ub.KoboStatistics).delete()
-#         ub.session.query(ub.KoboSyncedBooks).delete()
-#         helper.delete_thumbnail_cache()
-#         ub.session_commit()
-    
-#     _config_string(to_save, "config_calibre_dir")
-#     calibre_db.update_config(config)
-    
-#     _config_string(to_save, "config_calibre_split_dir")
-#     config.config_calibre_split = to_save.get('config_calibre_split', 0) == "on"
-#     calibre_db.update_config(config)
-#     config.save()
-#     return _db_configuration_result(None, gdrive_error)
-
 def _db_configuration_update_helper():
     db_change = False
     to_save = request.form.to_dict()
@@ -1908,7 +1826,6 @@ def _db_configuration_update_helper():
     db_valid = False
     try:
         db_change, db_valid = _db_simulate_change()
-        gdrive_error = _configuration_gdrive_helper(to_save)
     except (OperationalError, InvalidRequestError) as e:
         ub.session.rollback()
         log.error_or_exception("Settings Database error: {}".format(e))
@@ -1935,14 +1852,7 @@ def _db_configuration_update_helper():
             return _db_configuration_result(_('PostgreSQL migration failed: %(error)s', error=str(e)), gdrive_error)
 
     # Handle Google Drive metadata.db download if needed
-    try:
-        metadata_db = os.path.join(to_save['config_calibre_dir'], "metadata.db")
-        if config.config_use_google_drive and is_gdrive_ready() and not os.path.exists(metadata_db):
-            gdriveutils.downloadFile(None, "metadata.db", metadata_db)
-            db_change = True
-    except Exception as ex:
-        log.error(f"Google Drive download failed: {ex}")
-        return _db_configuration_result('{}'.format(ex), gdrive_error)
+    # Google Drive metadata download removed; only local filesystem is supported
     
     # Handle split directory configuration
     config.config_calibre_split = to_save.get('config_calibre_split', 'off') == "on"
@@ -2016,7 +1926,7 @@ def _db_configuration_update_helper():
         
         # Store Calibre UUID
         try:
-            config.store_calibre_uuid(calibre_db, db.Library_Id)
+            config.store_calibre_uuid(calibre_db, Library_Id)
         except Exception as uuid_error:
             log.warning(f"Could not store Calibre UUID: {uuid_error}")
         
@@ -2303,38 +2213,21 @@ def _configuration_result(error_flash=None, reboot=False):
     return Response(json.dumps(resp), mimetype='application/json')
 
 def _db_configuration_result(error_flash=None, gdrive_error=None):
-    
-    gdrive_authenticate = not is_gdrive_ready()
-    gdrivefolders = []
-    if not gdrive_error and config.config_use_google_drive:
-        gdrive_error = gdriveutils.get_error_text()
-    if gdrive_error and gdrive_support:
-        log.error(gdrive_error)
-        gdrive_error = _(gdrive_error)
-        flash(gdrive_error, category="error")
-    else:
-        if not gdrive_authenticate and gdrive_support:
-            gdrivefolders = gdriveutils.listRootFolders()
-
+    """Render DB configuration page (Google Drive support removed)."""
     if error_flash:
         log.error(error_flash)
         config.load()
         flash(error_flash, category="error")
-    elif request.method == "POST" and not gdrive_error:
+    elif request.method == "POST":
         flash(_("Database Settings updated"), category="success")
-    
+
     # Log PostgreSQL configuration status
     _log_postgresql_config_status()
-    
-    # log.info(f"Database configuration - config: {config}, show_authenticate_google_drive: {gdrive_authenticate}, gdriveError: {gdrive_error}, feature_support: {feature_support}")
-    
+
     return render_title_template("config_db.html",
-                                 config=config,
-                                 show_authenticate_google_drive=gdrive_authenticate,
-                                 gdriveError=gdrive_error,
-                                 gdrivefolders=gdrivefolders,
-                                 feature_support=feature_support,
-                                 title=_("Database Configuration"), page="dbconfig")
+                                config=config,
+                                title=_("Database Configuration"),
+                                page="dbconfig")
 
 def _log_postgresql_config_status():
     """Log PostgreSQL configuration status for admin debugging"""
@@ -2348,9 +2241,9 @@ def _log_postgresql_config_status():
     
     if all([db_user, db_host, db_port, db_name_app]):
         log.info("PostgreSQL configuration detected via environment variables")
-        # log.info(f"Database Host: {db_host}:{db_port}")
-        # log.info(f"App Database: {db_name_app}")
-        # log.info(f"Database configured: {config.db_configured}")
+        log.info(f"Database Host: {db_host}:{db_port}")
+        log.info(f"App Database: {db_name_app}")
+        log.info(f"Database configured: {config.db_configured}")
     else:
         log.warning("Incomplete PostgreSQL environment variables detected")
         missing_vars = []

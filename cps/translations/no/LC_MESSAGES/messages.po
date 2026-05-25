@@ -652,17 +652,7 @@ msgstr "Kunne ikke lagre filen %(file)s."
 msgid "File format %(ext)s added to %(book)s"
 msgstr "Filformat %(ext)s lagt til %(book)s"
 
-#: cps/gdrive.py:58
-msgid "Google Drive setup not completed, try to deactivate and activate Google Drive again"
-msgstr "Google Disk-konfigurasjonen er ikke fullført. Prøv å deaktivere og aktivere Google Disk på nytt"
-
-#: cps/gdrive.py:96
-msgid "Callback domain is not verified, please follow steps to verify domain in google developer console"
-msgstr "Tilbakeringingsdomene er ikke bekreftet. Følg fremgangsmåten for å bekrefte domenet i Googles utviklerkonsoll"
-
-#: cps/helper.py:86
-#, python-format
-msgid "%(format)s format not found for book id: %(book)d"
+ 
 msgstr "%(format)s format ikke funnet for bok-ID: %(book)d"
 
 #: cps/helper.py:93 cps/tasks/convert.py:89

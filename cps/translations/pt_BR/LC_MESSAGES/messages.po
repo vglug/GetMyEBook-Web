@@ -642,17 +642,7 @@ msgstr "Falha ao armazenar o arquivo %(file)s."
 msgid "File format %(ext)s added to %(book)s"
 msgstr "Formato de arquivo %(ext)s adicionado a %(book)s"
 
-#: cps/gdrive.py:58
-msgid "Google Drive setup not completed, try to deactivate and activate Google Drive again"
-msgstr "Configuração do Google Drive não concluída, tente desativar e ativar o Google Drive novamente"
-
-#: cps/gdrive.py:96
-msgid "Callback domain is not verified, please follow steps to verify domain in google developer console"
-msgstr "O domínio Callback não foi verificado, por favor siga os passos para verificar o domínio no console do desenvolvedor do google"
-
-#: cps/helper.py:86
-#, python-format
-msgid "%(format)s format not found for book id: %(book)d"
+ 
 msgstr "Formato %(format)s não encontrado para o id do livro: %(book)d"
 
 #: cps/helper.py:93 cps/tasks/convert.py:89

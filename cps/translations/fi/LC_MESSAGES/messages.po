@@ -653,17 +653,7 @@ msgstr "Tiedoston %(file)s tallennus epäonnistui."
 msgid "File format %(ext)s added to %(book)s"
 msgstr "Tiedostoformaatti %(ext)s lisätty %(book)s"
 
-#: cps/gdrive.py:58
-msgid "Google Drive setup not completed, try to deactivate and activate Google Drive again"
-msgstr "Google Drive asetukset ei ole valmiit. Koita poistaa Google Drive käytöstä ja ottaa se uudelleen käyttöön"
-
-#: cps/gdrive.py:96
-msgid "Callback domain is not verified, please follow steps to verify domain in google developer console"
-msgstr "Paluuosoitteen domain ei ole varmistettu, seuraa ohjeita vamistaaksesi sen googlen kehittäjäkonsolissa"
-
-#: cps/helper.py:86
-#, python-format
-msgid "%(format)s format not found for book id: %(book)d"
+ 
 msgstr "%(format)s tiedostomuotoa ei löytynyt kirjalle: %(book)d"
 
 #: cps/helper.py:93 cps/tasks/convert.py:89

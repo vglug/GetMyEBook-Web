@@ -650,17 +650,7 @@ msgstr "%(file)s dosyası kaydedilemedi."
 msgid "File format %(ext)s added to %(book)s"
 msgstr "%(book)s kitabına %(ext)s dosya biçimi eklendi"
 
-#: cps/gdrive.py:58
-msgid "Google Drive setup not completed, try to deactivate and activate Google Drive again"
-msgstr "Google Drive kurulumu tamamlanmadı, Google Drive'ı devre dışı bırakmayı ve tekrar etkinleştirmeyi deneyin"
-
-#: cps/gdrive.py:96
-msgid "Callback domain is not verified, please follow steps to verify domain in google developer console"
-msgstr "Geri yönlendirme alanı (callback domain) doğrulanamadı, lütfen Google geliştirici konsolunda alan adını doğrulamak için gerekli adımları izleyin."
-
-#: cps/helper.py:86
-#, python-format
-msgid "%(format)s format not found for book id: %(book)d"
+ 
 msgstr "%(book)d nolu kitap için %(format)s biçimi bulunamadı"
 
 #: cps/helper.py:93 cps/tasks/convert.py:89

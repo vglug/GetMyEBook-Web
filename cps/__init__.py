@@ -48,7 +48,7 @@ from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.pool import NullPool
 from dotenv import load_dotenv
 from .utils import get_env_path
-
+from cps.models.libraryId import Library_Id
 
 
 log = logger.create()
@@ -335,7 +335,7 @@ def create_app():
         if services.goodreads_support:
             services.goodreads_support.connect(config.config_goodreads_api_key, config.config_use_goodreads)
             
-        config.store_calibre_uuid(calibre_db, db.Library_Id)
+        config.store_calibre_uuid(calibre_db, Library_Id)
 
         # Configure rate limiter
         app.config.update(RATELIMIT_ENABLED=config.config_ratelimiter)

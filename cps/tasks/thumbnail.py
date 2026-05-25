@@ -22,7 +22,7 @@ from urllib.request import urlopen
 from io import BytesIO
 
 from .. import constants
-from cps import config, db, fs, gdriveutils, logger, ub
+from cps import config, db, fs, logger, ub
 from cps.services.worker import CalibreTask, STAT_CANCELLED, STAT_ENDED
 from datetime import datetime
 from sqlalchemy import func, text, or_
@@ -178,51 +178,21 @@ class TaskGenerateCoverThumbnails(CalibreTask):
 
     def generate_book_thumbnail(self, book, thumbnail):
         if book and thumbnail:
-            if config.config_use_google_drive:
-                if not gdriveutils.is_gdrive_ready():
-                    raise Exception('Google Drive is configured but not ready')
+            # Use local filesystem for cover thumbnails
+            book_cover_filepath = os.path.join(config.get_book_path(), book.path, 'cover.jpg')
+            if not os.path.isfile(book_cover_filepath):
+                raise Exception('Book cover file not found')
 
-                content = gdriveutils.get_cover_via_gdrive(book.path)
-                if not content:
-                    raise Exception('Google Drive cover url not found')
-                try:
-                    stream = BytesIO(content)
-                    with Image(file=stream) as img:
-                        filename = self.cache.get_cache_file_path(thumbnail.filename,
-                                                                  constants.CACHE_TYPE_THUMBNAILS)
-                        height = get_resize_height(thumbnail.resolution)
-                        if img.height > height:
-                            width = get_resize_width(thumbnail.resolution, img.width, img.height)
-                            img.resize(width=width, height=height, filter='lanczos')
-                            img.format = thumbnail.format
-                            img.save(filename=filename)
-                        else:
-                            with open(filename, 'rb') as fd:
-                                copyfileobj(stream, fd)
-
-                except Exception as ex:
-                    # Bubble exception to calling function
-                    self.log.debug('Error generating thumbnail file: ' + str(ex))
-                    raise ex
-                finally:
-                    if stream is not None:
-                        stream.close()
-            else:
-                book_cover_filepath = os.path.join(config.get_book_path(), book.path, 'cover.jpg')
-                if not os.path.isfile(book_cover_filepath):
-                    raise Exception('Book cover file not found')
-
-                with Image(filename=book_cover_filepath) as img:
-                    height = get_resize_height(thumbnail.resolution)
-                    filename = self.cache.get_cache_file_path(thumbnail.filename, constants.CACHE_TYPE_THUMBNAILS)
-                    if img.height > height:
-                        width = get_resize_width(thumbnail.resolution, img.width, img.height)
-                        img.resize(width=width, height=height, filter='lanczos')
-                        img.format = thumbnail.format
-                        img.save(filename=filename)
-                    else:
-                        # take cover as is
-                        copyfile(book_cover_filepath, filename)
+            with Image(filename=book_cover_filepath) as img:
+                height = get_resize_height(thumbnail.resolution)
+                filename = self.cache.get_cache_file_path(thumbnail.filename, constants.CACHE_TYPE_THUMBNAILS)
+                if img.height > height:
+                    width = get_resize_width(thumbnail.resolution, img.width, img.height)
+                    img.resize(width=width, height=height, filter='lanczos')
+                    img.format = thumbnail.format
+                    img.save(filename=filename)
+                else:
+                    copyfile(book_cover_filepath, filename)
 
     @property
     def name(self):
@@ -367,49 +337,12 @@ class TaskGenerateSeriesThumbnails(CalibreTask):
         height = 0
         with Image() as canvas:
             for book in books:
-                if config.config_use_google_drive:
-                    if not gdriveutils.is_gdrive_ready():
-                        raise Exception('Google Drive is configured but not ready')
-
-                    web_content_link = gdriveutils.get_cover_via_gdrive(book.path)
-                    if not web_content_link:
-                        raise Exception('Google Drive cover url not found')
-
-                    stream = None
-                    try:
-                        stream = urlopen(web_content_link)
-                        with Image(file=stream) as img:
-                            # Use the first image in this set to determine the width and height to scale the
-                            # other images in this set
-                            if width == 0 or height == 0:
-                                width = get_resize_width(thumbnail.resolution, img.width, img.height)
-                                height = get_resize_height(thumbnail.resolution)
-                                canvas.blank(width, height)
-
-                            dimensions = get_best_fit(width, height, img.width, img.height)
-
-                            # resize and crop the image
-                            img.resize(width=int(dimensions['width']), height=int(dimensions['height']),
-                                       filter='lanczos')
-                            img.crop(width=int(width / 2.0), height=int(height / 2.0), gravity='center')
-
-                            # add the image to the canvas
-                            canvas.composite(img, left, top)
-
-                    except Exception as ex:
-                        self.log.debug('Error generating thumbnail file: ' + str(ex))
-                        raise ex
-                    finally:
-                        if stream is not None:
-                            stream.close()
-
+                # Use local filesystem for series thumbnails
                 book_cover_filepath = os.path.join(config.get_book_path(), book.path, 'cover.jpg')
                 if not os.path.isfile(book_cover_filepath):
                     raise Exception('Book cover file not found')
 
                 with Image(filename=book_cover_filepath) as img:
-                    # Use the first image in this set to determine the width and height to scale the
-                    # other images in this set
                     if width == 0 or height == 0:
                         width = get_resize_width(thumbnail.resolution, img.width, img.height)
                         height = get_resize_height(thumbnail.resolution)
@@ -417,11 +350,9 @@ class TaskGenerateSeriesThumbnails(CalibreTask):
 
                     dimensions = get_best_fit(width, height, img.width, img.height)
 
-                    # resize and crop the image
                     img.resize(width=int(dimensions['width']), height=int(dimensions['height']), filter='lanczos')
                     img.crop(width=int(width / 2.0), height=int(height / 2.0), gravity='center')
 
-                    # add the image to the canvas
                     canvas.composite(img, left, top)
 
                 # set the coordinates for the next iteration

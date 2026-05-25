@@ -137,10 +137,7 @@ class _Settings(_Base):
     config_denied_column_value = Column(String, default="")
     config_allowed_column_value = Column(String, default="")
 
-    # ── Google Drive ─────────────────────────────────────────────────────
-    config_use_google_drive = Column(Boolean, default=False)
-    config_google_drive_folder = Column(String)
-    config_google_drive_watch_changes_response = Column(JSON, default={})
+    # Google Drive settings removed
 
     # ── Goodreads ────────────────────────────────────────────────────────
     config_use_goodreads = Column(Boolean, default=False)

@@ -647,17 +647,7 @@ msgstr "保存文件 %(file)s 失敗。"
 msgid "File format %(ext)s added to %(book)s"
 msgstr "已添加 %(ext)s 格式到 %(book)s"
 
-#: cps/gdrive.py:58
-msgid "Google Drive setup not completed, try to deactivate and activate Google Drive again"
-msgstr "Google Drive 設置未完成，請嘗試停用並再次激活Google雲端硬碟"
-
-#: cps/gdrive.py:96
-msgid "Callback domain is not verified, please follow steps to verify domain in google developer console"
-msgstr "回調網域名稱尚未被驗證，請在google開發者控制台按步驟驗證網域名稱"
-
-#: cps/helper.py:86
-#, python-format
-msgid "%(format)s format not found for book id: %(book)d"
+ 
 msgstr "找不到id為 %(book)d 的書籍的 %(format)s 格式"
 
 #: cps/helper.py:93 cps/tasks/convert.py:89

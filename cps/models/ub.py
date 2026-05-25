@@ -34,22 +34,21 @@ from sqlalchemy import Column, ForeignKey
 from sqlalchemy import String, Integer, SmallInteger, Boolean, DateTime, Float, JSON , Text
 from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy.sql.expression import func
-try:
-    # Compatibility with sqlalchemy 2.0
-    from sqlalchemy.orm import declarative_base
-except ImportError:
-    from sqlalchemy.ext.declarative import declarative_base
+
 from sqlalchemy.orm import backref, relationship, sessionmaker, Session, scoped_session
 from werkzeug.security import generate_password_hash
 from dotenv import load_dotenv
 from .. import constants, logger
 from ..utils import get_env_path
+from cps.models.libraryId import init_library_id
+
+from .base import Base
 
 log = logger.create()
 
 session = None
 app_DB_path = None
-Base = declarative_base()
+
 searched_ids = {}
 
 logged_in = dict()
@@ -271,8 +270,6 @@ class User(UserBase, Base):
             "email_verified": self.forum_email_verified_at is not None,
             "isAdmin": self.role_admin()
         }
-
-oauth_support = True
 
 class OAuth(Base):
     __tablename__ = 'oauth'
@@ -811,6 +808,9 @@ def init_db(app_db_path=None):
     if user_count == 0:
         create_admin_user(session)
         create_anonymous_user(session)
+
+    # Check if we need to create default library_id
+    init_library_id(session)
 
 def password_change(user_credentials=None):
     if user_credentials:

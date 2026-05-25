@@ -45,7 +45,6 @@ from . import constants, logger, isoLanguages, services
 from . import db, ub, config, app
 from . import calibre_db, kobo_sync_status
 from .search import render_search_results, render_adv_search_results
-from .gdriveutils import getFileFromEbooksFolder, do_gdrive_download
 from .helper import check_valid_domain, check_email, check_username, \
     get_book_cover, get_series_cover_thumbnail, get_download_link, send_mail, generate_random_password, \
     send_registration_mail, check_send_to_ereader, check_read_formats, tags_filters, reset_password, valid_email, \
@@ -94,9 +93,8 @@ def add_security_headers(resp):
     default_src = ([host.strip() for host in config.config_trustedhosts.split(',') if host] +
                    ["'self'", "'unsafe-inline'", "'unsafe-eval'", "blob:", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net"])
     csp = "default-src " + ' '.join(default_src)
-    if (request.endpoint == "web.read_book" or request.endpoint == "web.read_book_pdf") and config.config_use_google_drive:
-        csp +=" blob: "
-    if (request.endpoint == "web.read_book" or request.endpoint == "web.read_book_pdf") and config.config_use_google_drive:
+    # Blob usage is allowed for book reading endpoints
+    if (request.endpoint == "web.read_book" or request.endpoint == "web.read_book_pdf"):
         csp +=" blob: "
     csp += "; font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net"
     if request.endpoint == "web.read_book" or request.endpoint == "web.read_book_pdf":
@@ -105,7 +103,7 @@ def add_security_headers(resp):
     if request.path.startswith("/author/") and config.config_use_goodreads:
         csp += " images.gr-assets.com i.gr-assets.com s.gr-assets.com"
     csp += " data:"
-    if request.endpoint == "edit-book.show_edit_book" or config.config_use_google_drive:
+    if request.endpoint == "edit-book.show_edit_book":
         csp += " *"
     if request.endpoint == "web.read_book" or request.endpoint == "web.read_book_pdf":
         csp += " blob: ; style-src-elem 'self' blob: 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net"
@@ -1395,44 +1393,32 @@ def serve_book(book_id, book_format, anyname):
         return "File not in Database"
     range_header = request.headers.get('Range', None)
 
-    if config.config_use_google_drive:
+    # Serve books from local filesystem only
+    if book_format.upper() == 'TXT':
+        log.info('Serving book: %s', data.name)
         try:
-            headers = Headers()
-            headers["Content-Type"] = mimetypes.types_map.get('.' + book_format, "application/octet-stream")
-            if not range_header:
-                log.info('Serving book: %s', data.name)
-                headers['Accept-Ranges'] = 'bytes'
-            df = getFileFromEbooksFolder(book.path, data.name + "." + book_format)
-            return do_gdrive_download(df, headers, (book_format.upper() == 'TXT'))
-        except AttributeError as ex:
-            log.error_or_exception(ex)
-            return "File Not Found"
-    else:
-        if book_format.upper() == 'TXT':
-            log.info('Serving book: %s', data.name)
+            rawdata = open(os.path.join(config.get_book_path(), book.path, data.name + "." + book_format),
+                           "rb").read()
+            result = chardet.detect(rawdata)
             try:
-                rawdata = open(os.path.join(config.get_book_path(), book.path, data.name + "." + book_format),
-                               "rb").read()
-                result = chardet.detect(rawdata)
-                try:
-                    text_data = rawdata.decode(result['encoding']).encode('utf-8')
-                except UnicodeDecodeError as e:
-                    log.error("Encoding error in text file {}: {}".format(book.id, e))
-                    if "surrogate" in e.reason:
-                        text_data = rawdata.decode(result['encoding'], 'surrogatepass').encode('utf-8', 'surrogatepass')
-                    else:
-                        text_data = rawdata.decode(result['encoding'], 'ignore').encode('utf-8', 'ignore')
-                return make_response(text_data)
-            except FileNotFoundError:
+                text_data = rawdata.decode(result['encoding']).encode('utf-8')
+            except UnicodeDecodeError as e:
+                log.error("Encoding error in text file {}: {}".format(book.id, e))
+                if "surrogate" in e.reason:
+                    text_data = rawdata.decode(result['encoding'], 'surrogatepass').encode('utf-8', 'surrogatepass')
+                else:
+                    text_data = rawdata.decode(result['encoding'], 'ignore').encode('utf-8', 'ignore')
+            return make_response(text_data)
+        except FileNotFoundError:
                 log.error("File Not Found")
                 return "File Not Found"
-        # enable byte range read of pdf
-        response = make_response(
-            send_from_directory(os.path.join(config.get_book_path(), book.path), data.name + "." + book_format))
-        if not range_header:
-            log.info('Serving book: %s', data.name)
-            response.headers['Accept-Ranges'] = 'bytes'
-        return response
+    # enable byte range read of pdf
+    response = make_response(
+        send_from_directory(os.path.join(config.get_book_path(), book.path), data.name + "." + book_format))
+    if not range_header:
+        log.info('Serving book: %s', data.name)
+        response.headers['Accept-Ranges'] = 'bytes'
+    return response
 
 
 @web.route("/download/<int:book_id>/<book_format>", defaults={'anyname': 'None'})

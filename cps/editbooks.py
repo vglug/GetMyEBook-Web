@@ -37,7 +37,7 @@ from sqlalchemy.exc import OperationalError, IntegrityError, InterfaceError
 from sqlalchemy.orm.exc import StaleDataError
 from sqlalchemy.sql.expression import func
 
-from . import constants, logger, isoLanguages, gdriveutils, uploader, helper, kobo_sync_status
+from . import constants, logger, isoLanguages, uploader, helper, kobo_sync_status
 from .clean_html import clean_string
 from . import config, ub, db, calibre_db
 from .services.worker import WorkerThread
@@ -153,9 +153,7 @@ def edit_book(book_id):
             book.has_cover = 1
             modify_date = True
 
-        # upload new covers or new file formats to google drive
-        if config.config_use_google_drive:
-            gdriveutils.updateGdriveCalibreFromLocal()
+        # Google Drive integration removed: uploads are handled locally
 
         if to_save.get("cover_url", None):
             if not current_user.role_upload():
@@ -216,8 +214,7 @@ def edit_book(book_id):
 
         calibre_db.session.merge(book)
         calibre_db.session.commit()
-        if config.config_use_google_drive:
-            gdriveutils.updateGdriveCalibreFromLocal()
+        # Google Drive integration removed: uploads are handled locally
         if meta is not False \
             and edit_error is not True \
                 and title_author_error is not True \
@@ -286,22 +283,11 @@ def upload():
                 if not thread:
                     auto_create_thread_for_book(book_id, title, meta.description)
                 log.info(f"Uploading file format: {meta.extension.lower()} for book id: {book_id} by user: {current_user.name} title: {title} discription: {meta.description}")
-                if config.config_use_google_drive:
-                    helper.upload_new_file_gdrive(book_id,
-                                                  input_authors[0],
-                                                  title,
-                                                  title_dir,
-                                                  meta.file_path,
-                                                  meta.extension.lower())
-                    for file_format in db_book.data:
-                        file_format.name = (helper.get_valid_filename(title, chars=42) + ' - '
-                                            + helper.get_valid_filename(input_authors[0], chars=42))
-                else:
-                    error = helper.update_dir_structure(book_id,
-                                                        config.get_book_path(),
-                                                        input_authors[0],
-                                                        meta.file_path,
-                                                        title_dir + meta.extension.lower())
+                error = helper.update_dir_structure(book_id,
+                                                    config.get_book_path(),
+                                                    input_authors[0],
+                                                    meta.file_path,
+                                                    title_dir + meta.extension.lower())
 
                 move_coverfile(meta, db_book)
 
@@ -310,8 +296,7 @@ def upload():
                 # save data to database, reread data
                 calibre_db.session.commit()
 
-                if config.config_use_google_drive:
-                    gdriveutils.updateGdriveCalibreFromLocal()
+                # Google Drive integration removed
                 if error:
                     flash(error, category="error")
                 link = '<a href="{}">{}</a>'.format(url_for('web.show_book', book_id=book_id), escape(title))
@@ -581,8 +566,7 @@ def table_xchange_author_title():
                 edited_books_id = book.id
                 modify_date = True
 
-            if config.config_use_google_drive:
-                gdriveutils.updateGdriveCalibreFromLocal()
+            # Google Drive integration removed
 
             if edited_books_id:
                 # toDo: Handle error
@@ -597,8 +581,7 @@ def table_xchange_author_title():
                 log.error_or_exception("Database error: {}".format(e))
                 return json.dumps({'success': False})
 
-            if config.config_use_google_drive:
-                gdriveutils.updateGdriveCalibreFromLocal()
+            # Google Drive integration removed
         return json.dumps({'success': True})
     return ""
 
@@ -638,9 +621,7 @@ def identifier_list(to_save, book):
     return result
 
 
-def prepare_authors(authr, calibre_path, gdrive=False):
-    if gdrive:
-        calibre_path = ""
+def prepare_authors(authr, calibre_path):
     # handle authors
     input_authors = authr.split('&')
     # handle_authors(input_authors)
@@ -679,7 +660,7 @@ def prepare_authors(authr, calibre_path, gdrive=False):
                     one_old_authordir = one_book.path.split('/')[0]
                     # rename author path only once per renamed author -> search all books with author name in book.path
                     # das muss einmal geschehen aber pro Buch geprüft werden ansonsten habe ich das Problem das vlt. 2 gleiche Ordner bis auf Groß/Kleinschreibung vorhanden sind im Umzug
-                    new_author_dir = helper.rename_author_path(in_aut, one_old_authordir, renamed_author.name, calibre_path, gdrive)
+                    new_author_dir = helper.rename_author_path(in_aut, one_old_authordir, renamed_author.name, calibre_path)
                     one_book.path = os.path.join(new_author_dir, one_titledir).replace('\\', '/')
                     # rename all books in book data with the new author name and move corresponding files to new locations
                     # old_path = os.path.join(calibre_path, new_author_dir, one_titledir)
@@ -687,7 +668,7 @@ def prepare_authors(authr, calibre_path, gdrive=False):
                     all_new_name = helper.get_valid_filename(one_book.title, chars=42) + ' - ' \
                                    + helper.get_valid_filename(renamed_author.name, chars=42)
                     # change location in database to new author/title path
-                    helper.rename_all_files_on_change(one_book, new_path, new_path, all_new_name, gdrive)
+                    helper.rename_all_files_on_change(one_book, new_path, new_path, all_new_name)
 
     return input_authors
 
@@ -700,7 +681,7 @@ def prepare_authors_on_upload(title, authr):
             flash(_("Uploaded book probably exists in the library, consider to change before upload new: ")
                   + Markup(render_title_template('book_exists_flash.html', entry=entry)), category="warning")
 
-    input_authors = prepare_authors(authr, config.get_book_path(), config.config_use_google_drive)
+    input_authors = prepare_authors(authr, config.get_book_path())
 
     sort_authors_list = list()
     db_author = None
@@ -1360,7 +1341,7 @@ def handle_title_on_edit(book, book_title):
 def handle_author_on_edit(book, author_name, update_stored=True):
     change = False
     # handle author(s)
-    input_authors = prepare_authors(author_name, config.get_book_path(), config.config_use_google_drive)
+    input_authors = prepare_authors(author_name, config.get_book_path())
 
     # Search for each author if author is in database, if not, author name and sorted author name is generated new
     # everything then is assembled for sorted author field in database

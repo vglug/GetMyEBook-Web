@@ -657,17 +657,7 @@ msgstr "Не удалось сохранить файл %(file)s."
 msgid "File format %(ext)s added to %(book)s"
 msgstr "Формат файла %(ext)s добавлен в %(book)s"
 
-#: cps/gdrive.py:58
-msgid "Google Drive setup not completed, try to deactivate and activate Google Drive again"
-msgstr "Настройка Google Drive не завершена, попробуйте деактивировать и снова активировать Google Drive"
-
-#: cps/gdrive.py:96
-msgid "Callback domain is not verified, please follow steps to verify domain in google developer console"
-msgstr "Не удалось проверить домен обратного вызова, пожалуйста, выполните шаги для проверки домена в консоли разработчика Google."
-
-#: cps/helper.py:86
-#, python-format
-msgid "%(format)s format not found for book id: %(book)d"
+ 
 msgstr "%(format)s форма не найден для книги с id: %(book)d"
 
 #: cps/helper.py:93 cps/tasks/convert.py:89

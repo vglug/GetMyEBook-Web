@@ -33,7 +33,6 @@ from cps.services.worker import CalibreTask
 from cps.services import gmail
 from cps.embed_helper import do_calibre_export
 from cps import logger, config
-from cps import gdriveutils
 import uuid
 
 log = logger.create()
@@ -281,35 +280,19 @@ class TaskEmail(CalibreTask):
         """Get file as MIMEBase message"""
         calibre_path = config.get_book_path()
         extension = os.path.splitext(filename)[1][1:]
-        if config.config_use_google_drive:
-            df = gdriveutils.getFileFromEbooksFolder(book_path, filename)
-            if df:
-                datafile = os.path.join(calibre_path, book_path, filename)
-                if not os.path.exists(os.path.join(calibre_path, book_path)):
-                    os.makedirs(os.path.join(calibre_path, book_path))
-                df.GetContentFile(datafile)
-            else:
-                return None
+        datafile = os.path.join(calibre_path, book_path, filename)
+        try:
             if config.config_binariesdir and config.config_embed_metadata:
                 data_path, data_file = do_calibre_export(self.book_id, extension)
                 datafile = os.path.join(data_path, data_file + "." + extension)
             with open(datafile, 'rb') as file_:
                 data = file_.read()
-            os.remove(datafile)
-        else:
-            datafile = os.path.join(calibre_path, book_path, filename)
-            try:
-                if config.config_binariesdir and config.config_embed_metadata:
-                    data_path, data_file = do_calibre_export(self.book_id, extension)
-                    datafile = os.path.join(data_path, data_file + "." + extension)
-                with open(datafile, 'rb') as file_:
-                    data = file_.read()
-                if config.config_binariesdir and config.config_embed_metadata:
-                    os.remove(datafile)
-            except IOError as e:
-                log.error_or_exception(e, stacklevel=3)
-                log.error('The requested file could not be read. Maybe wrong permissions?')
-                return None
+            if config.config_binariesdir and config.config_embed_metadata:
+                os.remove(datafile)
+        except IOError as e:
+            log.error_or_exception(e, stacklevel=3)
+            log.error('The requested file could not be read. Maybe wrong permissions?')
+            return None
         return data
 
     @property

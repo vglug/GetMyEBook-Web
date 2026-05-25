@@ -660,13 +660,7 @@ msgstr "Bestandsformaat %(ext)s toegevoegd aan %(book)s"
 msgid "Google Drive setup not completed, try to deactivate and activate Google Drive again"
 msgstr "Het instellen van Google Drive is niet afgerond, heractiveer Google Drive"
 
-#: cps/gdrive.py:96
-msgid "Callback domain is not verified, please follow steps to verify domain in google developer console"
-msgstr "Het callback-domein is niet geverifieerd. Volg de stappen in de Google-ontwikkelaarsconsole om het domein te verifiëren"
 
-#: cps/helper.py:86
-#, python-format
-msgid "%(format)s format not found for book id: %(book)d"
 msgstr "%(format)s formaat niet gevonden voor boek met id: %(book)d"
 
 #: cps/helper.py:93 cps/tasks/convert.py:89

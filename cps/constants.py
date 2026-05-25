@@ -56,8 +56,8 @@ else:
 
 # For PostgreSQL, database files are not used - configuration is via environment variables
 # Keeping these for backward compatibility but they won't be used for database connections
+# Default settings filename
 DEFAULT_SETTINGS_FILE = "app.db"
-DEFAULT_GDRIVE_FILE = "gdrive.db"
 
 # Database Types
 DATABASE_SQLITE = 'sqlite'

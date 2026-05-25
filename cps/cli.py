@@ -24,7 +24,7 @@ import socket
 from .constants import CONFIG_DIR as _CONFIG_DIR
 from .constants import STABLE_VERSION as _STABLE_VERSION
 from .constants import NIGHTLY_VERSION as _NIGHTLY_VERSION
-from .constants import DEFAULT_SETTINGS_FILE, DEFAULT_GDRIVE_FILE
+from .constants import DEFAULT_SETTINGS_FILE
 from . import logger
 
 
@@ -60,7 +60,6 @@ class CliParameter(object):
                                          prog='cps.py')
         # For PostgreSQL, database paths are handled via environment variables
         parser.add_argument('-p', metavar='path', help='path and name to settings db (Not used for PostgreSQL - use environment variables)')
-        parser.add_argument('-g', metavar='path', help='path and name to gdrive db (Not used for PostgreSQL - use environment variables)')
         parser.add_argument('-c', metavar='path', help='path and name to SSL certfile, '
                                                        'e.g. /opt/test.cert, works only in combination with keyfile')
         parser.add_argument('-k', metavar='path', help='path and name to SSL keyfile, e.g. /opt/test.key, '
@@ -89,7 +88,6 @@ class CliParameter(object):
         
         # For PostgreSQL, database configuration is handled via environment variables
         self.settings_path = args.p or os.path.join(_CONFIG_DIR, DEFAULT_SETTINGS_FILE)
-        self.gd_path = args.g or os.path.join(_CONFIG_DIR, DEFAULT_GDRIVE_FILE)
         
         # log.info(f"CLI Settings path: {self.settings_path} (PostgreSQL uses environment variables)")
 
@@ -97,8 +95,7 @@ class CliParameter(object):
         if args.p:
             log.warning("SQLite database path specified but PostgreSQL is being used. Database paths are now configured via environment variables.")
         
-        if args.g:
-            log.warning("SQLite GDrive database path specified but PostgreSQL is being used. Database paths are now configured via environment variables.")
+        # Google Drive CLI option removed
 
         # handle and check parameter for ssl encryption
         self.certfilepath = None

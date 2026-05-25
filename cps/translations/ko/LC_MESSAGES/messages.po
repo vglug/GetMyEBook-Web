@@ -644,17 +644,7 @@ msgstr "%(file)s 파일을 저장하지 못했습니다."
 msgid "File format %(ext)s added to %(book)s"
 msgstr "파일 형식 %(ext)s이(가) %(book)s에 추가되었습니다"
 
-#: cps/gdrive.py:58
-msgid "Google Drive setup not completed, try to deactivate and activate Google Drive again"
-msgstr "Google 드라이브 설정이 완료되지 않았습니다. Google 드라이브를 비활성화했다가 다시 활성화해 보세요"
-
-#: cps/gdrive.py:96
-msgid "Callback domain is not verified, please follow steps to verify domain in google developer console"
-msgstr "콜백 도메인이 확인되지 않았습니다. 단계에 따라 Google 개발자 콘솔에서 도메인을 확인하세요"
-
-#: cps/helper.py:86
-#, python-format
-msgid "%(format)s format not found for book id: %(book)d"
+ 
 msgstr "책 ID에 대한 %(format)s 형식을 찾을 수 없음: %(book)d"
 
 #: cps/helper.py:93 cps/tasks/convert.py:89

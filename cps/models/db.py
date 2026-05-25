@@ -88,12 +88,6 @@ books_publishers_link = Table('books_publishers_link', Base.metadata,
                               )
 
 
-class Library_Id(Base):
-    __tablename__ = 'library_id'
-    id = Column(Integer, primary_key=True)
-    uuid = Column(String, nullable=False)
-
-
 class Identifiers(Base):
     __tablename__ = 'identifiers'
 
