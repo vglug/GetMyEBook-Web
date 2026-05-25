@@ -42,7 +42,7 @@ load_dotenv(utils.get_env_path())
 log = logger.create()
 # Settings models live in cps/models/settings.py (single source of truth).
 # Both this module and cps/forum/config.py import from there.
-from .models.settings import _Base, _Flask_Settings, _Settings  # noqa: F401
+from .models.settings import Base, _Flask_Settings, _Settings  # noqa: F401
 
 
 
@@ -365,51 +365,6 @@ def _encrypt_fields(session, secret_key):
                 {_Settings.config_db_password_e: crypter.encrypt(settings.config_db_password.encode())})
         session.commit()
 
-# def _migrate_table(session, orm_class, secret_key=None):
-#     if secret_key:
-#         _encrypt_fields(session, secret_key)
-#     changed = False
-
-#     for column_name, column in orm_class.__dict__.items():
-#         if column_name[0] != '_':
-#             # Skip checking PostgreSQL columns if they don't exist yet to avoid errors
-#             if column_name in ['config_db_host', 'config_db_port', 'config_db_name', 'config_db_user', 
-#                              'config_db_password_e', 'config_db_password', 'config_database_url', 
-#                              'config_use_postgresql']:
-#                 continue
-                
-#             try:
-#                 session.query(column).first()
-#             except OperationalError as err:
-#                 log.debug("%s: %s", column_name, err.args[0])
-#                 if column.default is None:
-#                     column_default = ""
-#                 else:
-#                     if isinstance(column.default.arg, bool):
-#                         column_default = "DEFAULT {}".format(int(column.default.arg))
-#                     else:
-#                         column_default = "DEFAULT `{}`".format(column.default.arg)
-#                 if isinstance(column.type, JSON):
-#                     column_type = "JSON"
-#                 else:
-#                     column_type = column.type
-#                 alter_table = text("ALTER TABLE %s ADD COLUMN `%s` %s %s" % (orm_class.__tablename__,
-#                                                                              column_name,
-#                                                                              column_type,
-#                                                                              column_default))
-#                 log.debug(alter_table)
-#                 session.execute(alter_table)
-#                 changed = True
-#             except json.decoder.JSONDecodeError as e:
-#                 log.error("Database corrupt column: {}".format(column_name))
-#                 log.debug(e)
-
-#     if changed:
-#         try:
-#             session.commit()
-#         except OperationalError:
-#             session.rollback()
-
 def _migrate_table(session, orm_class, secret_key=None):
     if secret_key:
         _encrypt_fields(session, secret_key)
@@ -653,7 +608,7 @@ def _migrate_database(session, secret_key):
     import sys
     migration_running = any(arg == 'db' for arg in sys.argv)
     if not migration_running:
-        _Base.metadata.create_all(session.bind)
+        Base.metadata.create_all(session.bind)
     _migrate_table(session, _Settings, secret_key)
     _migrate_table(session, _Flask_Settings)
 

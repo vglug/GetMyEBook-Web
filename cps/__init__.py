@@ -130,7 +130,7 @@ def create_database_tables(engine):
         
         # Create all tables
         ub.Base.metadata.create_all(engine)
-        config_sql._Base.metadata.create_all(engine)
+        # config_sql._Base.metadata.create_all(engine)
         
         # Create forum tables
         try:

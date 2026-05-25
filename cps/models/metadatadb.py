@@ -1,11 +1,9 @@
 # metadata.db file convert ORM model
 
-from sqlalchemy import Boolean, CheckConstraint, Column, Float, ForeignKey, Index, Integer, LargeBinary, TIMESTAMP, Table, Text, UniqueConstraint, text
-from sqlalchemy.orm.base import Mapped
+from sqlalchemy import Boolean, Column, Float, ForeignKey, Index, Integer, LargeBinary, TIMESTAMP, Table, Text, UniqueConstraint, text
 
-from cps.models.db import Base, Books
-
-from .ub import Base
+from .base import Base
+from .db import Books
 metadata = Base.metadata
 
 
@@ -119,32 +117,6 @@ class AnnotationsFtsStemmedIdx(Base):
     term = Column(Text, primary_key=True, nullable=False)
     pgno = Column(Text)
 
-class BooksAuthorsLink(Base):
-    __tablename__ = 'books_authors_link'
-    __table_args__ = (
-        UniqueConstraint('book', 'author'),
-        Index('books_authors_link_aidx', 'author'),
-        Index('books_authors_link_bidx', 'book')
-    )
-
-    book = Column(Integer, nullable=False)
-    author = Column(Integer, nullable=False)
-    id = Column(Integer, primary_key=True)
-
-
-class BooksLanguagesLink(Base):
-    __tablename__ = 'books_languages_link'
-    __table_args__ = (
-        UniqueConstraint('book', 'lang_code'),
-        Index('books_languages_link_aidx', 'lang_code'),
-        Index('books_languages_link_bidx', 'book')
-    )
-
-    book = Column(Integer, nullable=False)
-    lang_code = Column(Integer, nullable=False)
-    item_order = Column(Integer, nullable=False, server_default=text('0'))
-    id = Column(Integer, primary_key=True)
-
 
 class BooksPluginData(Base):
     __tablename__ = 'books_plugin_data'
@@ -157,55 +129,6 @@ class BooksPluginData(Base):
     val = Column(Text, nullable=False)
     id = Column(Integer, primary_key=True)
 
-
-class BooksPublishersLink(Base):
-    __tablename__ = 'books_publishers_link'
-    __table_args__ = (
-        Index('books_publishers_link_aidx', 'publisher'),
-        Index('books_publishers_link_bidx', 'book')
-    )
-
-    book = Column(Integer, nullable=False, unique=True)
-    publisher = Column(Integer, nullable=False)
-    id = Column(Integer, primary_key=True)
-
-
-class BooksRatingsLink(Base):
-    __tablename__ = 'books_ratings_link'
-    __table_args__ = (
-        UniqueConstraint('book', 'rating'),
-        Index('books_ratings_link_aidx', 'rating'),
-        Index('books_ratings_link_bidx', 'book')
-    )
-
-    book = Column(Integer, nullable=False)
-    rating = Column(Integer, nullable=False)
-    id = Column(Integer, primary_key=True)
-
-
-class BooksSeriesLink(Base):
-    __tablename__ = 'books_series_link'
-    __table_args__ = (
-        Index('books_series_link_aidx', 'series'),
-        Index('books_series_link_bidx', 'book')
-    )
-
-    book = Column(Integer, nullable=False, unique=True)
-    series = Column(Integer, nullable=False)
-    id = Column(Integer, primary_key=True)
-
-
-class BooksTagsLink(Base):
-    __tablename__ = 'books_tags_link'
-    __table_args__ = (
-        UniqueConstraint('book', 'tag'),
-        Index('books_tags_link_aidx', 'tag'),
-        Index('books_tags_link_bidx', 'book')
-    )
-
-    book = Column(Integer, nullable=False)
-    tag = Column(Integer, nullable=False)
-    id = Column(Integer, primary_key=True)
 
 class ConversionOptions(TimestampMixin, Base):
     __tablename__ = 'conversion_options'
@@ -253,6 +176,7 @@ class Preferences(TimestampMixin, Base):
 
 class BooksPagesLink(Books):
     __tablename__ = 'books_pages_link'
+
     __table_args__ = (
         Index('books_pages_link_pidx', 'needs_scan'),
     )
@@ -261,6 +185,19 @@ class BooksPagesLink(Books):
     algorithm = Column(Integer, nullable=False, server_default=text('0'))
     format = Column(Text, nullable=False, server_default=text("''"))
     format_size = Column(Integer, nullable=False, server_default=text('0'))
-    needs_scan = Column(Boolean, nullable=False, server_default=text('0'))
-    book = Column(ForeignKey('books.id', ondelete='CASCADE'), primary_key=True)
-    timestamp = Column(TIMESTAMP, server_default=text('CURRENT_TIMESTAMP'))
+
+    needs_scan = Column(
+        Boolean,
+        nullable=False,
+        server_default=text('false')
+    )
+
+    book = Column(
+        ForeignKey('books.id', ondelete='CASCADE'),
+        primary_key=True
+    )
+
+    link_timestamp = Column(
+        TIMESTAMP,
+        server_default=text('CURRENT_TIMESTAMP')
+    )

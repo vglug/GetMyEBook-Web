@@ -51,6 +51,7 @@ from cps.forum.apps.threads.forms import ThreadCreationForm
 from cps.models.forum import Thread, Category
 from slugify import slugify
 from cps.models.ratings import Ratings
+from cps.models.identifiers import Identifiers
 
 editbook = Blueprint('edit-book', __name__)
 log = logger.create()
@@ -618,7 +619,7 @@ def identifier_list(to_save, book):
             continue
         if to_save[val_key].startswith("data:"):
             to_save[val_key], __, __ = str.partition(to_save[val_key], ",")
-        result.append(db.Identifiers(to_save[val_key], type_value, book.id))
+        result.append(Identifiers(to_save[val_key], type_value, book.id))
     return result
 
 
@@ -758,7 +759,7 @@ def create_book_on_upload(modify_date, meta):
     # Handle identifiers now that db_book.id is available
     identifier_list = []
     for type_key, type_value in meta.identifiers:
-        identifier_list.append(db.Identifiers(type_value, type_key, db_book.id))
+        identifier_list.append(Identifiers(type_value, type_key, db_book.id))
     modification, warning = modify_identifiers(identifier_list, db_book.identifiers, calibre_db.session)
     if warning:
         flash(_("Identifiers are not Case Sensitive, Overwriting Old Identifier"), category="warning")

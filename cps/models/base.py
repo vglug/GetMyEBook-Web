@@ -4,6 +4,4 @@ try:
 except ImportError:
     from sqlalchemy.ext.declarative import declarative_base
     
-
 Base = declarative_base()
-calibre_Base = declarative_base()

@@ -37,7 +37,6 @@ try:
     from sqlalchemy.orm import declarative_base
 except ImportError:
     from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.pool import StaticPool
 from sqlalchemy.sql.expression import and_, true, false, text, func, or_
 from sqlalchemy.ext.associationproxy import association_proxy
 from ..cw_login import current_user
@@ -45,6 +44,7 @@ from flask_babel import gettext as _
 from flask_babel import get_locale
 from flask import flash
 from .ratings import Ratings
+from .identifiers import Identifiers
 
 from .. import logger, isoLanguages, create_metadata_psql
 from . import ub
@@ -56,7 +56,7 @@ log = logger.create()
 cc_exceptions = ['composite', 'series']
 cc_classes = {}
 
-from .base import calibre_Base as Base
+from .base import Base
 
 books_authors_link = Table('books_authors_link', Base.metadata,
                            Column('book', Integer, ForeignKey('books.id'), primary_key=True),
@@ -89,102 +89,13 @@ books_publishers_link = Table('books_publishers_link', Base.metadata,
                               )
 
 
-class Identifiers(Base):
-    __tablename__ = 'identifiers'
-
-    id = Column(Integer, primary_key=True)
-    type = Column(String(collation='NOCASE'), nullable=False, default="isbn")
-    val = Column(String(collation='NOCASE'), nullable=False)
-    book = Column(Integer, ForeignKey('books.id'), nullable=False)
-
-    def __init__(self, val, id_type, book):
-        super().__init__()
-        self.val = val
-        self.type = id_type
-        self.book = book
-
-    def format_type(self):
-        format_type = self.type.lower()
-        if format_type == 'amazon':
-            return "Amazon"
-        elif format_type.startswith("amazon_"):
-            return "Amazon.{0}".format(format_type[7:])
-        elif format_type == "isbn":
-            return "ISBN"
-        elif format_type == "doi":
-            return "DOI"
-        elif format_type == "douban":
-            return "Douban"
-        elif format_type == "goodreads":
-            return "Goodreads"
-        elif format_type == "babelio":
-            return "Babelio"
-        elif format_type == "google":
-            return "Google Books"
-        elif format_type == "kobo":
-            return "Kobo"
-        elif format_type == "barnesnoble":
-            return "Barnes & Noble"
-        elif format_type == "litres":
-            return "ЛитРес"
-        elif format_type == "issn":
-            return "ISSN"
-        elif format_type == "isfdb":
-            return "ISFDB"
-        if format_type == "lubimyczytac":
-            return "Lubimyczytac"
-        if format_type == "databazeknih":
-            return "Databáze knih"
-        else:
-            return self.type
-
-    def __repr__(self):
-        format_type = self.type.lower()
-        if format_type == "amazon" or format_type == "asin":
-            return "https://amazon.com/dp/{0}".format(self.val)
-        elif format_type.startswith('amazon_'):
-            return "https://amazon.{0}/dp/{1}".format(format_type[7:], self.val)
-        elif format_type == "isbn":
-            return "https://www.worldcat.org/isbn/{0}".format(self.val)
-        elif format_type == "doi":
-            return "https://dx.doi.org/{0}".format(self.val)
-        elif format_type == "goodreads":
-            return "https://www.goodreads.com/book/show/{0}".format(self.val)
-        elif format_type == "babelio":
-            return "https://www.babelio.com/livres/titre/{0}".format(self.val)
-        elif format_type == "douban":
-            return "https://book.douban.com/subject/{0}".format(self.val)
-        elif format_type == "google":
-            return "https://books.google.com/books?id={0}".format(self.val)
-        elif format_type == "kobo":
-            return "https://www.kobo.com/ebook/{0}".format(self.val)
-        elif format_type == "barnesnoble":
-            return "https://www.barnesandnoble.com/w/{0}".format(self.val)
-        elif format_type == "lubimyczytac":
-            return "https://lubimyczytac.pl/ksiazka/{0}/ksiazka".format(self.val)
-        elif format_type == "litres":
-            return "https://www.litres.ru/{0}".format(self.val)
-        elif format_type == "issn":
-            return "https://portal.issn.org/resource/ISSN/{0}".format(self.val)
-        elif format_type == "isfdb":
-            return "http://www.isfdb.org/cgi-bin/pl.cgi?{0}".format(self.val)
-        elif format_type == "databazeknih":
-            return "https://www.databazeknih.cz/knihy/{0}".format(self.val)
-        elif self.val.lower().startswith("javascript:"):
-            return quote(self.val)
-        elif self.val.lower().startswith("data:"):
-            link, __, __ = str.partition(self.val, ",")
-            return link
-        else:
-            return "{0}".format(self.val)
-
 
 class Comments(Base):
     __tablename__ = 'comments'
 
     id = Column(Integer, primary_key=True)
     book = Column(Integer, ForeignKey('books.id'), nullable=False, unique=True)
-    text = Column(String(collation='NOCASE'), nullable=False)
+    text = Column(String, nullable=False)
 
     def __init__(self, comment, book):
         super().__init__()
@@ -202,7 +113,7 @@ class Tags(Base):
     __tablename__ = 'tags'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String(collation='NOCASE'), unique=True, nullable=False)
+    name = Column(String, unique=True, nullable=False)
 
     def __init__(self, name):
         super().__init__()
@@ -222,8 +133,8 @@ class Authors(Base):
     __tablename__ = 'authors'
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(collation='NOCASE'), unique=True, nullable=False)
-    sort = Column(String(collation='NOCASE'))
+    name = Column(String, unique=True, nullable=False)
+    sort = Column(String)
     link = Column(String, nullable=False, default="")
     image = Column(String, nullable=False, default="")
 
@@ -248,8 +159,8 @@ class Series(Base):
     __tablename__ = 'series'
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(collation='NOCASE'), unique=True, nullable=False)
-    sort = Column(String(collation='NOCASE'))
+    name = Column(String, unique=True, nullable=False)
+    sort = Column(String)
 
     def __init__(self, name, sort):
         super().__init__()
@@ -269,7 +180,7 @@ class Languages(Base):
     __tablename__ = 'languages'
 
     id = Column(Integer, primary_key=True)
-    lang_code = Column(String(collation='NOCASE'), nullable=False, unique=True)
+    lang_code = Column(String, nullable=False, unique=True)
 
     def __init__(self, lang_code):
         super().__init__()
@@ -292,8 +203,8 @@ class Publishers(Base):
     __tablename__ = 'publishers'
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(collation='NOCASE'), nullable=False, unique=True)
-    sort = Column(String(collation='NOCASE'))
+    name = Column(String, nullable=False, unique=True)
+    sort = Column(String)
 
     def __init__(self, name, sort):
         super().__init__()
@@ -315,7 +226,7 @@ class Data(Base):
 
     id = Column(Integer, primary_key=True)
     book = Column(Integer, ForeignKey('books.id'), nullable=False)
-    format = Column(String(collation='NOCASE'), nullable=False)
+    format = Column(String, nullable=False)
     uncompressed_size = Column(Integer, nullable=False)
     name = Column(String, nullable=False)
 
@@ -349,9 +260,9 @@ class Books(Base):
     DEFAULT_PUBDATE = datetime(101, 1, 1, 0, 0, 0, 0)
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    title = Column(String(collation='NOCASE'), nullable=False, default='Unknown')
-    sort = Column(String(collation='NOCASE'))
-    author_sort = Column(String(collation='NOCASE'))
+    title = Column(String, nullable=False, default='Unknown')
+    sort = Column(String)
+    author_sort = Column(String)
     timestamp = Column(TIMESTAMP, default=datetime.utcnow)
     pubdate = Column(TIMESTAMP, default=DEFAULT_PUBDATE)
     series_index = Column(String, nullable=False, default="1.0")
@@ -359,7 +270,7 @@ class Books(Base):
     path = Column(String, default="", nullable=False)
     has_cover = Column(Integer, default=0)
     uuid = Column(String)
-    isbn = Column(String(collation='NOCASE'), default="")
+    isbn = Column(String, default="")
     flags = Column(Integer, nullable=False, default=1)
 
     authors = relationship(Authors, secondary=books_authors_link, backref='books')

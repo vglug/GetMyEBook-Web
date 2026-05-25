@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, CheckConstraint, Text
 
-from .base import calibre_Base as Base
+from .base import Base
 
 class Ratings(Base):
     __tablename__ = 'ratings'
