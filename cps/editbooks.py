@@ -326,7 +326,7 @@ def upload():
                 calibre_db.session.rollback()
                 log.error_or_exception("Upload error: {}".format(e))
                 flash(_("Error uploading file: %(error)s", error=e), category="error")
-                log.error("Upload error: {}".format(e))
+                log.error(f"❌ Upload error: {e}")
         return Response(json.dumps({"location": url_for("web.index")}), mimetype='application/json')
 
 

@@ -234,7 +234,7 @@ def delete_comment_admin():
         else:
             return json.dumps({"success": False, "message": _("Comment not found")}), 404
     except Exception as e:
-        log.error(f"Error deleting comment: {e}")
+        log.error(f"❌ Error deleting comment: {e}")
         return json.dumps({"success": False, "message": _("An error occurred")}), 500
 
 @admi.route("/admin/comments/edit", methods=["POST"])
@@ -265,7 +265,7 @@ def edit_comment_admin():
         else:
              return json.dumps({"success": False, "message": _("Comment not found")}), 404
     except Exception as e:
-        log.error(f"Error editing comment: {e}")
+        log.error(f"❌ Error editing comment: {e}")
         return json.dumps({"success": False, "message": _("An error occurred")}), 500
 
 @admi.route("/admin/forum/delete", methods=["POST"])
@@ -293,7 +293,7 @@ def delete_forum_admin():
         else:
             return json.dumps({"success": False, "message": _("Forum thread not found")}), 404
     except Exception as e:
-        log.error(f"Error deleting forum thread: {e}")
+        log.error(f"❌ Error deleting forum thread: {e}")
         return json.dumps({"success": False, "message": _("An error occurred")}), 500
 
 @admi.route("/admin/forum/edit", methods=["POST"])
@@ -322,7 +322,7 @@ def edit_forum_admin():
         else:
              return json.dumps({"success": False, "message": _("Forum thread not found")}), 404
     except Exception as e:
-        log.error(f"Error editing forum thread: {e}")
+        log.error(f"❌ Error editing forum thread: {e}")
         return json.dumps({"success": False, "message": _("An error occurred")}), 500
 
 @admi.route("/admin/comments-panel", methods=["GET"])
@@ -376,7 +376,7 @@ def forum_panel():
                     if book:
                         book_title = book.title
                 except Exception as e:
-                    log.error(f"Error fetching book for thread {thread.id}: {e}")
+                    log.error(f"❌ Error fetching book for thread {thread.id}: {e}")
 
             # Get username safely
             username = _("Anonymous")
@@ -388,7 +388,7 @@ def forum_panel():
                     else:
                         username = f"Deleted User (ID: {thread.user_id})"
                 except Exception as e:
-                    log.error(f"Error fetching user for thread {thread.id}: {e}")
+                    log.error(f"❌ Error fetching user for thread {thread.id}: {e}")
 
             panel_datas[thread.id] = {
                 "date": dt.strftime("%d-%m-%Y") if dt else _("Unknown"),
@@ -407,7 +407,7 @@ def forum_panel():
                                      page="forum-panel",
                                      panel_datas=panel_datas)
     except Exception as e:
-        log.error(f"Error in forum_panel: {e}")
+        log.error(f"❌ Error in forum_panel: {e}")
         flash(_("An error occurred while loading the forum management panel."), category="error")
         return redirect(url_for("admin.admin"))
 
@@ -564,14 +564,14 @@ def delete_user():
     errors = list()
     success = list()
     if not users:
-        log.error("User not found")
+        log.error("❌ User not found")
         return Response(json.dumps({'type': "danger", 'message': _("User not found")}), mimetype='application/json')
     for user in users:
         try:
             message = _delete_user(user)
             count += 1
         except Exception as ex:
-            log.error(ex)
+            log.error(f"❌ Error occurred: {ex}")
             errors.append({'type': "danger", 'message': str(ex)})
 
     if count == 1:
@@ -721,7 +721,7 @@ def update_table_settings():
             pass
         ub.session.commit()
     except (InvalidRequestError, OperationalError):
-        log.error("Invalid request received: {}".format(request))
+        log.error(f"❌ Invalid request received: {request}")
         return "Invalid request", 400
     return ""
 
@@ -1424,7 +1424,7 @@ def update_mailsettings():
             flash(_("Success! Gmail Account Verified."), category="success")
         except Exception as ex:
             flash(str(ex), category="error")
-            log.error(ex)
+            log.error(f"❌ Error occurred: {ex}")
             return edit_mailsettings()
 
     else:
@@ -1528,11 +1528,11 @@ def update_scheduledtasks():
             schedule.register_scheduled_tasks(config.schedule_reconnect)
         except IntegrityError:
             ub.session.rollback()
-            log.error("An unknown error occurred while saving scheduled tasks settings")
+            log.error("❌ An unknown error occurred while saving scheduled tasks settings")
             flash(_("Oops! An unknown error occurred. Please try again later."), category="error")
         except OperationalError:
             ub.session.rollback()
-            log.error("Settings DB is not Writeable")
+            log.error("❌ Settings DB is not Writeable")
             flash(_("Settings DB is not Writeable"), category="error")
 
     return edit_scheduledtasks()
@@ -1575,10 +1575,10 @@ def reset_user_password(user_id):
             log.debug("Password for user %s reset", message)
             flash(_("Success! Password for user %(user)s reset", user=message), category="success")
         elif ret == 0:
-            log.error("An unknown error occurred. Please try again later.")
+            log.error("❌ An unknown error occurred. Please try again later.")
             flash(_("Oops! An unknown error occurred. Please try again later."), category="error")
         else:
-            log.error("Please configure the SMTP mail settings.")
+            log.error("❌ Please configure the SMTP mail settings.")
             flash(_("Oops! Please configure the SMTP mail settings."), category="error")
     return redirect(url_for('admin.admin'))
 
@@ -1684,7 +1684,7 @@ def ldap_import_create_user(user, user_data):
     try:
         username = user_data[user_login_field][0].decode('utf-8')
     except KeyError as ex:
-        log.error("Failed to extract LDAP user: %s - %s", user, ex)
+        log.error(f"❌ Failed to extract LDAP user: {user} - {ex}")
         message = _(u'Failed to extract at least One LDAP User')
         return 0, message
 
@@ -1797,41 +1797,34 @@ def cancel_task():
 def _db_simulate_change():
     param = request.form.to_dict()
     to_save = dict()
-    # For PostgreSQL, we don't use file paths for database configuration
-    # The config_calibre_dir parameter is kept for compatibility but not used for PostgreSQL connections
     to_save['config_calibre_dir'] = param.get('config_calibre_dir', '').strip()
-    
-    # For PostgreSQL, database validation is done via connection testing
-    # rather than file existence checks
-    db_valid = calibre_db.check_valid_db(to_save["config_calibre_dir"],
-                                        ub.app_DB_path,
-                                        config.config_calibre_uuid)
-    
+    log.info(f"Updated to_save dictionary: {to_save}")
+
+    db_valid = calibre_db.check_valid_db(to_save["config_calibre_dir"])
     log.info(f"PostgreSQL database validation: {db_valid}")
     
-    # For PostgreSQL, we always consider the database as changed since we're using connection-based validation
-    db_change = True
-    
+    db_change = True    
     return db_change, db_valid
 
 def _db_configuration_update_helper():
-    db_change = False
     to_save = request.form.to_dict()
-    gdrive_error = None
+    log.info(f"Received database configuration update with data: {to_save}")
 
     # Clean up the calibre directory path
     to_save['config_calibre_dir'] = re.sub(r'[\\/]metadata\.db$',
                                            '',
                                            to_save['config_calibre_dir'],
                                            flags=re.IGNORECASE)
+    log.info(f"Received database configuration update with data 2: {to_save}")
     
+    db_change = False
     db_valid = False
     try:
         db_change, db_valid = _db_simulate_change()
     except (OperationalError, InvalidRequestError) as e:
         ub.session.rollback()
-        log.error_or_exception("Settings Database error: {}".format(e))
-        return _db_configuration_result(_("Oops! Database Error: %(error)s.", error=e.orig), gdrive_error)
+        log.error_or_exception(f"❌ Settings Database error: {e}")
+        return _db_configuration_result(_("Oops! Database Error: %(error)s.", error=e.orig))
     
     # Handle PostgreSQL migration for metadata if requested
     migrate_to_postgres = to_save.get('migrate_to_postgresql') == 'on'
@@ -1839,7 +1832,7 @@ def _db_configuration_update_helper():
         try:
             metadata_db_path = os.path.join(to_save['config_calibre_dir'], "metadata.db")
             if not os.path.exists(metadata_db_path):
-                return _db_configuration_result(_('Metadata.db file not found at the specified location'), gdrive_error)
+                return _db_configuration_result(_('Metadata.db file not found at the specified location'))
             
             postgres_url = get_postgres_metadata_url(config)
             migrate_metadata_to_postgres(metadata_db_path, postgres_url)
@@ -1850,18 +1843,15 @@ def _db_configuration_update_helper():
             config.config_postgresql_metadata_url = postgres_url
             
         except Exception as e:
-            log.error(f"PostgreSQL migration failed: {e}")
-            return _db_configuration_result(_('PostgreSQL migration failed: %(error)s', error=str(e)), gdrive_error)
+            log.error(f"❌ PostgreSQL migration failed: {e}")
+            return _db_configuration_result(_('PostgreSQL migration failed: %(error)s', error=str(e)))
 
-    # Handle Google Drive metadata.db download if needed
-    # Google Drive metadata download removed; only local filesystem is supported
-    
     # Handle split directory configuration
     config.config_calibre_split = to_save.get('config_calibre_split', 'off') == "on"
     if config.config_calibre_split:
         split_dir = to_save.get("config_calibre_split_dir", "").strip()
         if not split_dir or not os.path.exists(split_dir):
-            return _db_configuration_result(_("Books path is not valid or does not exist"), gdrive_error)
+            return _db_configuration_result(_("Books path is not valid or does not exist"))
         else:
             _config_string(to_save, "config_calibre_split_dir")
     
@@ -1875,7 +1865,7 @@ def _db_configuration_update_helper():
     if needs_db_update:
         # Validate database location
         if not to_save['config_calibre_dir'] or not os.path.exists(metadata_db_path):
-            return _db_configuration_result(_('Database location is not valid. Please enter correct path'), gdrive_error)
+            return _db_configuration_result(_('Database location is not valid. Please enter correct path'))
         
         # Setup database connection (PostgreSQL or SQLite)
         if config.config_use_postgresql and config.config_use_postgresql_metadata:
@@ -1916,9 +1906,9 @@ def _db_configuration_update_helper():
                 log.info("Database cleanup completed successfully")
                 
             except Exception as cleanup_error:
-                log.error(f"Database cleanup failed: {cleanup_error}")
+                log.error(f"❌ Database cleanup failed: {cleanup_error}")
                 ub.session.rollback()
-                return _db_configuration_result(_('Database cleanup failed'), gdrive_error)
+                return _db_configuration_result(_('Database cleanup failed'))
         
         # Update configuration with new database path
         _config_string(to_save, "config_calibre_dir")
@@ -1946,10 +1936,10 @@ def _db_configuration_update_helper():
         config.save()
         log.info("Database configuration saved successfully")
     except Exception as save_error:
-        log.error(f"Failed to save configuration: {save_error}")
-        return _db_configuration_result(_('Failed to save configuration'), gdrive_error)
+        log.error(f"❌ Failed to save configuration: {save_error}")
+        return _db_configuration_result(_('Failed to save configuration'))
     
-    return _db_configuration_result(None, gdrive_error)
+    return _db_configuration_result(None)
 
 
 # Helper function for PostgreSQL metadata URL
@@ -2072,11 +2062,11 @@ def migrate_metadata_to_postgres(sqlite_path, postgres_url):
             
         except Exception as e:
             transaction.rollback()
-            log.error(f"Migration failed during table processing: {e}")
+            log.error(f"❌ Migration failed during table processing: {e}")
             raise
             
     except Exception as e:
-        log.error(f"Migration failed: {e}")
+        log.error(f"❌ Migration failed: {e}")
         raise
     finally:
         # Clean up connections
@@ -2205,7 +2195,7 @@ def _configuration_update_helper():
 def _configuration_result(error_flash=None, reboot=False):
     resp = {}
     if error_flash:
-        log.error(error_flash)
+        log.error(f"❌ {error_flash}")
         config.load()
         resp['result'] = [{'type': "danger", 'message': error_flash}]
     else:
@@ -2214,10 +2204,10 @@ def _configuration_result(error_flash=None, reboot=False):
     resp['config_upload'] = config.config_upload_formats
     return Response(json.dumps(resp), mimetype='application/json')
 
-def _db_configuration_result(error_flash=None, gdrive_error=None):
+def _db_configuration_result(error_flash=None):
     """Render DB configuration page (Google Drive support removed)."""
     if error_flash:
-        log.error(error_flash)
+        log.error(f"❌ {error_flash}")
         config.load()
         flash(error_flash, category="error")
     elif request.method == "POST":
@@ -2298,11 +2288,11 @@ def _handle_new_user(to_save, content, languages, translations, kobo_support):
         return redirect(url_for('admin.admin'))
     except IntegrityError:
         ub.session.rollback()
-        log.error("Found an existing account for {} or {}".format(content.name, content.email))
+        log.error(f"❌ Found an existing account for {content.name} or {content.email}")
         flash(_("Oops! An account already exists for this Email. or name."), category="error")
     except OperationalError as e:
         ub.session.rollback()
-        log.error_or_exception("Settings Database error: {}".format(e))
+        log.error_or_exception(f"❌ Settings Database error: {e}")
         flash(_("Oops! Database Error: %(error)s.", error=e.orig), category="error")
 
 def _delete_user(content):
@@ -2348,7 +2338,7 @@ def _handle_edit_user(to_save, content, languages, translations, kobo_support):
         try:
             flash(_delete_user(content), category="success")
         except Exception as ex:
-            log.error(ex)
+            log.error(f"❌ Error occurred while deleting user: {ex}")
             flash(str(ex), category="error")
         return redirect(url_for('admin.admin'))
     else:
@@ -2406,7 +2396,7 @@ def _handle_edit_user(to_save, content, languages, translations, kobo_support):
             if to_save.get("kindle_mail") != content.kindle_mail:
                 content.kindle_mail = valid_email(to_save["kindle_mail"]) if to_save["kindle_mail"] else ""
         except Exception as ex:
-            log.error(ex)
+            log.error(f"❌ Error occurred :{ex}")
             flash(str(ex), category="error")
             return render_title_template("user_edit.html",
                                          translations=translations,
@@ -2424,11 +2414,11 @@ def _handle_edit_user(to_save, content, languages, translations, kobo_support):
         flash(_("User '%(nick)s' updated", nick=content.name), category="success")
     except IntegrityError as ex:
         ub.session.rollback()
-        log.error("An unknown error occurred while changing user: {}".format(str(ex)))
+        log.error(f"❌ An unknown error occurred while changing user: {str(ex)}")
         flash(_("Oops! An unknown error occurred. Please try again later."), category="error")
     except OperationalError as e:
         ub.session.rollback()
-        log.error_or_exception("Settings Database error: {}".format(e))
+        log.error_or_exception(f"❌ Settings Database error: {e}")
         flash(_("Oops! Database Error: %(error)s.", error=e.orig), category="error")
     return ""
 
@@ -2437,14 +2427,14 @@ def extract_user_data_from_field(user, field):
     if match:
         return match.group(1)
     else:
-        raise Exception("Could Not Parse LDAP User: {}".format(user))
+        raise Exception(f"❌ Could Not Parse LDAP User: {user}")
 
 def extract_dynamic_field_from_filter(user, filtr):
     match = re.search("([a-zA-Z0-9-]+)=%s", filtr, re.IGNORECASE | re.UNICODE)
     if match:
         return match.group(1)
     else:
-        raise Exception("Could Not Parse LDAP Userfield: {}", user)
+        raise Exception(f"❌ Could Not Parse LDAP Userfield: {user}")
 
 def extract_user_identifier(user, filtr):
     dynamic_field = extract_dynamic_field_from_filter(user, filtr)

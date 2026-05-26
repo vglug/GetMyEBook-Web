@@ -69,6 +69,19 @@ def book_thread(book_id):
     thread = Thread.query.filter_by(book_id=book_id).first()
     
     if thread:
+        # Defensive: a thread may have a NULL category (FK with ON DELETE SET NULL).
+        # In that case attach it to a sensible fallback category so we can
+        # build a usable URL for the `threads.show` route instead of raising
+        # AttributeError when accessing `thread.category.slug`.
+        if not thread.category:
+            # Try to reuse an existing category, otherwise create a 'General' one.
+            fallback = Category.query.first()
+            if not fallback:
+                fallback = Category(name="General", slug="general")
+                fallback.save()
+            thread.category_id = fallback.id
+            thread.save()
+
         return redirect(url_for('threads.show', 
                               category_slug=thread.category.slug, 
                               thread_slug=thread.slug))

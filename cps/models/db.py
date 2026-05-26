@@ -232,7 +232,10 @@ class Books(Base):
         self.series_index = series_index
         self.last_modified = last_modified
         self.path = path
-        self.has_cover = (has_cover is not None)
+        try:
+            self.has_cover = int(bool(has_cover))
+        except Exception:
+            self.has_cover = 0
 
     def __repr__(self):
         return "<Books('{0},{1}{2}{3}{4}{5}{6}{7}{8}')>".format(self.title, self.sort, self.author_sort,
@@ -424,11 +427,10 @@ class CalibreDB:
         return cc_classes
 
     @classmethod
-    def check_valid_db(cls, config_calibre_dir, app_db_path, config_calibre_uuid):
-        # For PostgreSQL, we assume the database is always valid if connection succeeds
-        # This method is simplified for PostgreSQL
+    def check_valid_db(cls, config_calibre_dir):
+
         if not config_calibre_dir:
-            return False, False
+            return False
         
         # In PostgreSQL, we don't check for file existence
         # Instead, we try to connect to the database
@@ -437,37 +439,30 @@ class CalibreDB:
             from dotenv import load_dotenv
             load_dotenv(get_env_path())
 
-            DB_USER = os.getenv("DB_USERNAME")
-            DB_PASSWORD = os.getenv("DB_PASSWORD")
-            DB_HOST = os.getenv("DB_HOST")
-            DB_PORT = os.getenv("DB_PORT")
-            DB_NAME = os.getenv("DATABASENAME_APP")
+            DATABASE_URL = os.getenv("DATABASE_URL")  
             
-            if not all([DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_NAME]):
-                log.error("Missing PostgreSQL environment variables")
-                return False, False
-            
-            import urllib.parse
-            encoded_password = urllib.parse.quote_plus(DB_PASSWORD)
+            if not DATABASE_URL:
+                log.error("❌ Missing PostgreSQL Database URL environment variable")
+                return False
 
-            DATABASE_URL = f"postgresql+psycopg2://{DB_USER}:{encoded_password}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-            test_engine = create_engine(DATABASE_URL, echo=False)
-            inspector = inspect(test_engine)
-            # Only migrate if 'books' table does not exist
-            if 'books' not in inspector.get_table_names():
-                create_metadata_psql.migrate_sqlite_to_postgres(SQLITE_PATH=config_calibre_dir)
+            test_engine = create_engine(DATABASE_URL)
+
+            # inspector = inspect(test_engine)
+            # # Only migrate if 'books' table does not exist
+            # if 'books' not in inspector.get_table_names():
+            #     create_metadata_psql.migrate_sqlite_to_postgres(SQLITE_PATH=config_calibre_dir)
 
             with test_engine.connect() as conn:
-                # Try to query the library_id table to verify connection
-                result = conn.execute(text("SELECT COUNT(*) FROM library_id"))
-                count = result.scalar()
-                # log.info(f"PostgreSQL connection successful, library_id count: {count}")
-            
+                conn.execute(text("SELECT version();"))
+                log.info(f"✅ Successfully connected to PostgreSQL database")
             test_engine.dispose()
-            return True, False
+
+            return True
+        
         except Exception as e:
-            log.error(f"PostgreSQL connection failed: {e}")
-            return False, False
+            log.error(f"❌ PostgreSQL connection failed: {e}")
+            
+            return False
 
     @classmethod
     def update_config(cls, config,config_calibre_dir,app_db_path):
@@ -495,7 +490,7 @@ class CalibreDB:
             DB_NAME = os.getenv("DATABASENAME_APP")
             
             if not all([DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_NAME]):
-                log.error("Missing required PostgreSQL environment variables")
+                log.error("❌ Missing required PostgreSQL environment variables")
                 cls.config.invalidate("Missing PostgreSQL environment variables")
                 return None
             # Properly encode the password
@@ -537,18 +532,35 @@ class CalibreDB:
                 for table in tables_to_fix:
                     seq_name = f"{table}_id_seq"
                     try:
+                        # Run DDL/sequence commands; if one statement fails it can leave
+                        # the underlying psql transaction in an aborted state. To avoid
+                        # subsequent statements failing with "current transaction is aborted",
+                        # reset the connection after a failure so each table gets a fresh
+                        # connection state.
                         conn.execute(text(f"CREATE SEQUENCE IF NOT EXISTS {seq_name}"))
                         try:
                             conn.execute(text(f"ALTER TABLE {table} ALTER COLUMN id SET DEFAULT nextval('{seq_name}')"))
                         except Exception:
+                            # non-fatal, continue with next step
                             pass
                         conn.execute(text(f"SELECT setval('{seq_name}', COALESCE((SELECT MAX(id) FROM {table}), 0) + 1, false)"))
                     except Exception as e:
-                        # Log but allow continue; table might missing or other issue
+                        # Log the problem. Reset the connection to clear any aborted
+                        # transaction so subsequent tables are processed.
                         log.debug(f"Sequence fix check for {table}: {e}")
+                        try:
+                            conn.close()
+                        except Exception:
+                            pass
+                        try:
+                            conn = cls.engine.connect()
+                        except Exception as conn_e:
+                            log.debug(f"Failed to reconnect after sequence error: {conn_e}")
+                            # If we cannot reconnect, break out to avoid busy loop
+                            break
 
         except Exception as ex:
-            log.error(f"Failed to connect to PostgreSQL: {ex}")
+            log.error(f"❌ Failed to connect to PostgreSQL: {ex}")
             cls.config.invalidate(ex)
             return None
 
@@ -559,7 +571,7 @@ class CalibreDB:
                 cc = conn.execute(text("SELECT id, datatype FROM custom_columns"))
                 cls.setup_db_cc_classes(cc)
             except OperationalError as e:
-                log.error_or_exception(f"Error setting up custom columns: {e}")
+                log.error_or_exception(f"❌  Error setting up custom columns: {e}")
                 return None
 
         cls.session_factory = scoped_session(sessionmaker(
@@ -596,7 +608,7 @@ class CalibreDB:
                       .join(read_column, read_column.book == book_id,
                       isouter=True))
             except (KeyError, AttributeError, IndexError):
-                log.error("Custom Column No.{} does not exist in calibre database".format(read_column))
+                log.error("❌ Custom Column No.{} does not exist in calibre database".format(read_column))
                 bd = self.session.query(Books, None, ub.ArchivedBook.is_archived)
         return (bd.filter(Books.id == book_id)
                 .join(ub.ArchivedBook, and_(Books.id == ub.ArchivedBook.book_id,
@@ -622,7 +634,7 @@ class CalibreDB:
             self.session.commit()
         except OperationalError as e:
             self.session.rollback()
-            log.error("Database error: {}".format(e))
+            log.error("❌ Database error: {}".format(e))
 
     # Language and content filters for displaying in the UI
     def common_filters(self, allow_show_archived=False, return_all_languages=False):
@@ -661,7 +673,7 @@ class CalibreDB:
             except (KeyError, AttributeError, IndexError):
                 pos_content_cc_filter = false()
                 neg_content_cc_filter = true()
-                log.error("Custom Column No.{} does not exist in calibre database".format(
+                log.error("❌  Custom Column No.{} does not exist in calibre database".format(
                     self.config.config_restricted_column))
                 flash(_("Custom Column No.%(column)d does not exist in calibre database",
                         column=self.config.config_restricted_column),
@@ -687,7 +699,7 @@ class CalibreDB:
                         .select_from(Books)
                         .outerjoin(read_column, read_column.book == Books.id))
             except (KeyError, AttributeError, IndexError):
-                log.error("Custom Column No.{} does not exist in calibre database".format(config_read_column))
+                log.error("❌ Custom Column No.{} does not exist in calibre database".format(config_read_column))
                 query = self.session.query(database, None, ub.ArchivedBook.is_archived)
         return query.outerjoin(ub.ArchivedBook, and_(Books.id == ub.ArchivedBook.book_id,
                                                     int(current_user.id) == ub.ArchivedBook.user_id))
@@ -739,7 +751,7 @@ class CalibreDB:
                          .limit(self.config.config_random_books).all())
             except Exception as e:
                 self.session.rollback()
-                log.error(f"Error fetching random books: {e}")
+                log.error(f"❌ Error fetching random books: {e}")
                 randm = []
         else:
             randm = []
@@ -782,10 +794,10 @@ class CalibreDB:
                 entries = query.order_by(*order).offset(off).limit(pagesize).all()
             except Exception as e:
                 self.session.rollback()
-                log.error(f"Error fetching books list: {e}")
+                log.error(f"❌ Error fetching books list: {e}")
                 entries = []
         except Exception as ex:
-            log.error_or_exception(ex)
+            log.error_or_exception(f"❌ Error occurred: {ex}")
         entries = self.order_authors(entries, True, join_archive_read)
         return entries, randm, pagination
 
@@ -879,7 +891,7 @@ class CalibreDB:
         try:
             tmp_cc = self.session.query(CustomColumns).filter(CustomColumns.datatype.notin_(cc_exceptions)).all()
         except SQLAlchemyError as e:
-            log.error("Database error fetching custom columns: {}".format(e))
+            log.error(f"❌ Database error fetching custom columns: {e}")
             self.session.rollback()
             return []
         cc = []
@@ -998,7 +1010,7 @@ def lcase(s):
         return unidecode.unidecode(s.lower())
     except Exception as ex:
         _log = logger.create()
-        _log.error_or_exception(ex)
+        _log.error_or_exception(f"❌ Error occurred: {ex}")
         return s.lower()
 
 
