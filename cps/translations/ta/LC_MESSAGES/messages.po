@@ -103,7 +103,7 @@ msgstr "இந்த அலமாரியை நிச்சயமாக நீ
 msgid "Are you sure you want to change locales of selected user(s)?"
 msgstr "தேர்ந்தெடுக்கப்பட்ட பயனர்(களின்) இருப்பிடங்களை நிச்சயமாக மாற்ற விரும்புகிறீர்களா? "
 
-msgid "Are you sure you want to change Calibre library location?"
+msgid "Are you sure you want to change Getmyebook library location?"
 msgstr "காலிபர் லைப்ரரி இருப்பிடத்தை நிச்சயமாக மாற்ற விரும்புகிறீர்களா?"
 
 msgid "Deny"

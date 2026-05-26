@@ -190,7 +190,7 @@ msgstr "Valóban törölni akarod a polcot?"
 
 #: cps/admin.py:631
 #, fuzzy
-msgid "Are you sure you want to change Calibre library location?"
+msgid "Are you sure you want to change Getmyebook library location?"
 msgstr "Valóban le akarod állítani a Calibre-Web-et?"
 
 #: cps/admin.py:633

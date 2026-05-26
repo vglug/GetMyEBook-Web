@@ -206,7 +206,7 @@ msgstr "Voulez-vous vraiment supprimer l’étagère?"
 
 #: cps/admin.py:631
 #, fuzzy
-msgid "Are you sure you want to change Calibre library location?"
+msgid "Are you sure you want to change Getmyebook library location?"
 msgstr "Voulez-vous vraiment arrêter Calibre-Web ?"
 
 #: cps/admin.py:633

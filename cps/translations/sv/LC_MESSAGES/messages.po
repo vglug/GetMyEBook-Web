@@ -189,7 +189,7 @@ msgstr "Är du säker på att du vill ändra den valda rollen för de valda anv�
 
 #: cps/admin.py:631
 #, fuzzy
-msgid "Are you sure you want to change Calibre library location?"
+msgid "Are you sure you want to change Getmyebook library location?"
 msgstr "Är du säker på att du vill stoppa Calibre-Web?"
 
 #: cps/admin.py:633

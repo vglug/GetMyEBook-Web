@@ -192,7 +192,7 @@ msgstr "Weet je zeker dat je de synchronisatiegedrag van boekenplanken voor de g
 
 #: cps/admin.py:631
 #, fuzzy
-msgid "Are you sure you want to change Calibre library location?"
+msgid "Are you sure you want to change Getmyebook library location?"
 msgstr "Weet je zeker dat je de locatie van de Calibre-bibliotheek wil veranderen?"
 
 #: cps/admin.py:633

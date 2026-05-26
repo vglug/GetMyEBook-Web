@@ -183,7 +183,7 @@ msgid "Are you sure you want to change shelf sync behavior for the selected user
 msgstr "Naozaj chcete zmeniť synchronizačné správanie sa police pre vybraných používateľov?"
 
 #: cps/admin.py:631
-msgid "Are you sure you want to change Calibre library location?"
+msgid "Are you sure you want to change Getmyebook library location?"
 msgstr "Naozaj chcete zmenit umiestnenie pre knižnicu Calibre?"
 
 #: cps/admin.py:633

@@ -191,7 +191,7 @@ msgid "Are you sure you want to change shelf sync behavior for the selected user
 msgstr "Czy na pewno chcesz zmienić zachowanie synchronizacji półek dla wybranego użytkownika(ów)?"
 
 #: cps/admin.py:631
-msgid "Are you sure you want to change Calibre library location?"
+msgid "Are you sure you want to change Getmyebook library location?"
 msgstr "Czy na pewno chcesz zmienić lokalizację biblioteki Calibre?"
 
 #: cps/admin.py:633

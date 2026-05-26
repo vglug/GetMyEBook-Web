@@ -49,7 +49,6 @@ from . import db, calibre_db, ub, web_server, config, updater_thread, \
 from .helper import check_valid_domain, send_test_mail, reset_password, generate_password_hash, check_email, \
     valid_email, check_username
 from .embed_helper import get_calibre_binarypath
-# Google Drive integration removed (gdriveutils)
 from .render_template import render_title_template, get_sidebar_config
 from .services.worker import WorkerThread
 from .usermanagement import user_login_required
@@ -795,12 +794,12 @@ def load_dialogtexts(element_id):
     elif element_id == "kobo_only_shelves_sync":
         texts["main"] = _('Are you sure you want to change shelf sync behavior for the selected user(s)?')
     elif element_id == "db_submit":
-        texts["main"] = _('Are you sure you want to change Calibre library location?')
+        texts["main"] = _('Are you sure you want to change Getmyebook library location?')
     elif element_id == "admin_refresh_cover_cache":
-        texts["main"] = _('Calibre-Web will search for updated Covers '
+        texts["main"] = _('Getmyebook will search for updated Covers '
                           'and update Cover Thumbnails, this may take a while?')
     elif element_id == "btnfullsync":
-        texts["main"] = _("Are you sure you want delete Calibre-Web's sync database "
+        texts["main"] = _("Are you sure you want delete Getmyebook's sync database "
                           "to force a full sync with your Kobo Reader?")
     return json.dumps(texts)
 

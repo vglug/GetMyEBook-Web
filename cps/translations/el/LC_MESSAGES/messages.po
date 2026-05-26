@@ -190,7 +190,7 @@ msgstr "Είσαι σίγουρος/η πως θέλεις να διαγράψε
 
 #: cps/admin.py:631
 #, fuzzy
-msgid "Are you sure you want to change Calibre library location?"
+msgid "Are you sure you want to change Getmyebook library location?"
 msgstr "Είσαι σίγουρος/η πως θέλεις να κάνεις κλείσιμο;"
 
 #: cps/admin.py:633

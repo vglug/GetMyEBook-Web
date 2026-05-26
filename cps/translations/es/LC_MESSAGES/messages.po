@@ -194,7 +194,7 @@ msgstr "¿Realmente quieres cambiar el comportamiento de sincronización de esta
 
 #: cps/admin.py:631
 #, fuzzy
-msgid "Are you sure you want to change Calibre library location?"
+msgid "Are you sure you want to change Getmyebook library location?"
 msgstr "¿Realmente quieres cambiar la ubicación de la biblioteca Calibre?"
 
 #: cps/admin.py:633

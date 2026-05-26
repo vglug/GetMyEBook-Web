@@ -191,7 +191,7 @@ msgstr "Oletko varma, että haluat poistaa hyllyn?"
 
 #: cps/admin.py:631
 #, fuzzy
-msgid "Are you sure you want to change Calibre library location?"
+msgid "Are you sure you want to change Getmyebook library location?"
 msgstr "Haluatko varmasti pysäyttää Calibre-Webin?"
 
 #: cps/admin.py:633

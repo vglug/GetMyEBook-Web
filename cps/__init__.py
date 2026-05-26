@@ -287,7 +287,6 @@ def create_app():
         db.CalibreDB.update_config(config, config.config_calibre_dir, cli_param.settings_path)
         
         # Initialize Calibre database with PostgreSQL
-        # db.CalibreDB.setup_db(config.config_calibre_dir)
         db.CalibreDB.setup_db(config.config_calibre_dir, cli_param.settings_path)
         calibre_db.init_db()
 
