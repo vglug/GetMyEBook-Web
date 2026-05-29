@@ -5,6 +5,8 @@ Integrated with GetMyEBook-Web (Calibre-Web)
 from flask_bcrypt import Bcrypt
 from flask_mail import Mail
 from flask_marshmallow import Marshmallow
+from cps.extensions import db, migrate
+
 
 # Flask-Modus is optional (has compatibility issues with newer Werkzeug)
 try:
@@ -22,9 +24,6 @@ except ImportError:
     seeder_available = False
     FlaskSeeder = None
 
-# Use shared db/migrate instances from the main app extensions to avoid
-# multiple SQLAlchemy instances being registered on the same Flask app.
-from cps.extensions import db, migrate
 bcrypt = Bcrypt()
 mail = Mail()
 ma = Marshmallow()
@@ -36,8 +35,6 @@ seeder = FlaskSeeder() if seeder_available and FlaskSeeder else None
 
 def init_forum_extensions(app):
     """Initialize forum extensions with Flask app"""
-    # `db` and `migrate` are initialized in the main app factory; do not
-    # re-initialize them here to avoid duplicate registration errors.
     bcrypt.init_app(app)
     mail.init_app(app)
     ma.init_app(app)
