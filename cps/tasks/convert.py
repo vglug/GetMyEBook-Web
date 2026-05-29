@@ -37,7 +37,7 @@ from cps.ub import init_db_thread
 from cps.file_helper import get_temp_dir
 
 from cps.tasks.mail import TaskEmail
-from cps import gdriveutils, helper
+from cps import helper
 from cps.constants import SUPPORTED_CALIBRE_BINARIES
 
 log = logger.create()
@@ -60,47 +60,11 @@ class TaskConvert(CalibreTask):
 
     def run(self, worker_thread):
         self.worker_thread = worker_thread
-        if config.config_use_google_drive:
-            worker_db = db.CalibreDB(expire_on_commit=False, init=True)
-            cur_book = worker_db.get_book(self.book_id)
-            self.title = cur_book.title
-            data = worker_db.get_book_format(self.book_id, self.settings['old_book_format'])
-            df = gdriveutils.getFileFromEbooksFolder(cur_book.path,
-                                                     data.name + "." + self.settings['old_book_format'].lower())
-            df_cover = gdriveutils.getFileFromEbooksFolder(cur_book.path, "cover.jpg")
-            if df:
-                datafile_cover = None
-                datafile = os.path.join(config.get_book_path(),
-                                        cur_book.path,
-                                        data.name + "." + self.settings['old_book_format'].lower())
-                if df_cover:
-                    datafile_cover = os.path.join(config.get_book_path(),
-                                                  cur_book.path, "cover.jpg")
-                if not os.path.exists(os.path.join(config.get_book_path(), cur_book.path)):
-                    os.makedirs(os.path.join(config.get_book_path(), cur_book.path))
-                df.GetContentFile(datafile)
-                if df_cover:
-                    df_cover.GetContentFile(datafile_cover)
-                worker_db.session.close()
-            else:
-                # ToDo Include cover in error handling
-                error_message = _("%(format)s not found on Google Drive: %(fn)s",
-                                  format=self.settings['old_book_format'],
-                                  fn=data.name + "." + self.settings['old_book_format'].lower())
-                worker_db.session.close()
-                return self._handleError(error_message)
+        # Ensure local files are present for conversion
 
         filename = self._convert_ebook_format()
-        if config.config_use_google_drive:
-            os.remove(self.file_path + '.' + self.settings['old_book_format'].lower())
-            if df_cover:
-                os.remove(os.path.join(config.config_calibre_dir, cur_book.path, "cover.jpg"))
-
         if filename:
-            if config.config_use_google_drive:
-                # Upload files to gdrive
-                gdriveutils.updateGdriveCalibreFromLocal()
-                self._handleSuccess()
+            self._handleSuccess()
             if self.ereader_mail:
                 # if we're sending to E-Reader after converting, create a one-off task and run it immediately
                 # todo: figure out how to incorporate this into the progress
@@ -199,8 +163,7 @@ class TaskConvert(CalibreTask):
                 self.results['path'] = cur_book.path
                 self.title = cur_book.title
                 self.results['title'] = self.title
-                if not config.config_use_google_drive:
-                    self._handleSuccess()
+                self._handleSuccess()
                 return os.path.basename(file_path + format_new_ext)
             else:
                 error_message = N_('%(format)s format not found on disk', format=format_new_ext.upper())
@@ -310,8 +273,7 @@ class TaskConvert(CalibreTask):
             progress = re.search(r"(\d+)%\s.*", nextline)
             if progress:
                 self.progress = int(progress.group(1)) / 100
-                if config.config_use_google_drive:
-                    self.progress *= 0.9
+                    # Removed Google Drive specific progress adjustment
 
         # process returncode
         check = p.returncode

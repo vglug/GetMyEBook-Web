@@ -32,6 +32,8 @@ from flask_babel import gettext as _
 from . import db, calibre_db, converter, uploader, constants, dep_check
 from .render_template import render_title_template
 from .usermanagement import user_login_required
+from cps.models.tags import Tags
+from cps.models.authors import Authors
 
 
 about = flask.Blueprint('about', __name__)
@@ -77,8 +79,8 @@ def collect_stats():
 @user_login_required
 def stats():
     counter = calibre_db.session.query(db.Books).count()
-    authors = calibre_db.session.query(db.Authors).count()
-    categories = calibre_db.session.query(db.Tags).count()
+    authors = calibre_db.session.query(Authors).count()
+    categories = calibre_db.session.query(Tags).count()
     series = calibre_db.session.query(db.Series).count()
     return render_title_template('stats.html', bookcounter=counter, authorcounter=authors, versions=collect_stats(),
                                  categorycounter=categories, seriecounter=series, title=_("Statistics"), page="stat")

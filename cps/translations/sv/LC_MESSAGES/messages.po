@@ -189,7 +189,7 @@ msgstr "Är du säker på att du vill ändra den valda rollen för de valda anv�
 
 #: cps/admin.py:631
 #, fuzzy
-msgid "Are you sure you want to change Calibre library location?"
+msgid "Are you sure you want to change Getmyebook library location?"
 msgstr "Är du säker på att du vill stoppa Calibre-Web?"
 
 #: cps/admin.py:633
@@ -653,17 +653,8 @@ msgstr "Det gick inte att lagra filen %(file)s."
 msgid "File format %(ext)s added to %(book)s"
 msgstr "Filformatet %(ext)s lades till %(book)s"
 
-#: cps/gdrive.py:58
-msgid "Google Drive setup not completed, try to deactivate and activate Google Drive again"
-msgstr "Installationen av Google Drive är inte klar, försök att inaktivera och aktivera Google Drive igen"
+ 
 
-#: cps/gdrive.py:96
-msgid "Callback domain is not verified, please follow steps to verify domain in google developer console"
-msgstr "Återuppringningsdomänen är inte verifierad, följ stegen för att verifiera domänen i Google utvecklarkonsol"
-
-#: cps/helper.py:86
-#, python-format
-msgid "%(format)s format not found for book id: %(book)d"
 msgstr "%(format)s formatet hittades inte för bok-id: %(book)d"
 
 #: cps/helper.py:93 cps/tasks/convert.py:89

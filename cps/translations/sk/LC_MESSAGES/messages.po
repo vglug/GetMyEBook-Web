@@ -183,7 +183,7 @@ msgid "Are you sure you want to change shelf sync behavior for the selected user
 msgstr "Naozaj chcete zmeniť synchronizačné správanie sa police pre vybraných používateľov?"
 
 #: cps/admin.py:631
-msgid "Are you sure you want to change Calibre library location?"
+msgid "Are you sure you want to change Getmyebook library location?"
 msgstr "Naozaj chcete zmenit umiestnenie pre knižnicu Calibre?"
 
 #: cps/admin.py:633
@@ -641,17 +641,7 @@ msgstr "Zlyhalo uloženie súboru: %(file)s."
 msgid "File format %(ext)s added to %(book)s"
 msgstr "Súborový formát %(ext)s bol pridaný k %(book)s"
 
-#: cps/gdrive.py:58
-msgid "Google Drive setup not completed, try to deactivate and activate Google Drive again"
-msgstr "Nastavenie Google Drive nie je dokončené, skúste deaktivovať a znovu aktivovať Google Drive"
-
-#: cps/gdrive.py:96
-msgid "Callback domain is not verified, please follow steps to verify domain in google developer console"
-msgstr "Doména spätného volania nie je verifikovaná, prosím, vykonajte kroky na verifikáciu domény v konzole Google vývojára"
-
-#: cps/helper.py:86
-#, python-format
-msgid "%(format)s format not found for book id: %(book)d"
+ 
 msgstr "Formát %(format)s sa nenašiel pre knihu s ID: %(book)d"
 
 #: cps/helper.py:93 cps/tasks/convert.py:89

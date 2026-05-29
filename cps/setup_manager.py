@@ -266,8 +266,11 @@ def initialize_databases(config):
         
         # Create tables
         print("Creating application database tables...")
-        ub.Base.metadata.create_all(engine)
-        config_sql._Base.metadata.create_all(engine)
+        import sys
+        migration_running = any(arg == 'db' for arg in sys.argv)
+        if not migration_running:
+            ub.Base.metadata.create_all(engine)
+            config_sql._Base.metadata.create_all(engine)
         
         engine.dispose()
         return True, None

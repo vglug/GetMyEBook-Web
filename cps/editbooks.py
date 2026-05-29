@@ -37,7 +37,7 @@ from sqlalchemy.exc import OperationalError, IntegrityError, InterfaceError
 from sqlalchemy.orm.exc import StaleDataError
 from sqlalchemy.sql.expression import func
 
-from . import constants, logger, isoLanguages, gdriveutils, uploader, helper, kobo_sync_status
+from . import constants, logger, isoLanguages, uploader, helper, kobo_sync_status
 from .clean_html import clean_string
 from . import config, ub, db, calibre_db
 from .services.worker import WorkerThread
@@ -50,6 +50,12 @@ from .usermanagement import user_login_required, login_required_if_no_ano
 from cps.forum.apps.threads.forms import ThreadCreationForm
 from cps.models.forum import Thread, Category
 from slugify import slugify
+from cps.models.ratings import Ratings
+from cps.models.identifiers import Identifiers
+from cps.models.comments import Comments
+from cps.models.tags import Tags
+from cps.models.authors import Authors
+
 
 editbook = Blueprint('edit-book', __name__)
 log = logger.create()
@@ -153,9 +159,7 @@ def edit_book(book_id):
             book.has_cover = 1
             modify_date = True
 
-        # upload new covers or new file formats to google drive
-        if config.config_use_google_drive:
-            gdriveutils.updateGdriveCalibreFromLocal()
+        # Google Drive integration removed: uploads are handled locally
 
         if to_save.get("cover_url", None):
             if not current_user.role_upload():
@@ -216,8 +220,7 @@ def edit_book(book_id):
 
         calibre_db.session.merge(book)
         calibre_db.session.commit()
-        if config.config_use_google_drive:
-            gdriveutils.updateGdriveCalibreFromLocal()
+        # Google Drive integration removed: uploads are handled locally
         if meta is not False \
             and edit_error is not True \
                 and title_author_error is not True \
@@ -286,22 +289,11 @@ def upload():
                 if not thread:
                     auto_create_thread_for_book(book_id, title, meta.description)
                 log.info(f"Uploading file format: {meta.extension.lower()} for book id: {book_id} by user: {current_user.name} title: {title} discription: {meta.description}")
-                if config.config_use_google_drive:
-                    helper.upload_new_file_gdrive(book_id,
-                                                  input_authors[0],
-                                                  title,
-                                                  title_dir,
-                                                  meta.file_path,
-                                                  meta.extension.lower())
-                    for file_format in db_book.data:
-                        file_format.name = (helper.get_valid_filename(title, chars=42) + ' - '
-                                            + helper.get_valid_filename(input_authors[0], chars=42))
-                else:
-                    error = helper.update_dir_structure(book_id,
-                                                        config.get_book_path(),
-                                                        input_authors[0],
-                                                        meta.file_path,
-                                                        title_dir + meta.extension.lower())
+                error = helper.update_dir_structure(book_id,
+                                                    config.get_book_path(),
+                                                    input_authors[0],
+                                                    meta.file_path,
+                                                    title_dir + meta.extension.lower())
 
                 move_coverfile(meta, db_book)
 
@@ -310,8 +302,7 @@ def upload():
                 # save data to database, reread data
                 calibre_db.session.commit()
 
-                if config.config_use_google_drive:
-                    gdriveutils.updateGdriveCalibreFromLocal()
+                # Google Drive integration removed
                 if error:
                     flash(error, category="error")
                 link = '<a href="{}">{}</a>'.format(url_for('web.show_book', book_id=book_id), escape(title))
@@ -335,7 +326,7 @@ def upload():
                 calibre_db.session.rollback()
                 log.error_or_exception("Upload error: {}".format(e))
                 flash(_("Error uploading file: %(error)s", error=e), category="error")
-                log.error("Upload error: {}".format(e))
+                log.error(f"❌ Upload error: {e}")
         return Response(json.dumps({"location": url_for("web.index")}), mimetype='application/json')
 
 
@@ -581,8 +572,7 @@ def table_xchange_author_title():
                 edited_books_id = book.id
                 modify_date = True
 
-            if config.config_use_google_drive:
-                gdriveutils.updateGdriveCalibreFromLocal()
+            # Google Drive integration removed
 
             if edited_books_id:
                 # toDo: Handle error
@@ -597,8 +587,7 @@ def table_xchange_author_title():
                 log.error_or_exception("Database error: {}".format(e))
                 return json.dumps({'success': False})
 
-            if config.config_use_google_drive:
-                gdriveutils.updateGdriveCalibreFromLocal()
+            # Google Drive integration removed
         return json.dumps({'success': True})
     return ""
 
@@ -634,13 +623,11 @@ def identifier_list(to_save, book):
             continue
         if to_save[val_key].startswith("data:"):
             to_save[val_key], __, __ = str.partition(to_save[val_key], ",")
-        result.append(db.Identifiers(to_save[val_key], type_value, book.id))
+        result.append(Identifiers(to_save[val_key], type_value, book.id))
     return result
 
 
-def prepare_authors(authr, calibre_path, gdrive=False):
-    if gdrive:
-        calibre_path = ""
+def prepare_authors(authr, calibre_path):
     # handle authors
     input_authors = authr.split('&')
     # handle_authors(input_authors)
@@ -653,7 +640,7 @@ def prepare_authors(authr, calibre_path, gdrive=False):
         input_authors = [_('Unknown')]  # prevent empty Author
 
     for in_aut in input_authors:
-        renamed_author = calibre_db.session.query(db.Authors).filter(func.lower(db.Authors.name).ilike(in_aut)).first()
+        renamed_author = calibre_db.session.query(Authors).filter(func.lower(Authors.name).ilike(in_aut)).first()
         if renamed_author and in_aut != renamed_author.name:
             old_author_name = renamed_author.name
             # rename author in Database
@@ -661,7 +648,7 @@ def prepare_authors(authr, calibre_path, gdrive=False):
             # rename all Books with this author as first author:
             # rename all book author_sort strings with the new author name
             all_books = calibre_db.session.query(db.Books) \
-                .filter(db.Books.authors.any(db.Authors.name == renamed_author.name)).all()
+                .filter(db.Books.authors.any(Authors.name == renamed_author.name)).all()
             for one_book in all_books:
                 # ToDo: check
                 sorted_old_author = helper.get_sorted_author(old_author_name)
@@ -679,7 +666,7 @@ def prepare_authors(authr, calibre_path, gdrive=False):
                     one_old_authordir = one_book.path.split('/')[0]
                     # rename author path only once per renamed author -> search all books with author name in book.path
                     # das muss einmal geschehen aber pro Buch geprüft werden ansonsten habe ich das Problem das vlt. 2 gleiche Ordner bis auf Groß/Kleinschreibung vorhanden sind im Umzug
-                    new_author_dir = helper.rename_author_path(in_aut, one_old_authordir, renamed_author.name, calibre_path, gdrive)
+                    new_author_dir = helper.rename_author_path(in_aut, one_old_authordir, renamed_author.name, calibre_path)
                     one_book.path = os.path.join(new_author_dir, one_titledir).replace('\\', '/')
                     # rename all books in book data with the new author name and move corresponding files to new locations
                     # old_path = os.path.join(calibre_path, new_author_dir, one_titledir)
@@ -687,7 +674,7 @@ def prepare_authors(authr, calibre_path, gdrive=False):
                     all_new_name = helper.get_valid_filename(one_book.title, chars=42) + ' - ' \
                                    + helper.get_valid_filename(renamed_author.name, chars=42)
                     # change location in database to new author/title path
-                    helper.rename_all_files_on_change(one_book, new_path, new_path, all_new_name, gdrive)
+                    helper.rename_all_files_on_change(one_book, new_path, new_path, all_new_name)
 
     return input_authors
 
@@ -700,16 +687,16 @@ def prepare_authors_on_upload(title, authr):
             flash(_("Uploaded book probably exists in the library, consider to change before upload new: ")
                   + Markup(render_title_template('book_exists_flash.html', entry=entry)), category="warning")
 
-    input_authors = prepare_authors(authr, config.get_book_path(), config.config_use_google_drive)
+    input_authors = prepare_authors(authr, config.get_book_path())
 
     sort_authors_list = list()
     db_author = None
     for inp in input_authors:
-        # stored_author = calibre_db.session.query(db.Authors).filter(db.Authors.name == inp).first()
-        stored_author = calibre_db.session.query(db.Authors).filter(func.lower(db.Authors.name).ilike(inp)).first()
+        # stored_author = calibre_db.session.query(Authors).filter(Authors.name == inp).first()
+        stored_author = calibre_db.session.query(Authors).filter(func.lower(Authors.name).ilike(inp)).first()
         if not stored_author:
             if not db_author:
-                db_author = db.Authors(inp, helper.get_sorted_author(inp), "")
+                db_author = Authors(inp, helper.get_sorted_author(inp), "")
                 calibre_db.session.add(db_author)
                 calibre_db.session.commit()
             sort_author = helper.get_sorted_author(inp)
@@ -742,7 +729,7 @@ def create_book_on_upload(modify_date, meta):
     db_book = db.Books(title, "", sort_authors, datetime.utcnow(), pubdate,
                        '1', datetime.utcnow(), path, meta.cover, db_author, [], "")
 
-    modify_date |= modify_database_object(input_authors, db_book.authors, db.Authors, calibre_db.session,
+    modify_date |= modify_database_object(input_authors, db_book.authors, Authors, calibre_db.session,
                                           'author')
 
     # Add series_index to book
@@ -776,7 +763,7 @@ def create_book_on_upload(modify_date, meta):
     # Handle identifiers now that db_book.id is available
     identifier_list = []
     for type_key, type_value in meta.identifiers:
-        identifier_list.append(db.Identifiers(type_value, type_key, db_book.id))
+        identifier_list.append(Identifiers(type_value, type_key, db_book.id))
     modification, warning = modify_identifiers(identifier_list, db_book.identifiers, calibre_db.session)
     if warning:
         flash(_("Identifiers are not Case Sensitive, Overwriting Old Identifier"), category="warning")
@@ -843,8 +830,8 @@ def delete_whole_book(book_id, book):
 
     # check if only this book links to:
     # author, language, series, tags, custom columns
-    modify_database_object([''], book.authors, db.Authors, calibre_db.session, 'author')
-    modify_database_object([u''], book.tags, db.Tags, calibre_db.session, 'tags')
+    modify_database_object([''], book.authors, Authors, calibre_db.session, 'author')
+    modify_database_object([u''], book.tags, Tags, calibre_db.session, 'tags')
     modify_database_object([u''], book.series, db.Series, calibre_db.session, 'series')
     modify_database_object([u''], book.languages, db.Languages, calibre_db.session, 'languages')
     modify_database_object([u''], book.publishers, db.Publishers, calibre_db.session, 'publishers')
@@ -1050,11 +1037,11 @@ def edit_book_ratings(to_save, book):
         rating_x2 = int(float(to_save.get("rating", "")) * 2)
         if rating_x2 != old_rating:
             changed = True
-            is_rating = calibre_db.session.query(db.Ratings).filter(db.Ratings.rating == rating_x2).first()
+            is_rating = calibre_db.session.query(Ratings).filter(Ratings.rating == rating_x2).first()
             if is_rating:
                 book.ratings.append(is_rating)
             else:
-                new_rating = db.Ratings(rating=rating_x2)
+                new_rating = Ratings(rating=rating_x2)
                 book.ratings.append(new_rating)
             if old_rating:
                 book.ratings.remove(book.ratings[0])
@@ -1070,7 +1057,7 @@ def edit_book_tags(tags, book):
     input_tags = list(map(lambda it: it.strip(), input_tags))
     # Remove duplicates
     input_tags = helper.uniq(input_tags)
-    return modify_database_object(input_tags, book.tags, db.Tags, calibre_db.session, 'tags')
+    return modify_database_object(input_tags, book.tags, Tags, calibre_db.session, 'tags')
 
 
 def edit_book_series(series, book):
@@ -1103,7 +1090,7 @@ def edit_book_comments(comments, book):
             modify_date = True
     else:
         if comments:
-            book.comments.append(db.Comments(comment=comments, book=book.id))
+            book.comments.append(Comments(comment=comments, book=book.id))
             modify_date = True
     return modify_date
 
@@ -1360,13 +1347,13 @@ def handle_title_on_edit(book, book_title):
 def handle_author_on_edit(book, author_name, update_stored=True):
     change = False
     # handle author(s)
-    input_authors = prepare_authors(author_name, config.get_book_path(), config.config_use_google_drive)
+    input_authors = prepare_authors(author_name, config.get_book_path())
 
     # Search for each author if author is in database, if not, author name and sorted author name is generated new
     # everything then is assembled for sorted author field in database
     sort_authors_list = list()
     for inp in input_authors:
-        stored_author = calibre_db.session.query(db.Authors).filter(db.Authors.name == inp).first()
+        stored_author = calibre_db.session.query(Authors).filter(Authors.name == inp).first()
         if not stored_author:
             stored_author = helper.get_sorted_author(inp.replace('|', ','))
         else:
@@ -1377,7 +1364,7 @@ def handle_author_on_edit(book, author_name, update_stored=True):
         book.author_sort = sort_authors
         change = True
 
-    change |= modify_database_object(input_authors, book.authors, db.Authors, calibre_db.session, 'author')
+    change |= modify_database_object(input_authors, book.authors, Authors, calibre_db.session, 'author')
 
     return input_authors, change
 

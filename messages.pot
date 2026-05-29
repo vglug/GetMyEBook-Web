@@ -182,7 +182,7 @@ msgid "Are you sure you want to change shelf sync behavior for the selected user
 msgstr ""
 
 #: cps/admin.py:631
-msgid "Are you sure you want to change Calibre library location?"
+msgid "Are you sure you want to change Getmyebook library location?"
 msgstr ""
 
 #: cps/admin.py:633
@@ -639,13 +639,7 @@ msgstr ""
 msgid "File format %(ext)s added to %(book)s"
 msgstr ""
 
-#: cps/gdrive.py:58
-msgid "Google Drive setup not completed, try to deactivate and activate Google Drive again"
-msgstr ""
 
-#: cps/gdrive.py:96
-msgid "Callback domain is not verified, please follow steps to verify domain in google developer console"
-msgstr ""
 
 #: cps/helper.py:86
 #, python-format

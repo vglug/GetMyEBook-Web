@@ -26,7 +26,7 @@ import unidecode
 from weakref import WeakSet
 
 from sqlalchemy import create_engine , inspect
-from sqlalchemy import Table, Column, ForeignKey, CheckConstraint
+from sqlalchemy import Table, Column, ForeignKey
 from sqlalchemy import String, Integer, Boolean, TIMESTAMP, Float, Sequence
 from sqlalchemy.orm import relationship, sessionmaker, scoped_session
 from sqlalchemy.orm.collections import InstrumentedList
@@ -37,13 +37,17 @@ try:
     from sqlalchemy.orm import declarative_base
 except ImportError:
     from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.pool import StaticPool
 from sqlalchemy.sql.expression import and_, true, false, text, func, or_
 from sqlalchemy.ext.associationproxy import association_proxy
 from ..cw_login import current_user
 from flask_babel import gettext as _
 from flask_babel import get_locale
 from flask import flash
+from .ratings import Ratings
+from .identifiers import Identifiers
+from .comments import Comments
+from .tags import Tags
+from .authors import Authors
 
 from .. import logger, isoLanguages, create_metadata_psql
 from . import ub
@@ -55,7 +59,7 @@ log = logger.create()
 cc_exceptions = ['composite', 'series']
 cc_classes = {}
 
-Base = declarative_base()
+from .base import Base
 
 books_authors_link = Table('books_authors_link', Base.metadata,
                            Column('book', Integer, ForeignKey('books.id'), primary_key=True),
@@ -88,173 +92,13 @@ books_publishers_link = Table('books_publishers_link', Base.metadata,
                               )
 
 
-class Library_Id(Base):
-    __tablename__ = 'library_id'
-    id = Column(Integer, primary_key=True)
-    uuid = Column(String, nullable=False)
-
-
-class Identifiers(Base):
-    __tablename__ = 'identifiers'
-
-    id = Column(Integer, primary_key=True)
-    type = Column(String(collation='NOCASE'), nullable=False, default="isbn")
-    val = Column(String(collation='NOCASE'), nullable=False)
-    book = Column(Integer, ForeignKey('books.id'), nullable=False)
-
-    def __init__(self, val, id_type, book):
-        super().__init__()
-        self.val = val
-        self.type = id_type
-        self.book = book
-
-    def format_type(self):
-        format_type = self.type.lower()
-        if format_type == 'amazon':
-            return "Amazon"
-        elif format_type.startswith("amazon_"):
-            return "Amazon.{0}".format(format_type[7:])
-        elif format_type == "isbn":
-            return "ISBN"
-        elif format_type == "doi":
-            return "DOI"
-        elif format_type == "douban":
-            return "Douban"
-        elif format_type == "goodreads":
-            return "Goodreads"
-        elif format_type == "babelio":
-            return "Babelio"
-        elif format_type == "google":
-            return "Google Books"
-        elif format_type == "kobo":
-            return "Kobo"
-        elif format_type == "barnesnoble":
-            return "Barnes & Noble"
-        elif format_type == "litres":
-            return "ЛитРес"
-        elif format_type == "issn":
-            return "ISSN"
-        elif format_type == "isfdb":
-            return "ISFDB"
-        if format_type == "lubimyczytac":
-            return "Lubimyczytac"
-        if format_type == "databazeknih":
-            return "Databáze knih"
-        else:
-            return self.type
-
-    def __repr__(self):
-        format_type = self.type.lower()
-        if format_type == "amazon" or format_type == "asin":
-            return "https://amazon.com/dp/{0}".format(self.val)
-        elif format_type.startswith('amazon_'):
-            return "https://amazon.{0}/dp/{1}".format(format_type[7:], self.val)
-        elif format_type == "isbn":
-            return "https://www.worldcat.org/isbn/{0}".format(self.val)
-        elif format_type == "doi":
-            return "https://dx.doi.org/{0}".format(self.val)
-        elif format_type == "goodreads":
-            return "https://www.goodreads.com/book/show/{0}".format(self.val)
-        elif format_type == "babelio":
-            return "https://www.babelio.com/livres/titre/{0}".format(self.val)
-        elif format_type == "douban":
-            return "https://book.douban.com/subject/{0}".format(self.val)
-        elif format_type == "google":
-            return "https://books.google.com/books?id={0}".format(self.val)
-        elif format_type == "kobo":
-            return "https://www.kobo.com/ebook/{0}".format(self.val)
-        elif format_type == "barnesnoble":
-            return "https://www.barnesandnoble.com/w/{0}".format(self.val)
-        elif format_type == "lubimyczytac":
-            return "https://lubimyczytac.pl/ksiazka/{0}/ksiazka".format(self.val)
-        elif format_type == "litres":
-            return "https://www.litres.ru/{0}".format(self.val)
-        elif format_type == "issn":
-            return "https://portal.issn.org/resource/ISSN/{0}".format(self.val)
-        elif format_type == "isfdb":
-            return "http://www.isfdb.org/cgi-bin/pl.cgi?{0}".format(self.val)
-        elif format_type == "databazeknih":
-            return "https://www.databazeknih.cz/knihy/{0}".format(self.val)
-        elif self.val.lower().startswith("javascript:"):
-            return quote(self.val)
-        elif self.val.lower().startswith("data:"):
-            link, __, __ = str.partition(self.val, ",")
-            return link
-        else:
-            return "{0}".format(self.val)
-
-
-class Comments(Base):
-    __tablename__ = 'comments'
-
-    id = Column(Integer, primary_key=True)
-    book = Column(Integer, ForeignKey('books.id'), nullable=False, unique=True)
-    text = Column(String(collation='NOCASE'), nullable=False)
-
-    def __init__(self, comment, book):
-        super().__init__()
-        self.text = comment
-        self.book = book
-
-    def get(self):
-        return self.text
-
-    def __repr__(self):
-        return "<Comments({0})>".format(self.text)
-
-
-class Tags(Base):
-    __tablename__ = 'tags'
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String(collation='NOCASE'), unique=True, nullable=False)
-
-    def __init__(self, name):
-        super().__init__()
-        self.name = name
-
-    def get(self):
-        return self.name
-
-    def __eq__(self, other):
-        return self.name == other
-
-    def __repr__(self):
-        return "<Tags('{0})>".format(self.name)
-
-
-class Authors(Base):
-    __tablename__ = 'authors'
-
-    id = Column(Integer, primary_key=True)
-    name = Column(String(collation='NOCASE'), unique=True, nullable=False)
-    sort = Column(String(collation='NOCASE'))
-    link = Column(String, nullable=False, default="")
-    image = Column(String, nullable=False, default="")
-
-    def __init__(self, name, sort, link="", image=""):
-        super().__init__()
-        self.name = name
-        self.sort = sort
-        self.link = link
-        self.image = image
-
-    def get(self):
-        return self.name
-
-    def __eq__(self, other):
-        return self.name == other
-
-    def __repr__(self):
-        return "<Authors('{0},{1}{2}{3}')>".format(self.name, self.sort, self.link, self.image)
-
 
 class Series(Base):
     __tablename__ = 'series'
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(collation='NOCASE'), unique=True, nullable=False)
-    sort = Column(String(collation='NOCASE'))
+    name = Column(String, unique=True, nullable=False)
+    sort = Column(String)
 
     def __init__(self, name, sort):
         super().__init__()
@@ -270,32 +114,11 @@ class Series(Base):
     def __repr__(self):
         return "<Series('{0},{1}')>".format(self.name, self.sort)
 
-
-class Ratings(Base):
-    __tablename__ = 'ratings'
-
-    id = Column(Integer, primary_key=True)
-    rating = Column(Integer, CheckConstraint('rating>-1 AND rating<11'), unique=True)
-
-    def __init__(self, rating):
-        super().__init__()
-        self.rating = rating
-
-    def get(self):
-        return self.rating
-
-    def __eq__(self, other):
-        return self.rating == other
-
-    def __repr__(self):
-        return "<Ratings('{0}')>".format(self.rating)
-
-
 class Languages(Base):
     __tablename__ = 'languages'
 
     id = Column(Integer, primary_key=True)
-    lang_code = Column(String(collation='NOCASE'), nullable=False, unique=True)
+    lang_code = Column(String, nullable=False, unique=True)
 
     def __init__(self, lang_code):
         super().__init__()
@@ -318,8 +141,8 @@ class Publishers(Base):
     __tablename__ = 'publishers'
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(collation='NOCASE'), nullable=False, unique=True)
-    sort = Column(String(collation='NOCASE'))
+    name = Column(String, nullable=False, unique=True)
+    sort = Column(String)
 
     def __init__(self, name, sort):
         super().__init__()
@@ -341,7 +164,7 @@ class Data(Base):
 
     id = Column(Integer, primary_key=True)
     book = Column(Integer, ForeignKey('books.id'), nullable=False)
-    format = Column(String(collation='NOCASE'), nullable=False)
+    format = Column(String, nullable=False)
     uncompressed_size = Column(Integer, nullable=False)
     name = Column(String, nullable=False)
 
@@ -375,9 +198,9 @@ class Books(Base):
     DEFAULT_PUBDATE = datetime(101, 1, 1, 0, 0, 0, 0)
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    title = Column(String(collation='NOCASE'), nullable=False, default='Unknown')
-    sort = Column(String(collation='NOCASE'))
-    author_sort = Column(String(collation='NOCASE'))
+    title = Column(String, nullable=False, default='Unknown')
+    sort = Column(String)
+    author_sort = Column(String)
     timestamp = Column(TIMESTAMP, default=datetime.utcnow)
     pubdate = Column(TIMESTAMP, default=DEFAULT_PUBDATE)
     series_index = Column(String, nullable=False, default="1.0")
@@ -385,7 +208,7 @@ class Books(Base):
     path = Column(String, default="", nullable=False)
     has_cover = Column(Integer, default=0)
     uuid = Column(String)
-    isbn = Column(String(collation='NOCASE'), default="")
+    isbn = Column(String, default="")
     flags = Column(Integer, nullable=False, default=1)
 
     authors = relationship(Authors, secondary=books_authors_link, backref='books')
@@ -409,7 +232,10 @@ class Books(Base):
         self.series_index = series_index
         self.last_modified = last_modified
         self.path = path
-        self.has_cover = (has_cover is not None)
+        try:
+            self.has_cover = int(bool(has_cover))
+        except Exception:
+            self.has_cover = 0
 
     def __repr__(self):
         return "<Books('{0},{1}{2}{3}{4}{5}{6}{7}{8}')>".format(self.title, self.sort, self.author_sort,
@@ -601,11 +427,10 @@ class CalibreDB:
         return cc_classes
 
     @classmethod
-    def check_valid_db(cls, config_calibre_dir, app_db_path, config_calibre_uuid):
-        # For PostgreSQL, we assume the database is always valid if connection succeeds
-        # This method is simplified for PostgreSQL
+    def check_valid_db(cls, config_calibre_dir):
+
         if not config_calibre_dir:
-            return False, False
+            return False
         
         # In PostgreSQL, we don't check for file existence
         # Instead, we try to connect to the database
@@ -614,37 +439,30 @@ class CalibreDB:
             from dotenv import load_dotenv
             load_dotenv(get_env_path())
 
-            DB_USER = os.getenv("DB_USERNAME")
-            DB_PASSWORD = os.getenv("DB_PASSWORD")
-            DB_HOST = os.getenv("DB_HOST")
-            DB_PORT = os.getenv("DB_PORT")
-            DB_NAME = os.getenv("DATABASENAME_APP")
+            DATABASE_URL = os.getenv("DATABASE_URL")  
             
-            if not all([DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_NAME]):
-                log.error("Missing PostgreSQL environment variables")
-                return False, False
-            
-            import urllib.parse
-            encoded_password = urllib.parse.quote_plus(DB_PASSWORD)
+            if not DATABASE_URL:
+                log.error("❌ Missing PostgreSQL Database URL environment variable")
+                return False
 
-            DATABASE_URL = f"postgresql+psycopg2://{DB_USER}:{encoded_password}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-            test_engine = create_engine(DATABASE_URL, echo=False)
-            inspector = inspect(test_engine)
-            # Only migrate if 'books' table does not exist
-            if 'books' not in inspector.get_table_names():
-                create_metadata_psql.migrate_sqlite_to_postgres(SQLITE_PATH=config_calibre_dir)
+            test_engine = create_engine(DATABASE_URL)
+
+            # inspector = inspect(test_engine)
+            # # Only migrate if 'books' table does not exist
+            # if 'books' not in inspector.get_table_names():
+            #     create_metadata_psql.migrate_sqlite_to_postgres(SQLITE_PATH=config_calibre_dir)
 
             with test_engine.connect() as conn:
-                # Try to query the library_id table to verify connection
-                result = conn.execute(text("SELECT COUNT(*) FROM library_id"))
-                count = result.scalar()
-                # log.info(f"PostgreSQL connection successful, library_id count: {count}")
-            
+                conn.execute(text("SELECT version();"))
+                log.info(f"✅ Successfully connected to PostgreSQL database")
             test_engine.dispose()
-            return True, False
+
+            return True
+        
         except Exception as e:
-            log.error(f"PostgreSQL connection failed: {e}")
-            return False, False
+            log.error(f"❌ PostgreSQL connection failed: {e}")
+            
+            return False
 
     @classmethod
     def update_config(cls, config,config_calibre_dir,app_db_path):
@@ -672,7 +490,7 @@ class CalibreDB:
             DB_NAME = os.getenv("DATABASENAME_APP")
             
             if not all([DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_NAME]):
-                log.error("Missing required PostgreSQL environment variables")
+                log.error("❌ Missing required PostgreSQL environment variables")
                 cls.config.invalidate("Missing PostgreSQL environment variables")
                 return None
             # Properly encode the password
@@ -714,18 +532,35 @@ class CalibreDB:
                 for table in tables_to_fix:
                     seq_name = f"{table}_id_seq"
                     try:
+                        # Run DDL/sequence commands; if one statement fails it can leave
+                        # the underlying psql transaction in an aborted state. To avoid
+                        # subsequent statements failing with "current transaction is aborted",
+                        # reset the connection after a failure so each table gets a fresh
+                        # connection state.
                         conn.execute(text(f"CREATE SEQUENCE IF NOT EXISTS {seq_name}"))
                         try:
                             conn.execute(text(f"ALTER TABLE {table} ALTER COLUMN id SET DEFAULT nextval('{seq_name}')"))
                         except Exception:
+                            # non-fatal, continue with next step
                             pass
                         conn.execute(text(f"SELECT setval('{seq_name}', COALESCE((SELECT MAX(id) FROM {table}), 0) + 1, false)"))
                     except Exception as e:
-                        # Log but allow continue; table might missing or other issue
+                        # Log the problem. Reset the connection to clear any aborted
+                        # transaction so subsequent tables are processed.
                         log.debug(f"Sequence fix check for {table}: {e}")
+                        try:
+                            conn.close()
+                        except Exception:
+                            pass
+                        try:
+                            conn = cls.engine.connect()
+                        except Exception as conn_e:
+                            log.debug(f"Failed to reconnect after sequence error: {conn_e}")
+                            # If we cannot reconnect, break out to avoid busy loop
+                            break
 
         except Exception as ex:
-            log.error(f"Failed to connect to PostgreSQL: {ex}")
+            log.error(f"❌ Failed to connect to PostgreSQL: {ex}")
             cls.config.invalidate(ex)
             return None
 
@@ -736,7 +571,7 @@ class CalibreDB:
                 cc = conn.execute(text("SELECT id, datatype FROM custom_columns"))
                 cls.setup_db_cc_classes(cc)
             except OperationalError as e:
-                log.error_or_exception(f"Error setting up custom columns: {e}")
+                log.error_or_exception(f"❌  Error setting up custom columns: {e}")
                 return None
 
         cls.session_factory = scoped_session(sessionmaker(
@@ -773,7 +608,7 @@ class CalibreDB:
                       .join(read_column, read_column.book == book_id,
                       isouter=True))
             except (KeyError, AttributeError, IndexError):
-                log.error("Custom Column No.{} does not exist in calibre database".format(read_column))
+                log.error("❌ Custom Column No.{} does not exist in calibre database".format(read_column))
                 bd = self.session.query(Books, None, ub.ArchivedBook.is_archived)
         return (bd.filter(Books.id == book_id)
                 .join(ub.ArchivedBook, and_(Books.id == ub.ArchivedBook.book_id,
@@ -799,7 +634,7 @@ class CalibreDB:
             self.session.commit()
         except OperationalError as e:
             self.session.rollback()
-            log.error("Database error: {}".format(e))
+            log.error("❌ Database error: {}".format(e))
 
     # Language and content filters for displaying in the UI
     def common_filters(self, allow_show_archived=False, return_all_languages=False):
@@ -838,7 +673,7 @@ class CalibreDB:
             except (KeyError, AttributeError, IndexError):
                 pos_content_cc_filter = false()
                 neg_content_cc_filter = true()
-                log.error("Custom Column No.{} does not exist in calibre database".format(
+                log.error("❌  Custom Column No.{} does not exist in calibre database".format(
                     self.config.config_restricted_column))
                 flash(_("Custom Column No.%(column)d does not exist in calibre database",
                         column=self.config.config_restricted_column),
@@ -864,7 +699,7 @@ class CalibreDB:
                         .select_from(Books)
                         .outerjoin(read_column, read_column.book == Books.id))
             except (KeyError, AttributeError, IndexError):
-                log.error("Custom Column No.{} does not exist in calibre database".format(config_read_column))
+                log.error("❌ Custom Column No.{} does not exist in calibre database".format(config_read_column))
                 query = self.session.query(database, None, ub.ArchivedBook.is_archived)
         return query.outerjoin(ub.ArchivedBook, and_(Books.id == ub.ArchivedBook.book_id,
                                                     int(current_user.id) == ub.ArchivedBook.user_id))
@@ -916,7 +751,7 @@ class CalibreDB:
                          .limit(self.config.config_random_books).all())
             except Exception as e:
                 self.session.rollback()
-                log.error(f"Error fetching random books: {e}")
+                log.error(f"❌ Error fetching random books: {e}")
                 randm = []
         else:
             randm = []
@@ -959,10 +794,10 @@ class CalibreDB:
                 entries = query.order_by(*order).offset(off).limit(pagesize).all()
             except Exception as e:
                 self.session.rollback()
-                log.error(f"Error fetching books list: {e}")
+                log.error(f"❌ Error fetching books list: {e}")
                 entries = []
         except Exception as ex:
-            log.error_or_exception(ex)
+            log.error_or_exception(f"❌ Error occurred: {ex}")
         entries = self.order_authors(entries, True, join_archive_read)
         return entries, randm, pagination
 
@@ -1056,7 +891,7 @@ class CalibreDB:
         try:
             tmp_cc = self.session.query(CustomColumns).filter(CustomColumns.datatype.notin_(cc_exceptions)).all()
         except SQLAlchemyError as e:
-            log.error("Database error fetching custom columns: {}".format(e))
+            log.error(f"❌ Database error fetching custom columns: {e}")
             self.session.rollback()
             return []
         cc = []
@@ -1175,7 +1010,7 @@ def lcase(s):
         return unidecode.unidecode(s.lower())
     except Exception as ex:
         _log = logger.create()
-        _log.error_or_exception(ex)
+        _log.error_or_exception(f"❌ Error occurred: {ex}")
         return s.lower()
 
 

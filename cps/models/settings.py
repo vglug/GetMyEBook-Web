@@ -23,25 +23,12 @@ from sqlalchemy import (
     Column, String, Integer, SmallInteger, Boolean, BLOB, JSON,
 )
 from sqlalchemy.dialects.postgresql import BYTEA
-try:
-    from sqlalchemy.orm import declarative_base
-except ImportError:
-    from sqlalchemy.ext.declarative import declarative_base
-
 from .. import constants, logger
+from .base import Base
 
 log = logger.create()
 
-# Shared Base for the two settings tables only – separate from the Calibre-book
-# Base in cps/models/db.py and the forum Base in cps/models/forum/.
-_Base = declarative_base()
-
-
-# ---------------------------------------------------------------------------
-# Flask session-key table
-# ---------------------------------------------------------------------------
-
-class _Flask_Settings(_Base):
+class _Flask_Settings(Base):
     """Stores the Flask session secret key (persisted across restarts)."""
 
     __tablename__ = 'flask_settings'
@@ -54,11 +41,7 @@ class _Flask_Settings(_Base):
         self.flask_session_key = key
 
 
-# ---------------------------------------------------------------------------
-# Main application settings table
-# ---------------------------------------------------------------------------
-
-class _Settings(_Base):
+class _Settings(Base):
     """
     Every application, mail, Calibre, LDAP and schedule configuration knob.
 
@@ -137,10 +120,7 @@ class _Settings(_Base):
     config_denied_column_value = Column(String, default="")
     config_allowed_column_value = Column(String, default="")
 
-    # ── Google Drive ─────────────────────────────────────────────────────
-    config_use_google_drive = Column(Boolean, default=False)
-    config_google_drive_folder = Column(String)
-    config_google_drive_watch_changes_response = Column(JSON, default={})
+    # Google Drive settings removed
 
     # ── Goodreads ────────────────────────────────────────────────────────
     config_use_goodreads = Column(Boolean, default=False)
@@ -229,9 +209,6 @@ class _Settings(_Base):
         return self.__class__.__name__
 
 
-# ---------------------------------------------------------------------------
-# Helper: load a single settings row from an active SQLAlchemy session
-# ---------------------------------------------------------------------------
 
 def load_settings(session):
     """

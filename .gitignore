@@ -31,13 +31,9 @@ cps/cache
 .key
 
 settings.yaml
-gdrive_credentials
-client_secrets.json
-gmail.json
 /.key
 ui-chacking
 .env
-gdrive/
 markdown/
 legacy/
 !metadata.db
@@ -51,3 +47,4 @@ fix_metadata_dirtied.py
 fix_tables.py
 chacking.*
 docs/
+migrations/versions/*

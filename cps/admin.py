@@ -44,12 +44,11 @@ from sqlalchemy.exc import IntegrityError, OperationalError, InvalidRequestError
 from sqlalchemy.sql.expression import func, or_, text
 
 from . import constants, logger, helper, services, cli_param
-from . import db, calibre_db, ub, web_server, config, updater_thread, gdriveutils, \
+from . import db, calibre_db, ub, web_server, config, updater_thread, \
     kobo_sync_status, schedule
 from .helper import check_valid_domain, send_test_mail, reset_password, generate_password_hash, check_email, \
     valid_email, check_username
 from .embed_helper import get_calibre_binarypath
-from .gdriveutils import is_gdrive_ready, gdrive_support
 from .render_template import render_title_template, get_sidebar_config
 from .services.worker import WorkerThread
 from .usermanagement import user_login_required
@@ -57,6 +56,9 @@ from .babel import get_available_translations, get_available_locale, get_user_lo
 from . import debug_info
 from .utils import get_env_path 
 import urllib
+from cps.models.libraryId import Library_Id
+from cps.models.tags import Tags
+
 
 log = logger.create()
 
@@ -67,7 +69,6 @@ feature_support = {
     'updater': constants.UPDATER_AVAILABLE,
     'gmail': bool(services.gmail),
     'scheduler': schedule.use_APScheduler,
-    'gdrive': gdrive_support,
     'oauth': True  # Always True since we're using Authlib
 }
 
@@ -232,7 +233,7 @@ def delete_comment_admin():
         else:
             return json.dumps({"success": False, "message": _("Comment not found")}), 404
     except Exception as e:
-        log.error(f"Error deleting comment: {e}")
+        log.error(f"❌ Error deleting comment: {e}")
         return json.dumps({"success": False, "message": _("An error occurred")}), 500
 
 @admi.route("/admin/comments/edit", methods=["POST"])
@@ -263,7 +264,7 @@ def edit_comment_admin():
         else:
              return json.dumps({"success": False, "message": _("Comment not found")}), 404
     except Exception as e:
-        log.error(f"Error editing comment: {e}")
+        log.error(f"❌ Error editing comment: {e}")
         return json.dumps({"success": False, "message": _("An error occurred")}), 500
 
 @admi.route("/admin/forum/delete", methods=["POST"])
@@ -291,7 +292,7 @@ def delete_forum_admin():
         else:
             return json.dumps({"success": False, "message": _("Forum thread not found")}), 404
     except Exception as e:
-        log.error(f"Error deleting forum thread: {e}")
+        log.error(f"❌ Error deleting forum thread: {e}")
         return json.dumps({"success": False, "message": _("An error occurred")}), 500
 
 @admi.route("/admin/forum/edit", methods=["POST"])
@@ -320,7 +321,7 @@ def edit_forum_admin():
         else:
              return json.dumps({"success": False, "message": _("Forum thread not found")}), 404
     except Exception as e:
-        log.error(f"Error editing forum thread: {e}")
+        log.error(f"❌ Error editing forum thread: {e}")
         return json.dumps({"success": False, "message": _("An error occurred")}), 500
 
 @admi.route("/admin/comments-panel", methods=["GET"])
@@ -374,7 +375,7 @@ def forum_panel():
                     if book:
                         book_title = book.title
                 except Exception as e:
-                    log.error(f"Error fetching book for thread {thread.id}: {e}")
+                    log.error(f"❌ Error fetching book for thread {thread.id}: {e}")
 
             # Get username safely
             username = _("Anonymous")
@@ -386,7 +387,7 @@ def forum_panel():
                     else:
                         username = f"Deleted User (ID: {thread.user_id})"
                 except Exception as e:
-                    log.error(f"Error fetching user for thread {thread.id}: {e}")
+                    log.error(f"❌ Error fetching user for thread {thread.id}: {e}")
 
             panel_datas[thread.id] = {
                 "date": dt.strftime("%d-%m-%Y") if dt else _("Unknown"),
@@ -405,7 +406,7 @@ def forum_panel():
                                      page="forum-panel",
                                      panel_datas=panel_datas)
     except Exception as e:
-        log.error(f"Error in forum_panel: {e}")
+        log.error(f"❌ Error in forum_panel: {e}")
         flash(_("An error occurred while loading the forum management panel."), category="error")
         return redirect(url_for("admin.admin"))
 
@@ -414,7 +415,6 @@ def forum_panel():
 @admin_required
 def db_configuration():
     if request.method == "POST":
-        # log.info(f"/admin/dbconfig post method ==> working !!!  and request data :{request.form.to_dict()}")
         return _db_configuration_update_helper()
     return _db_configuration_result()
 
@@ -472,12 +472,12 @@ def edit_user_table():
     languages = calibre_db.speaking_language()
     translations = get_available_locale()
     all_user = ub.session.query(ub.User)
-    tags = calibre_db.session.query(db.Tags) \
+    tags = calibre_db.session.query(Tags) \
         .join(db.books_tags_link) \
         .join(db.Books) \
         .filter(calibre_db.common_filters()) \
-        .group_by(db.Tags.id) \
-        .order_by(db.Tags.name).all()
+        .group_by(Tags.id) \
+        .order_by(Tags.name).all()
     if config.config_restricted_column:
         custom_values = calibre_db.session.query(db.cc_classes[config.config_restricted_column]).all()
     else:
@@ -563,14 +563,14 @@ def delete_user():
     errors = list()
     success = list()
     if not users:
-        log.error("User not found")
+        log.error("❌ User not found")
         return Response(json.dumps({'type': "danger", 'message': _("User not found")}), mimetype='application/json')
     for user in users:
         try:
             message = _delete_user(user)
             count += 1
         except Exception as ex:
-            log.error(ex)
+            log.error(f"❌ Error occurred: {ex}")
             errors.append({'type': "danger", 'message': str(ex)})
 
     if count == 1:
@@ -720,7 +720,7 @@ def update_table_settings():
             pass
         ub.session.commit()
     except (InvalidRequestError, OperationalError):
-        log.error("Invalid request received: {}".format(request))
+        log.error(f"❌ Invalid request received: {request}")
         return "Invalid request", 400
     return ""
 
@@ -794,12 +794,12 @@ def load_dialogtexts(element_id):
     elif element_id == "kobo_only_shelves_sync":
         texts["main"] = _('Are you sure you want to change shelf sync behavior for the selected user(s)?')
     elif element_id == "db_submit":
-        texts["main"] = _('Are you sure you want to change Calibre library location?')
+        texts["main"] = _('Are you sure you want to change Getmyebook library location?')
     elif element_id == "admin_refresh_cover_cache":
-        texts["main"] = _('Calibre-Web will search for updated Covers '
+        texts["main"] = _('Getmyebook will search for updated Covers '
                           'and update Cover Thumbnails, this may take a while?')
     elif element_id == "btnfullsync":
-        texts["main"] = _("Are you sure you want delete Calibre-Web's sync database "
+        texts["main"] = _("Are you sure you want delete Getmyebook's sync database "
                           "to force a full sync with your Kobo Reader?")
     return json.dumps(texts)
 
@@ -1119,7 +1119,7 @@ def restriction_deletion(element, list_func):
 
 def prepare_tags(user, action, tags_name, id_list):
     if "tags" in tags_name:
-        tags = calibre_db.session.query(db.Tags).filter(db.Tags.id.in_(id_list)).all()
+        tags = calibre_db.session.query(Tags).filter(Tags.id.in_(id_list)).all()
         if not tags:
             raise Exception(_("Tag not found"))
         new_tags_list = [x.name for x in tags]
@@ -1253,35 +1253,7 @@ def _config_checkbox_int(to_save, x):
 def _config_string(to_save, x):
     return config.set_from_dictionary(to_save, x, lambda y: y.strip().strip(u'\u200B\u200C\u200D\ufeff') if y else y)
 
-def _configuration_gdrive_helper(to_save):
-    gdrive_error = None
-    if to_save.get("config_use_google_drive"):
-        gdrive_secrets = {}
-
-        if not os.path.isfile(gdriveutils.SETTINGS_YAML):
-            config.config_use_google_drive = False
-
-        if gdrive_support:
-            gdrive_error = gdriveutils.get_error_text(gdrive_secrets)
-        if "config_use_google_drive" in to_save and not config.config_use_google_drive and not gdrive_error:
-            with open(gdriveutils.CLIENT_SECRETS, 'r') as settings:
-                gdrive_secrets = json.load(settings)['web']
-            if not gdrive_secrets:
-                return _configuration_result(_('client_secrets.json Is Not Configured For Web Application'))
-            gdriveutils.update_settings(
-                gdrive_secrets['client_id'],
-                gdrive_secrets['client_secret'],
-                gdrive_secrets['redirect_uris'][0]
-            )
-
-    # always show Google Drive settings, but in case of error deny support
-    new_gdrive_value = (not gdrive_error) and ("config_use_google_drive" in to_save)
-    if config.config_use_google_drive and not new_gdrive_value:
-        config.config_google_drive_watch_changes_response = {}
-    config.config_use_google_drive = new_gdrive_value
-    if _config_string(to_save, "config_google_drive_folder"):
-        gdriveutils.deleteDatabaseOnChange()
-    return gdrive_error
+# Google Drive configuration helper removed
 
 # Update the OAuth configuration helper
 def _configuration_oauth_helper(to_save):
@@ -1451,7 +1423,7 @@ def update_mailsettings():
             flash(_("Success! Gmail Account Verified."), category="success")
         except Exception as ex:
             flash(str(ex), category="error")
-            log.error(ex)
+            log.error(f"❌ Error occurred: {ex}")
             return edit_mailsettings()
 
     else:
@@ -1555,11 +1527,11 @@ def update_scheduledtasks():
             schedule.register_scheduled_tasks(config.schedule_reconnect)
         except IntegrityError:
             ub.session.rollback()
-            log.error("An unknown error occurred while saving scheduled tasks settings")
+            log.error("❌ An unknown error occurred while saving scheduled tasks settings")
             flash(_("Oops! An unknown error occurred. Please try again later."), category="error")
         except OperationalError:
             ub.session.rollback()
-            log.error("Settings DB is not Writeable")
+            log.error("❌ Settings DB is not Writeable")
             flash(_("Settings DB is not Writeable"), category="error")
 
     return edit_scheduledtasks()
@@ -1602,10 +1574,10 @@ def reset_user_password(user_id):
             log.debug("Password for user %s reset", message)
             flash(_("Success! Password for user %(user)s reset", user=message), category="success")
         elif ret == 0:
-            log.error("An unknown error occurred. Please try again later.")
+            log.error("❌ An unknown error occurred. Please try again later.")
             flash(_("Oops! An unknown error occurred. Please try again later."), category="error")
         else:
-            log.error("Please configure the SMTP mail settings.")
+            log.error("❌ Please configure the SMTP mail settings.")
             flash(_("Oops! Please configure the SMTP mail settings."), category="error")
     return redirect(url_for('admin.admin'))
 
@@ -1711,7 +1683,7 @@ def ldap_import_create_user(user, user_data):
     try:
         username = user_data[user_login_field][0].decode('utf-8')
     except KeyError as ex:
-        log.error("Failed to extract LDAP user: %s - %s", user, ex)
+        log.error(f"❌ Failed to extract LDAP user: {user} - {ex}")
         message = _(u'Failed to extract at least One LDAP User')
         return 0, message
 
@@ -1824,95 +1796,34 @@ def cancel_task():
 def _db_simulate_change():
     param = request.form.to_dict()
     to_save = dict()
-    # For PostgreSQL, we don't use file paths for database configuration
-    # The config_calibre_dir parameter is kept for compatibility but not used for PostgreSQL connections
     to_save['config_calibre_dir'] = param.get('config_calibre_dir', '').strip()
-    
-    # For PostgreSQL, database validation is done via connection testing
-    # rather than file existence checks
-    db_valid = calibre_db.check_valid_db(to_save["config_calibre_dir"],
-                                        ub.app_DB_path,
-                                        config.config_calibre_uuid)
-    
+    log.info(f"Updated to_save dictionary: {to_save}")
+
+    db_valid = calibre_db.check_valid_db(to_save["config_calibre_dir"])
     log.info(f"PostgreSQL database validation: {db_valid}")
     
-    # For PostgreSQL, we always consider the database as changed since we're using connection-based validation
-    db_change = True
-    
+    db_change = True    
     return db_change, db_valid
 
-# def _db_configuration_update_helper():
-#     db_change = False
-#     to_save = request.form.to_dict()
-#     gdrive_error = None
-#     log.info(f"Database configuration update request: {to_save}")
-
-#     # For PostgreSQL, database configuration is handled via environment variables
-#     # The config_calibre_dir parameter is kept for compatibility
-#     to_save['config_calibre_dir'] = to_save.get('config_calibre_dir', '').strip()
-    
-#     db_valid = False
-#     try:
-#         # For PostgreSQL, database validation is connection-based
-#         db_change, db_valid = _db_simulate_change()
-
-#         # Google Drive setup
-#         gdrive_error = _configuration_gdrive_helper(to_save)
-#     except (OperationalError, InvalidRequestError) as e:
-#         ub.session.rollback()
-#         log.error_or_exception("Settings Database error: {}".format(e))
-#         _db_configuration_result(_("Oops! Database Error: %(error)s.", error=e.orig), gdrive_error)
-    
-#     # For PostgreSQL, we always attempt to setup the database connection
-#     # since we're using environment variables for configuration
-#     if not db_valid or not config.db_configured:
-#         log.info("Setting up PostgreSQL database connection")
-#         calibre_db.setup_db(to_save['config_calibre_dir'], ub.app_DB_path)
-        
-#     config.store_calibre_uuid(calibre_db, db.Library_Id)
-    
-#     # If database changed -> delete shelfs, delete download books, delete read books, kobo sync...
-#     if db_change:
-#         log.info("Calibre Database changed, all Calibre-Web info related to old Database gets deleted")
-#         ub.session.query(ub.Downloads).delete()
-#         ub.session.query(ub.ArchivedBook).delete()
-#         ub.session.query(ub.ReadBook).delete()
-#         ub.session.query(ub.BookShelf).delete()
-#         ub.session.query(ub.Bookmark).delete()
-#         ub.session.query(ub.KoboReadingState).delete()
-#         ub.session.query(ub.KoboStatistics).delete()
-#         ub.session.query(ub.KoboSyncedBooks).delete()
-#         helper.delete_thumbnail_cache()
-#         ub.session_commit()
-    
-#     _config_string(to_save, "config_calibre_dir")
-#     calibre_db.update_config(config)
-    
-#     _config_string(to_save, "config_calibre_split_dir")
-#     config.config_calibre_split = to_save.get('config_calibre_split', 0) == "on"
-#     calibre_db.update_config(config)
-#     config.save()
-#     return _db_configuration_result(None, gdrive_error)
-
 def _db_configuration_update_helper():
-    db_change = False
     to_save = request.form.to_dict()
-    gdrive_error = None
+    log.info(f"Received database configuration update with data: {to_save}")
 
     # Clean up the calibre directory path
     to_save['config_calibre_dir'] = re.sub(r'[\\/]metadata\.db$',
                                            '',
                                            to_save['config_calibre_dir'],
                                            flags=re.IGNORECASE)
+    log.info(f"Received database configuration update with data 2: {to_save}")
     
+    db_change = False
     db_valid = False
     try:
         db_change, db_valid = _db_simulate_change()
-        gdrive_error = _configuration_gdrive_helper(to_save)
     except (OperationalError, InvalidRequestError) as e:
         ub.session.rollback()
-        log.error_or_exception("Settings Database error: {}".format(e))
-        return _db_configuration_result(_("Oops! Database Error: %(error)s.", error=e.orig), gdrive_error)
+        log.error_or_exception(f"❌ Settings Database error: {e}")
+        return _db_configuration_result(_("Oops! Database Error: %(error)s.", error=e.orig))
     
     # Handle PostgreSQL migration for metadata if requested
     migrate_to_postgres = to_save.get('migrate_to_postgresql') == 'on'
@@ -1920,7 +1831,7 @@ def _db_configuration_update_helper():
         try:
             metadata_db_path = os.path.join(to_save['config_calibre_dir'], "metadata.db")
             if not os.path.exists(metadata_db_path):
-                return _db_configuration_result(_('Metadata.db file not found at the specified location'), gdrive_error)
+                return _db_configuration_result(_('Metadata.db file not found at the specified location'))
             
             postgres_url = get_postgres_metadata_url(config)
             migrate_metadata_to_postgres(metadata_db_path, postgres_url)
@@ -1931,25 +1842,15 @@ def _db_configuration_update_helper():
             config.config_postgresql_metadata_url = postgres_url
             
         except Exception as e:
-            log.error(f"PostgreSQL migration failed: {e}")
-            return _db_configuration_result(_('PostgreSQL migration failed: %(error)s', error=str(e)), gdrive_error)
+            log.error(f"❌ PostgreSQL migration failed: {e}")
+            return _db_configuration_result(_('PostgreSQL migration failed: %(error)s', error=str(e)))
 
-    # Handle Google Drive metadata.db download if needed
-    try:
-        metadata_db = os.path.join(to_save['config_calibre_dir'], "metadata.db")
-        if config.config_use_google_drive and is_gdrive_ready() and not os.path.exists(metadata_db):
-            gdriveutils.downloadFile(None, "metadata.db", metadata_db)
-            db_change = True
-    except Exception as ex:
-        log.error(f"Google Drive download failed: {ex}")
-        return _db_configuration_result('{}'.format(ex), gdrive_error)
-    
     # Handle split directory configuration
     config.config_calibre_split = to_save.get('config_calibre_split', 'off') == "on"
     if config.config_calibre_split:
         split_dir = to_save.get("config_calibre_split_dir", "").strip()
         if not split_dir or not os.path.exists(split_dir):
-            return _db_configuration_result(_("Books path is not valid or does not exist"), gdrive_error)
+            return _db_configuration_result(_("Books path is not valid or does not exist"))
         else:
             _config_string(to_save, "config_calibre_split_dir")
     
@@ -1963,7 +1864,7 @@ def _db_configuration_update_helper():
     if needs_db_update:
         # Validate database location
         if not to_save['config_calibre_dir'] or not os.path.exists(metadata_db_path):
-            return _db_configuration_result(_('Database location is not valid. Please enter correct path'), gdrive_error)
+            return _db_configuration_result(_('Database location is not valid. Please enter correct path'))
         
         # Setup database connection (PostgreSQL or SQLite)
         if config.config_use_postgresql and config.config_use_postgresql_metadata:
@@ -2004,9 +1905,9 @@ def _db_configuration_update_helper():
                 log.info("Database cleanup completed successfully")
                 
             except Exception as cleanup_error:
-                log.error(f"Database cleanup failed: {cleanup_error}")
+                log.error(f"❌ Database cleanup failed: {cleanup_error}")
                 ub.session.rollback()
-                return _db_configuration_result(_('Database cleanup failed'), gdrive_error)
+                return _db_configuration_result(_('Database cleanup failed'))
         
         # Update configuration with new database path
         _config_string(to_save, "config_calibre_dir")
@@ -2016,7 +1917,7 @@ def _db_configuration_update_helper():
         
         # Store Calibre UUID
         try:
-            config.store_calibre_uuid(calibre_db, db.Library_Id)
+            config.store_calibre_uuid(calibre_db, Library_Id)
         except Exception as uuid_error:
             log.warning(f"Could not store Calibre UUID: {uuid_error}")
         
@@ -2034,10 +1935,10 @@ def _db_configuration_update_helper():
         config.save()
         log.info("Database configuration saved successfully")
     except Exception as save_error:
-        log.error(f"Failed to save configuration: {save_error}")
-        return _db_configuration_result(_('Failed to save configuration'), gdrive_error)
+        log.error(f"❌ Failed to save configuration: {save_error}")
+        return _db_configuration_result(_('Failed to save configuration'))
     
-    return _db_configuration_result(None, gdrive_error)
+    return _db_configuration_result(None)
 
 
 # Helper function for PostgreSQL metadata URL
@@ -2160,11 +2061,11 @@ def migrate_metadata_to_postgres(sqlite_path, postgres_url):
             
         except Exception as e:
             transaction.rollback()
-            log.error(f"Migration failed during table processing: {e}")
+            log.error(f"❌ Migration failed during table processing: {e}")
             raise
             
     except Exception as e:
-        log.error(f"Migration failed: {e}")
+        log.error(f"❌ Migration failed: {e}")
         raise
     finally:
         # Clean up connections
@@ -2293,7 +2194,7 @@ def _configuration_update_helper():
 def _configuration_result(error_flash=None, reboot=False):
     resp = {}
     if error_flash:
-        log.error(error_flash)
+        log.error(f"❌ {error_flash}")
         config.load()
         resp['result'] = [{'type': "danger", 'message': error_flash}]
     else:
@@ -2302,39 +2203,22 @@ def _configuration_result(error_flash=None, reboot=False):
     resp['config_upload'] = config.config_upload_formats
     return Response(json.dumps(resp), mimetype='application/json')
 
-def _db_configuration_result(error_flash=None, gdrive_error=None):
-    
-    gdrive_authenticate = not is_gdrive_ready()
-    gdrivefolders = []
-    if not gdrive_error and config.config_use_google_drive:
-        gdrive_error = gdriveutils.get_error_text()
-    if gdrive_error and gdrive_support:
-        log.error(gdrive_error)
-        gdrive_error = _(gdrive_error)
-        flash(gdrive_error, category="error")
-    else:
-        if not gdrive_authenticate and gdrive_support:
-            gdrivefolders = gdriveutils.listRootFolders()
-
+def _db_configuration_result(error_flash=None):
+    """Render DB configuration page (Google Drive support removed)."""
     if error_flash:
-        log.error(error_flash)
+        log.error(f"❌ {error_flash}")
         config.load()
         flash(error_flash, category="error")
-    elif request.method == "POST" and not gdrive_error:
+    elif request.method == "POST":
         flash(_("Database Settings updated"), category="success")
-    
+
     # Log PostgreSQL configuration status
     _log_postgresql_config_status()
-    
-    # log.info(f"Database configuration - config: {config}, show_authenticate_google_drive: {gdrive_authenticate}, gdriveError: {gdrive_error}, feature_support: {feature_support}")
-    
+
     return render_title_template("config_db.html",
-                                 config=config,
-                                 show_authenticate_google_drive=gdrive_authenticate,
-                                 gdriveError=gdrive_error,
-                                 gdrivefolders=gdrivefolders,
-                                 feature_support=feature_support,
-                                 title=_("Database Configuration"), page="dbconfig")
+                                config=config,
+                                title=_("Database Configuration"),
+                                page="dbconfig")
 
 def _log_postgresql_config_status():
     """Log PostgreSQL configuration status for admin debugging"""
@@ -2348,9 +2232,9 @@ def _log_postgresql_config_status():
     
     if all([db_user, db_host, db_port, db_name_app]):
         log.info("PostgreSQL configuration detected via environment variables")
-        # log.info(f"Database Host: {db_host}:{db_port}")
-        # log.info(f"App Database: {db_name_app}")
-        # log.info(f"Database configured: {config.db_configured}")
+        log.info(f"Database Host: {db_host}:{db_port}")
+        log.info(f"App Database: {db_name_app}")
+        log.info(f"Database configured: {config.db_configured}")
     else:
         log.warning("Incomplete PostgreSQL environment variables detected")
         missing_vars = []
@@ -2403,11 +2287,11 @@ def _handle_new_user(to_save, content, languages, translations, kobo_support):
         return redirect(url_for('admin.admin'))
     except IntegrityError:
         ub.session.rollback()
-        log.error("Found an existing account for {} or {}".format(content.name, content.email))
+        log.error(f"❌ Found an existing account for {content.name} or {content.email}")
         flash(_("Oops! An account already exists for this Email. or name."), category="error")
     except OperationalError as e:
         ub.session.rollback()
-        log.error_or_exception("Settings Database error: {}".format(e))
+        log.error_or_exception(f"❌ Settings Database error: {e}")
         flash(_("Oops! Database Error: %(error)s.", error=e.orig), category="error")
 
 def _delete_user(content):
@@ -2453,7 +2337,7 @@ def _handle_edit_user(to_save, content, languages, translations, kobo_support):
         try:
             flash(_delete_user(content), category="success")
         except Exception as ex:
-            log.error(ex)
+            log.error(f"❌ Error occurred while deleting user: {ex}")
             flash(str(ex), category="error")
         return redirect(url_for('admin.admin'))
     else:
@@ -2511,7 +2395,7 @@ def _handle_edit_user(to_save, content, languages, translations, kobo_support):
             if to_save.get("kindle_mail") != content.kindle_mail:
                 content.kindle_mail = valid_email(to_save["kindle_mail"]) if to_save["kindle_mail"] else ""
         except Exception as ex:
-            log.error(ex)
+            log.error(f"❌ Error occurred :{ex}")
             flash(str(ex), category="error")
             return render_title_template("user_edit.html",
                                          translations=translations,
@@ -2529,11 +2413,11 @@ def _handle_edit_user(to_save, content, languages, translations, kobo_support):
         flash(_("User '%(nick)s' updated", nick=content.name), category="success")
     except IntegrityError as ex:
         ub.session.rollback()
-        log.error("An unknown error occurred while changing user: {}".format(str(ex)))
+        log.error(f"❌ An unknown error occurred while changing user: {str(ex)}")
         flash(_("Oops! An unknown error occurred. Please try again later."), category="error")
     except OperationalError as e:
         ub.session.rollback()
-        log.error_or_exception("Settings Database error: {}".format(e))
+        log.error_or_exception(f"❌ Settings Database error: {e}")
         flash(_("Oops! Database Error: %(error)s.", error=e.orig), category="error")
     return ""
 
@@ -2542,14 +2426,14 @@ def extract_user_data_from_field(user, field):
     if match:
         return match.group(1)
     else:
-        raise Exception("Could Not Parse LDAP User: {}".format(user))
+        raise Exception(f"❌ Could Not Parse LDAP User: {user}")
 
 def extract_dynamic_field_from_filter(user, filtr):
     match = re.search("([a-zA-Z0-9-]+)=%s", filtr, re.IGNORECASE | re.UNICODE)
     if match:
         return match.group(1)
     else:
-        raise Exception("Could Not Parse LDAP Userfield: {}", user)
+        raise Exception(f"❌ Could Not Parse LDAP Userfield: {user}")
 
 def extract_user_identifier(user, filtr):
     dynamic_field = extract_dynamic_field_from_filter(user, filtr)

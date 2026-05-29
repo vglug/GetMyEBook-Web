@@ -15,6 +15,8 @@ from cps.models.forum import (   # noqa: F401
 )
 from . import ub
 from . import db
+from . import metadatadb
+from . import settings
 
 __all__ = [
     "Base",
@@ -25,4 +27,6 @@ __all__ = [
     "Emoji",
     "ub",
     "db",
+    "metadatadb",
+    "settings",
 ]

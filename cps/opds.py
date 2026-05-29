@@ -37,7 +37,9 @@ from .usermanagement import requires_basic_auth_if_no_ano, auth
 from .helper import get_download_link, get_book_cover
 from .pagination import Pagination
 from .web import render_read_books
-
+from cps.models.ratings import Ratings
+from cps.models.tags import Tags
+from cps.models.authors import Authors
 
 opds = Blueprint('opds', __name__)
 
@@ -122,7 +124,7 @@ def feed_best_rated():
         abort(404)
     off = request.args.get("offset") or 0
     entries, __, pagination = calibre_db.fill_indexpage((int(off) / (int(config.config_books_per_page)) + 1), 0,
-                                                        db.Books, db.Books.ratings.any(db.Ratings.rating > 9),
+                                                        db.Books, db.Books.ratings.any(Ratings.rating > 9),
                                                         [db.Books.timestamp.desc()],
                                                         True, config.config_read_column)
     return render_xml_template('feed.xml', entries=entries, pagination=pagination)
@@ -157,7 +159,7 @@ def feed_hot():
 def feed_authorindex():
     if not auth.current_user().check_visibility(constants.SIDEBAR_AUTHOR):
         abort(404)
-    return render_element_index(db.Authors.sort, db.books_authors_link, 'opds.feed_letter_author')
+    return render_element_index(Authors.sort, db.books_authors_link, 'opds.feed_letter_author')
 
 
 @opds.route("/opds/author/letter/<book_id>")
@@ -166,11 +168,11 @@ def feed_letter_author(book_id):
     if not auth.current_user().check_visibility(constants.SIDEBAR_AUTHOR):
         abort(404)
     off = request.args.get("offset") or 0
-    letter = true() if book_id == "00" else func.upper(db.Authors.sort).startswith(book_id)
-    entries = calibre_db.session.query(db.Authors).join(db.books_authors_link).join(db.Books)\
+    letter = true() if book_id == "00" else func.upper(Authors.sort).startswith(book_id)
+    entries = calibre_db.session.query(Authors).join(db.books_authors_link).join(db.Books)\
         .filter(calibre_db.common_filters()).filter(letter)\
-        .group_by(db.Authors.id)\
-        .order_by(db.Authors.sort)
+        .group_by(Authors.id)\
+        .order_by(Authors.sort)
     pagination = Pagination((int(off) / (int(config.config_books_per_page)) + 1), config.config_books_per_page,
                             entries.count())
     entries = entries.limit(config.config_books_per_page).offset(off).all()
@@ -180,7 +182,7 @@ def feed_letter_author(book_id):
 @opds.route("/opds/author/<int:book_id>")
 @requires_basic_auth_if_no_ano
 def feed_author(book_id):
-    return render_xml_dataset(db.Authors, book_id)
+    return render_xml_dataset(Authors, book_id)
 
 
 @opds.route("/opds/publisher")
@@ -211,7 +213,7 @@ def feed_publisher(book_id):
 def feed_categoryindex():
     if not auth.current_user().check_visibility(constants.SIDEBAR_CATEGORY):
         abort(404)
-    return render_element_index(db.Tags.name, db.books_tags_link, 'opds.feed_letter_category')
+    return render_element_index(Tags.name, db.books_tags_link, 'opds.feed_letter_category')
 
 
 @opds.route("/opds/category/letter/<book_id>")
@@ -220,13 +222,13 @@ def feed_letter_category(book_id):
     if not auth.current_user().check_visibility(constants.SIDEBAR_CATEGORY):
         abort(404)
     off = request.args.get("offset") or 0
-    letter = true() if book_id == "00" else func.upper(db.Tags.name).startswith(book_id)
-    entries = calibre_db.session.query(db.Tags)\
+    letter = true() if book_id == "00" else func.upper(Tags.name).startswith(book_id)
+    entries = calibre_db.session.query(Tags)\
         .join(db.books_tags_link)\
         .join(db.Books)\
         .filter(calibre_db.common_filters()).filter(letter)\
-        .group_by(db.Tags.id)\
-        .order_by(db.Tags.name)
+        .group_by(Tags.id)\
+        .order_by(Tags.name)
     pagination = Pagination((int(off) / (int(config.config_books_per_page)) + 1), config.config_books_per_page,
                             entries.count())
     entries = entries.offset(off).limit(config.config_books_per_page).all()
@@ -236,7 +238,7 @@ def feed_letter_category(book_id):
 @opds.route("/opds/category/<int:book_id>")
 @requires_basic_auth_if_no_ano
 def feed_category(book_id):
-    return render_xml_dataset(db.Tags, book_id)
+    return render_xml_dataset(Tags, book_id)
 
 
 @opds.route("/opds/series")
@@ -284,13 +286,13 @@ def feed_ratingindex():
     if not auth.current_user().check_visibility(constants.SIDEBAR_RATING):
         abort(404)
     off = request.args.get("offset") or 0
-    entries = calibre_db.session.query(db.Ratings, func.count('books_ratings_link.book').label('count'),
-                                       (db.Ratings.rating / 2).label('name')) \
+    entries = calibre_db.session.query(Ratings, func.count('books_ratings_link.book').label('count'),
+                                       (Ratings.rating / 2).label('name')) \
         .join(db.books_ratings_link)\
         .join(db.Books)\
         .filter(calibre_db.common_filters()) \
-        .group_by(db.Ratings.id)\
-        .order_by(db.Ratings.rating).all()
+        .group_by(Ratings.id)\
+        .order_by(Ratings.rating).all()
 
     pagination = Pagination((int(off) / (int(config.config_books_per_page)) + 1), config.config_books_per_page,
                             len(entries))
@@ -303,7 +305,7 @@ def feed_ratingindex():
 @opds.route("/opds/ratings/<book_id>")
 @requires_basic_auth_if_no_ano
 def feed_ratings(book_id):
-    return render_xml_dataset(db.Ratings, book_id)
+    return render_xml_dataset(Ratings, book_id)
 
 
 @opds.route("/opds/formats")
@@ -451,8 +453,8 @@ def get_metadata_calibre_companion(uuid, library):
 def get_database_stats():
     stat = dict()
     stat['books'] = calibre_db.session.query(db.Books).count()
-    stat['authors'] = calibre_db.session.query(db.Authors).count()
-    stat['categories'] = calibre_db.session.query(db.Tags).count()
+    stat['authors'] = calibre_db.session.query(Authors).count()
+    stat['categories'] = calibre_db.session.query(Tags).count()
     stat['series'] = calibre_db.session.query(db.Series).count()
     return Response(json.dumps(stat), mimetype="application/json")
 

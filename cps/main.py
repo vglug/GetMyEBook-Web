@@ -33,7 +33,6 @@ def main():
     from .web import web
     from .opds import opds
     from .admin import admi
-    from .gdrive import gdrive
     from .editbooks import editbook
     from .about import about
     from .search import search
@@ -73,7 +72,6 @@ def main():
     app.register_blueprint(admi)
     app.register_blueprint(remotelogin)
     app.register_blueprint(meta)
-    app.register_blueprint(gdrive)
     app.register_blueprint(editbook)
 
     if kobo_available:

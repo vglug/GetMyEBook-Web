@@ -17,6 +17,7 @@
 #   along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 import atexit
+import sys
 
 from .. import logger
 from .worker import WorkerThread
@@ -43,7 +44,12 @@ class BackgroundScheduler:
             cls._instance = super(BackgroundScheduler, cls).__new__(cls)
             cls.log = logger.create()
             cls.scheduler = BScheduler()
-            cls.scheduler.start()
+            # Don't start the scheduler when running migration commands (e.g. `flask db upgrade`).
+            # Flask imports the app and may call create_app() during CLI operations; starting
+            # background services there prevents the process from exiting. Guard by checking
+            # command-line args for the Flask-Migrate "db" command.
+            if not any(arg == 'db' for arg in sys.argv):
+                cls.scheduler.start()
 
         return cls._instance
 

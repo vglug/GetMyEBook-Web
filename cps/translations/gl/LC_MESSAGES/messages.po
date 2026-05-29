@@ -184,7 +184,7 @@ msgid "Are you sure you want to change shelf sync behavior for the selected user
 msgstr "De verdade queres cambiar o comportamento da sincronización do andel para o usuario seleccionado?"
 
 #: cps/admin.py:631
-msgid "Are you sure you want to change Calibre library location?"
+msgid "Are you sure you want to change Getmyebook library location?"
 msgstr "De verdade queres cambiar a localización da biblioteca Calibre?"
 
 #: cps/admin.py:633
@@ -643,17 +643,7 @@ msgstr "Fallo ao gardar o arquivo %(file)s."
 msgid "File format %(ext)s added to %(book)s"
 msgstr "Arquivo con formato %(ext)s engadido a %(book)s"
 
-#: cps/gdrive.py:58
-msgid "Google Drive setup not completed, try to deactivate and activate Google Drive again"
-msgstr "A configuración de Google Drive non se completou, intente desactivar e activar Google Drive outra vez"
-
-#: cps/gdrive.py:96
-msgid "Callback domain is not verified, please follow steps to verify domain in google developer console"
-msgstr "O dominio Callback non se comprobou, siga os pasos para comprobalo na consola de desenvolvedor de Google"
-
-#: cps/helper.py:86
-#, python-format
-msgid "%(format)s format not found for book id: %(book)d"
+ 
 msgstr "%(format)s formato non atopado para o id do libro: %(book)d"
 
 #: cps/helper.py:93 cps/tasks/convert.py:89
