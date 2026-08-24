@@ -294,8 +294,15 @@ class ConfigSQL(object):
             # Use the class definition to check for attribute existence
             # instead of hasattr() which triggers lazy loading
             if k in _Settings.__dict__ or hasattr(_Settings, k):
+                if k == "mail_password_e":
+                    log.info("DEBUG: mail_password_e received for encryption; length=%d",len(self.__dict__.get(k, "")))
+    
                 if k.endswith("_e"):
-                    setattr(s, k, self._fernet.encrypt(self.__dict__[k].encode()))
+                    encrypted_value = self._fernet.encrypt(self.__dict__[k].encode()).decode("ascii")
+                    setattr(s, k, encrypted_value)
+
+                    if k == "mail_password_e":
+                       log.info("DEBUG: encrypted mail_password_e length=%d",len(encrypted_value))
                 else:
                     setattr(s, k, self.__dict__[k])
 
@@ -630,23 +637,38 @@ def get_flask_session_key(_session):
 
 
 def get_encryption_key(key_path):
+    """
+    Load the existing persistent Fernet encryption key.
+
+    The key MUST NOT be regenerated automatically because encrypted
+    SMTP/database passwords depend on the original key.
+    """
     key_file = os.path.join(key_path, ".key")
-    generate = True
-    error = ""
-    key = None
-    if os.path.exists(key_file) and os.path.getsize(key_file) > 32:
+
+    # The existing key must be present.
+    if not os.path.isfile(key_file):
+        raise RuntimeError(
+            f"Encryption key file is missing: {key_file}. "
+            "Create/restore the original .key file. "
+            "A new key will NOT be generated automatically."
+        )
+
+    try:
         with open(key_file, "rb") as f:
-            key = f.read()
-        try:
-            urlsafe_b64decode(key)
-            generate = False
-        except ValueError:
-            pass
-    if generate:
-        key = Fernet.generate_key()
-        try:
-            with open(key_file, "wb") as f:
-                f.write(key)
-        except PermissionError as e:
-            error = e
-    return key, error
+            key = f.read().strip()
+
+        # Validate the Fernet key.
+        urlsafe_b64decode(key)
+
+        # Fernet keys must be 32 raw bytes encoded as 44 chars.
+        if len(key) != 44:
+            raise ValueError(
+                f"Invalid Fernet key length in {key_file}: {len(key)}"
+            )
+
+        return key, ""
+
+    except (OSError, ValueError) as e:
+        raise RuntimeError(
+            f"Invalid encryption key file: {key_file}. Error: {e}"
+        ) from e

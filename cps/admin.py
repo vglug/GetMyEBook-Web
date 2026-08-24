@@ -1409,7 +1409,11 @@ def edit_mailsettings():
 @admin_required
 def update_mailsettings():
     to_save = request.form.to_dict()
-    log.info("Updating Mail Settings with data: {}".format(to_save))
+    safe_to_save = to_save.copy()
+
+    if "mail_password_e" in safe_to_save:
+        safe_to_save["mail_password_e"] = "***REDACTED***"
+    log.info("Updating Mail Settings with data: {}".format(safe_to_save))
     _config_int(to_save, "mail_server_type")
     if to_save.get("invalidate"):
         config.mail_gmail_token = {}
@@ -1437,6 +1441,7 @@ def update_mailsettings():
              log.info("Updating Mail Settings: No password in form, keeping existing password.")
 
         if to_save.get("mail_password_e", ""):
+            log.info("DEBUG: mail_password_e form value present=%s, length=%d",bool(to_save.get("mail_password_e")),len(to_save.get("mail_password_e", "")))
             _config_string(to_save, "mail_password_e")
         _config_int(to_save, "mail_size", lambda y: int(y) * 1024 * 1024)
         _config_string(to_save, "mail_server")
